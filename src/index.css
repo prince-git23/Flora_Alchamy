@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+@theme {
+  --font-serif: 'Newsreader', Georgia, serif;
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Newsreader', Georgia, serif;
+
+  --color-surface-bg: #fcf9f4;
+  --color-surface-lowest: #ffffff;
+  --color-surface-low: #f6f3ee;
+  --color-surface-container: #f0ede9;
+  --color-surface-high: #ebe8e3;
+  --color-surface-highest: #e5e2dd;
+  
+  --color-botanical-primary: #180f0a;
+  --color-botanical-primary-dark: #120b07;
+  --color-botanical-espresso: #2e241e;
+  
+  --color-botanical-secondary: #964735;
+  --color-botanical-terracotta: #964735;
+  --color-botanical-terracotta-light: #ffdad3;
+  
+  --color-botanical-sage: #5b6d54;
+  --color-botanical-sage-light: #d8e7cd;
+  
+  --color-botanical-border: #e5e2dd;
+  --color-botanical-border-light: #f0ede9;
+  
+  --color-botanical-text: #1c1c19;
+  --color-botanical-muted: #4e4540;
+  --color-botanical-subtle: #80756f;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--color-surface-bg);
+  color: var(--color-botanical-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+}
+
+/* Custom smooth scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f6f3ee;
+}
+::-webkit-scrollbar-thumb {
+  background: #d1c4bd;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #80756f;
+}

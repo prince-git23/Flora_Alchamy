@@ -1,0 +1,6 @@
+{
+  "name": "Flora Alchemy",
+  "description": "Handcrafted pipe-cleaner floral art, botanical keepsakes, and personalized gifting boutique storefront in INR.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
