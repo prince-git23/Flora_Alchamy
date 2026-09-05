@@ -3,6 +3,7 @@ import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import PromoBar from './components/PromoBar.jsx';
 import Navbar from './components/Navbar.jsx';
 import Footer from './components/Footer.jsx';
+import AdminRoute from './components/AdminRoute.jsx';
 
 import HomePage from './pages/HomePage.jsx';
 import ShopPage from './pages/ShopPage.jsx';
@@ -20,11 +21,32 @@ import OurCreationsPage from './pages/OurCreationsPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import NotFoundPage from './pages/NotFoundPage.jsx';
 
-// Admin / Handler Pages (Phase 2A)
+// Admin / Handler Pages
 import AdminDashboardPage from './pages/admin/AdminDashboardPage.jsx';
-import AdminAccessPage from './pages/admin/AdminAccessPage.jsx';
+import AdminOrdersPage from './pages/admin/AdminOrdersPage.jsx';
+import AdminOrderDetailPage from './pages/admin/AdminOrderDetailPage.jsx';
+import AdminProductsPage from './pages/admin/AdminProductsPage.jsx';
+import AdminProductDetailPage from './pages/admin/AdminProductDetailPage.jsx';
+import AdminCollectionsPage from './pages/admin/AdminCollectionsPage.jsx';
+import AdminCollectionDetailPage from './pages/admin/AdminCollectionDetailPage.jsx';
+import AdminCustomersPage from './pages/admin/AdminCustomersPage.jsx';
+import AdminCustomerDetailPage from './pages/admin/AdminCustomerDetailPage.jsx';
+import AdminInventoryPage from './pages/admin/AdminInventoryPage.jsx';
+import AdminStockManagementPage from './pages/admin/AdminStockManagementPage.jsx';
+import AdminStockAdjustmentPage from './pages/admin/AdminStockAdjustmentPage.jsx';
+import AdminLowStockPage from './pages/admin/AdminLowStockPage.jsx';
+import AdminInventoryHistoryPage from './pages/admin/AdminInventoryHistoryPage.jsx';
+import AdminAnalyticsOverviewPage from './pages/admin/AdminAnalyticsOverviewPage.jsx';
+import AdminSalesRevenuePage from './pages/admin/AdminSalesRevenuePage.jsx';
+import AdminPerformancePage from './pages/admin/AdminPerformancePage.jsx';
 import AdminGeneralSettingsPage from './pages/admin/AdminGeneralSettingsPage.jsx';
+import AdminCommerceSettingsPage from './pages/admin/AdminCommerceSettingsPage.jsx';
+import AdminAccessPage from './pages/admin/AdminAccessPage.jsx';
+import AdminNotificationsPage from './pages/admin/AdminNotificationsPage.jsx';
 import AdminStorePreferencesPage from './pages/admin/AdminStorePreferencesPage.jsx';
+import AdminLoginPage from './pages/admin/AdminLoginPage.jsx';
+import AdminCreateOrderPage from './pages/admin/AdminCreateOrderPage.jsx';
+import AdminCreateProductPage from './pages/admin/AdminCreateProductPage.jsx';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -66,12 +88,37 @@ export default function App() {
           <Route path="/our-creations" element={<OurCreationsPage />} />
           <Route path="/login" element={<LoginPage />} />
 
-          {/* Admin / Handler Portal Routes (Phase 2A) */}
+          {/* Admin / Handler Portal Routes */}
           <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
-          <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
-          <Route path="/admin/access" element={<AdminAccessPage />} />
-          <Route path="/admin/settings" element={<AdminGeneralSettingsPage />} />
-          <Route path="/admin/store-preferences" element={<AdminStorePreferencesPage />} />
+          <Route path="/admin/login" element={<AdminLoginPage />} />
+          <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboardPage /></AdminRoute>} />
+          {/* Commerce */}
+          <Route path="/admin/orders" element={<AdminRoute><AdminOrdersPage /></AdminRoute>} />
+          <Route path="/admin/orders/:orderId" element={<AdminRoute><AdminOrderDetailPage /></AdminRoute>} />
+          <Route path="/admin/orders/new" element={<AdminRoute><AdminCreateOrderPage /></AdminRoute>} />
+          <Route path="/admin/products" element={<AdminRoute><AdminProductsPage /></AdminRoute>} />
+          <Route path="/admin/products/:productId" element={<AdminRoute><AdminProductDetailPage /></AdminRoute>} />
+          <Route path="/admin/products/new" element={<AdminRoute><AdminCreateProductPage /></AdminRoute>} />
+          <Route path="/admin/collections" element={<AdminRoute><AdminCollectionsPage /></AdminRoute>} />
+          <Route path="/admin/collections/:collectionId" element={<AdminRoute><AdminCollectionDetailPage /></AdminRoute>} />
+          {/* Operations */}
+          <Route path="/admin/customers" element={<AdminRoute><AdminCustomersPage /></AdminRoute>} />
+          <Route path="/admin/customers/:customerId" element={<AdminRoute><AdminCustomerDetailPage /></AdminRoute>} />
+          <Route path="/admin/inventory" element={<AdminRoute><AdminInventoryPage /></AdminRoute>} />
+          <Route path="/admin/inventory/stock" element={<AdminRoute><AdminStockManagementPage /></AdminRoute>} />
+          <Route path="/admin/inventory/adjust" element={<AdminRoute><AdminStockAdjustmentPage /></AdminRoute>} />
+          <Route path="/admin/inventory/low-stock" element={<AdminRoute><AdminLowStockPage /></AdminRoute>} />
+          <Route path="/admin/inventory/history" element={<AdminRoute><AdminInventoryHistoryPage /></AdminRoute>} />
+          {/* Insights */}
+          <Route path="/admin/analytics" element={<AdminRoute><AdminAnalyticsOverviewPage /></AdminRoute>} />
+          <Route path="/admin/analytics/sales" element={<AdminRoute><AdminSalesRevenuePage /></AdminRoute>} />
+          <Route path="/admin/analytics/performance" element={<AdminRoute><AdminPerformancePage /></AdminRoute>} />
+          {/* System */}
+          <Route path="/admin/settings" element={<AdminRoute><AdminGeneralSettingsPage /></AdminRoute>} />
+          <Route path="/admin/settings/commerce" element={<AdminRoute><AdminCommerceSettingsPage /></AdminRoute>} />
+          <Route path="/admin/access" element={<AdminRoute><AdminAccessPage /></AdminRoute>} />
+          <Route path="/admin/settings/notifications" element={<AdminRoute><AdminNotificationsPage /></AdminRoute>} />
+          <Route path="/admin/store-preferences" element={<AdminRoute><AdminStorePreferencesPage /></AdminRoute>} />
 
           {/* Wildcard Fallback */}
           <Route path="*" element={<NotFoundPage />} />

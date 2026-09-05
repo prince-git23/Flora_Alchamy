@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Search, Package, Truck, CheckCircle2, Clock, MapPin, Sparkles, MessageCircle, HelpCircle } from 'lucide-react';
-import { getOrder, getOrders } from '../services/api.js';
+import { getOrderById } from '../services/orderService.js';
 
 export default function OrderTrackingPage() {
   const { orderId } = useParams();
@@ -11,12 +11,12 @@ export default function OrderTrackingPage() {
 
   useEffect(() => {
     async function load() {
-      const found = await getOrder(searchCode);
+      const found = await getOrderById(searchCode);
       if (found) {
         setCurrentOrder(found);
         setError(null);
       } else {
-        setError('Order not found. Please try searching with "FA-1024" or "FA-0912".');
+        setError('Order not found. Please check your order reference (e.g. FA-1024).');
       }
     }
     load();
@@ -24,7 +24,7 @@ export default function OrderTrackingPage() {
 
   const handleSearch = async (e) => {
     e.preventDefault();
-    const found = await getOrder(searchCode.trim());
+    const found = await getOrderById(searchCode.trim());
     if (found) {
       setCurrentOrder(found);
       setError(null);

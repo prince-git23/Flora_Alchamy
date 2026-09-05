@@ -13,11 +13,53 @@ export default function AdminHeader({ onOpenMobileMenu }) {
     if (path === '/admin' || path === '/admin/dashboard') {
       return { section: 'Console', current: 'Dashboard' };
     }
+    if (path.startsWith('/admin/orders')) {
+      return { section: 'Commerce', current: path.includes('/orders/') ? 'Order Details' : 'Orders' };
+    }
+    if (path.startsWith('/admin/products')) {
+      return { section: 'Commerce', current: path.includes('/products/') ? 'Product Details' : 'Products' };
+    }
+    if (path.startsWith('/admin/collections')) {
+      return { section: 'Commerce', current: path.includes('/collections/') ? 'Collection Details' : 'Collections' };
+    }
+    if (path.startsWith('/admin/customers')) {
+      return { section: 'Operations', current: path.includes('/customers/') ? 'Customer Details' : 'Customers' };
+    }
+    if (path.startsWith('/admin/inventory/stock')) {
+      return { section: 'Operations', subsection: 'Inventory', current: 'Stock Management' };
+    }
+    if (path.startsWith('/admin/inventory/adjust')) {
+      return { section: 'Operations', subsection: 'Inventory', current: 'Stock Adjustment' };
+    }
+    if (path.startsWith('/admin/inventory/low-stock')) {
+      return { section: 'Operations', subsection: 'Inventory', current: 'Low Stock' };
+    }
+    if (path.startsWith('/admin/inventory/history')) {
+      return { section: 'Operations', subsection: 'Inventory', current: 'Inventory History' };
+    }
+    if (path.startsWith('/admin/inventory')) {
+      return { section: 'Operations', current: 'Inventory Overview' };
+    }
+    if (path.startsWith('/admin/analytics/sales')) {
+      return { section: 'Insights', subsection: 'Analytics', current: 'Sales & Revenue' };
+    }
+    if (path.startsWith('/admin/analytics/performance')) {
+      return { section: 'Insights', subsection: 'Analytics', current: 'Performance' };
+    }
+    if (path.startsWith('/admin/analytics')) {
+      return { section: 'Insights', current: 'Analytics' };
+    }
     if (path === '/admin/access') {
       return { section: 'System', subsection: 'Settings', current: 'Admin & Handler Access' };
     }
     if (path === '/admin/store-preferences') {
       return { section: 'System', subsection: 'Settings', current: 'Store Preferences' };
+    }
+    if (path === '/admin/settings/commerce') {
+      return { section: 'System', subsection: 'Settings', current: 'Order & Commerce' };
+    }
+    if (path === '/admin/settings/notifications') {
+      return { section: 'System', subsection: 'Settings', current: 'Notifications & Alerts' };
     }
     if (path === '/admin/settings') {
       return { section: 'System', subsection: 'Settings', current: 'General Settings' };

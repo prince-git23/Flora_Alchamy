@@ -1,17 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { NavLink, useLocation, Link } from 'react-router-dom';
 
 export default function AdminSidebar({ isOpen, onClose }) {
   const location = useLocation();
-  const [futureModuleNotice, setFutureModuleNotice] = useState(null);
 
-  const handleFutureModuleClick = (e, name) => {
-    e.preventDefault();
-    setFutureModuleNotice(`${name} workspace will be enabled in Phase 2B. Phase 2A operational foundation active.`);
-    setTimeout(() => {
-      setFutureModuleNotice(null);
-    }, 3500);
-  };
 
   const navGroups = [
     {
@@ -34,19 +26,19 @@ export default function AdminSidebar({ isOpen, onClose }) {
           path: '/admin/orders',
           icon: 'shopping_bag',
           badge: '8',
-          implemented: false
+          implemented: true
         },
         {
           name: 'Products',
           path: '/admin/products',
           icon: 'inventory_2',
-          implemented: false
+          implemented: true
         },
         {
           name: 'Collections',
           path: '/admin/collections',
           icon: 'auto_stories',
-          implemented: false
+          implemented: true
         }
       ]
     },
@@ -58,13 +50,13 @@ export default function AdminSidebar({ isOpen, onClose }) {
           path: '/admin/inventory',
           icon: 'warehouse',
           indicator: 'Low',
-          implemented: false
+          implemented: true
         },
         {
           name: 'Customers',
           path: '/admin/customers',
           icon: 'group',
-          implemented: false
+          implemented: true
         }
       ]
     },
@@ -75,7 +67,7 @@ export default function AdminSidebar({ isOpen, onClose }) {
           name: 'Analytics',
           path: '/admin/analytics',
           icon: 'analytics',
-          implemented: false
+          implemented: true
         }
       ]
     },
@@ -208,16 +200,6 @@ export default function AdminSidebar({ isOpen, onClose }) {
         </div>
       </div>
 
-      {/* Notice tooltip */}
-      {futureModuleNotice && (
-        <div className="mx-3 mb-2 p-2.5 bg-[#2e241e] text-[#fcf9f4] rounded-xl text-[11px] leading-snug shadow-md border border-[#ffdad3]/20 flex items-start gap-2">
-          <span className="material-symbols-outlined text-[16px] text-[#ffdad3] shrink-0 mt-0.5">schedule</span>
-          <div>
-            <p className="font-semibold text-[#ffdad3]">Scheduled Phase</p>
-            <p className="text-[11px] text-[#fcf9f4]/80">{futureModuleNotice}</p>
-          </div>
-        </div>
-      )}
 
       {/* Bottom Actions */}
       <div className="p-3 border-t border-[#e5e2dd] space-y-1 bg-[#f6f3ee]">

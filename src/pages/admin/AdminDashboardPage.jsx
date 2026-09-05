@@ -1,5 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout.jsx';
+import { getOrders, getOrderById, getStatusCounts, ORDER_STATUS_STYLES, ORDER_STATUSES } from '../../services/orderService.js';
+import { getLowStockItems } from '../../services/inventoryService.js';
+import { formatINR } from '../../services/orderService.js';
+
+function getStatusStyle(key) {
+  const styles = ORDER_STATUS_STYLES || {};
+  return styles[key] || 'bg-slate-100 text-slate-800';
+}
 
 export default function AdminDashboardPage() {
   const [viewState, setViewState] = useState('live'); // 'live' | 'empty' | 'loading'
@@ -94,53 +103,19 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const recentOrders = [
-    {
-      id: 'FA-1048',
-      customer: 'Aarav',
-      items: 'Rose Bouquet + Card',
-      amount: '₹899',
-      status: 'In Production',
-      statusStyle: 'bg-[#ffdad3] text-[#783020]',
-      date: 'Today, 11:30 AM'
-    },
-    {
-      id: 'FA-1047',
-      customer: 'Ananya',
-      items: 'Custom Gift Box',
-      amount: '₹1,499',
-      status: 'Ready to Dispatch',
-      statusStyle: 'bg-[#d8e7cd] text-[#3d4a37]',
-      date: 'Today, 09:15 AM'
-    },
-    {
-      id: 'FA-1046',
-      customer: 'Riya',
-      items: 'Tulip Bouquet',
-      amount: '₹599',
-      status: 'Confirmed',
-      statusStyle: 'bg-[#f1dfd5] text-[#50443d]',
-      date: 'Yesterday'
-    },
-    {
-      id: 'FA-1045',
-      customer: 'Kabir',
-      items: '5-Stem Lily Bouquet',
-      amount: '₹1,099',
-      status: 'Quality Check',
-      statusStyle: 'bg-[#ebe8e3] text-[#180f0a]',
-      date: 'Yesterday'
-    },
-    {
-      id: 'FA-1044',
-      customer: 'Meera',
-      items: 'Custom Keepsake',
-      amount: '₹1,799',
-      status: 'Shipped',
-      statusStyle: 'bg-[#e5e2dd] text-[#4e4540]',
-      date: '2 days ago'
-    }
-  ];
+  const recentOrders = useMemo(() => {
+    const allOrders = getOrders().slice(0, 5);
+    return allOrders.map(order => ({
+      id: order.id,
+      customer: order.customerName || 'Guest',
+      items: order.items.map(i => i.name).join(', ').slice(0, 40),
+      amount: formatINR(order.total || 0),
+      status: order.orderStatus || 'new',
+      statusStyle: getStatusStyle(order.orderStatus || 'new'),
+      date: order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '—',
+      trackingNumber: order.trackingNumber || null,
+    }));
+  }, []);
 
   const currentRevenue = revenueDataByPeriod[revenuePeriod];
 
@@ -197,23 +172,19 @@ export default function AdminDashboardPage() {
             </div>
 
             {/* Quick Action Buttons */}
-            <button
-              type="button"
-              onClick={() => setQuickModal({ title: 'Add Product', desc: 'Product creation wizard is pre-configured with botanical attributes for Phase 2B catalog uploads.' })}
+            <Link to="/admin/products"
               className="px-4 py-2 rounded-full border border-[#d1c4bd] bg-white text-[#180f0a] hover:bg-[#f6f3ee] text-[13px] font-semibold shadow-xs transition-all flex items-center gap-1.5"
             >
               <span className="material-symbols-outlined text-[17px]">add</span>
               <span>+ Add Product</span>
-            </button>
+            </Link>
 
-            <button
-              type="button"
-              onClick={() => setQuickModal({ title: 'Create Order', desc: 'Manual order creation intake is seeded for immediate handler dispatch testing.' })}
+            <Link to="/admin/orders"
               className="px-5 py-2 rounded-full bg-[#180f0a] text-white hover:bg-[#964735] text-[13px] font-semibold shadow-xs transition-all flex items-center gap-1.5"
             >
               <span className="material-symbols-outlined text-[17px]">add_circle</span>
               <span>+ Create Order</span>
-            </button>
+            </Link>
           </div>
         </div>
 
@@ -264,32 +235,32 @@ export default function AdminDashboardPage() {
           <div className="space-y-8">
             {/* 5-Card KPI Metrics Row */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-              {/* KPI 1 */}
+              {/* KPI 1: Total Orders */}
               <div className="p-4 bg-white rounded-2xl shadow-[0_4px_20px_-2px_rgba(46,36,30,0.04)] border border-[#e5e2dd] flex flex-col justify-between">
                 <div className="flex items-center justify-between text-[#80756f]">
-                  <span className="text-[11px] font-bold uppercase tracking-wider">Today's Orders</span>
+                  <span className="text-[11px] font-bold uppercase tracking-wider">Total Orders</span>
                   <span className="material-symbols-outlined text-[19px] text-[#5b6d54]">local_florist</span>
                 </div>
                 <div className="my-2">
                   <span className="font-serif text-3xl sm:text-4xl font-medium text-[#180f0a] leading-none">
-                    12
+                    {getStatusCounts().total}
                   </span>
                 </div>
                 <div className="flex items-center gap-1 text-[12px] text-[#1d2918] font-medium">
                   <span className="material-symbols-outlined text-[15px]">trending_up</span>
-                  <span>+3 from yesterday</span>
+                  <span>Sample data environment</span>
                 </div>
               </div>
 
-              {/* KPI 2 */}
+              {/* KPI 2: Pending Orders */}
               <div className="p-4 bg-white rounded-2xl shadow-[0_4px_20px_-2px_rgba(46,36,30,0.04)] border border-[#e5e2dd] flex flex-col justify-between">
                 <div className="flex items-center justify-between text-[#80756f]">
-                  <span className="text-[11px] font-bold uppercase tracking-wider">Pending Orders</span>
+                  <span className="text-[11px] font-bold uppercase tracking-wider">New / Confirmed</span>
                   <span className="material-symbols-outlined text-[19px] text-[#964735]">pending_actions</span>
                 </div>
                 <div className="my-2">
                   <span className="font-serif text-3xl sm:text-4xl font-medium text-[#180f0a] leading-none">
-                    8
+                    {getStatusCounts().new + getStatusCounts().confirmed}
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 text-[12px] text-[#964735] font-medium">
@@ -298,7 +269,7 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
-              {/* KPI 3 */}
+              {/* KPI 3: In Production */}
               <div className="p-4 bg-white rounded-2xl shadow-[0_4px_20px_-2px_rgba(46,36,30,0.04)] border border-[#e5e2dd] flex flex-col justify-between">
                 <div className="flex items-center justify-between text-[#80756f]">
                   <span className="text-[11px] font-bold uppercase tracking-wider">In Production</span>
@@ -306,7 +277,7 @@ export default function AdminDashboardPage() {
                 </div>
                 <div className="my-2">
                   <span className="font-serif text-3xl sm:text-4xl font-medium text-[#180f0a] leading-none">
-                    5
+                    {getStatusCounts().inProduction}
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 text-[12px] text-[#4e4540]">
@@ -315,7 +286,7 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
-              {/* KPI 4 */}
+              {/* KPI 4: Ready to Dispatch */}
               <div className="p-4 bg-white rounded-2xl shadow-[0_4px_20px_-2px_rgba(46,36,30,0.04)] border border-[#e5e2dd] flex flex-col justify-between">
                 <div className="flex items-center justify-between text-[#80756f]">
                   <span className="text-[11px] font-bold uppercase tracking-wider">Ready to Dispatch</span>
@@ -323,29 +294,29 @@ export default function AdminDashboardPage() {
                 </div>
                 <div className="my-2">
                   <span className="font-serif text-3xl sm:text-4xl font-medium text-[#180f0a] leading-none">
-                    4
+                    {getStatusCounts().readyToDispatch}
                   </span>
                 </div>
                 <div className="flex items-center gap-1 text-[12px] text-[#964735] font-medium">
                   <span className="material-symbols-outlined text-[15px]">schedule</span>
-                  <span>Awaiting handover</span>
+                  <span>Awaiting dispatch</span>
                 </div>
               </div>
 
-              {/* KPI 5 */}
+              {/* KPI 5: Total Revenue */}
               <div className="p-4 bg-white rounded-2xl shadow-[0_4px_20px_-2px_rgba(46,36,30,0.04)] border border-[#e5e2dd] flex flex-col justify-between col-span-2 sm:col-span-1">
                 <div className="flex items-center justify-between text-[#80756f]">
-                  <span className="text-[11px] font-bold uppercase tracking-wider">Today's Revenue</span>
+                  <span className="text-[11px] font-bold uppercase tracking-wider">Total Revenue</span>
                   <span className="material-symbols-outlined text-[19px] text-[#5b6d54]">payments</span>
                 </div>
                 <div className="my-2">
                   <span className="font-serif text-3xl sm:text-4xl font-medium text-[#180f0a] leading-none">
-                    ₹18,450
+                    {formatINR(getOrders().reduce((s, o) => s + (o.total || 0), 0))}
                   </span>
                 </div>
                 <div className="flex items-center gap-1 text-[12px] text-[#1d2918] font-medium">
                   <span className="material-symbols-outlined text-[15px]">arrow_upward</span>
-                  <span>+12.4% vs yesterday</span>
+                  <span>From sample orders</span>
                 </div>
               </div>
             </div>
@@ -542,14 +513,12 @@ export default function AdminDashboardPage() {
                         Latest incoming client commissions and deliveries.
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setQuickModal({ title: 'Full Orders Roster', desc: 'Orders management ledger with refund and delivery routing will unlock in Phase 2B.' })}
+                    <Link to="/admin/orders"
                       className="text-[#964735] hover:text-[#180f0a] text-[13px] font-semibold transition-colors flex items-center gap-1"
                     >
                       View All Orders
                       <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
-                    </button>
+                    </Link>
                   </div>
 
                   <div className="overflow-x-auto">
@@ -763,14 +732,12 @@ export default function AdminDashboardPage() {
                         Low Stock Alerts
                       </h2>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setQuickModal({ title: 'Inventory Management', desc: 'Detailed stock restock triggers and supplier ledger will unlock in Phase 2B.' })}
+                    <Link to="/admin/inventory/low-stock"
                       className="text-[#964735] hover:text-[#180f0a] text-[12px] font-semibold transition-colors flex items-center gap-0.5"
                     >
                       Manage Inventory
                       <span className="material-symbols-outlined text-[15px]">arrow_forward</span>
-                    </button>
+                    </Link>
                   </div>
 
                   <div className="space-y-2">
@@ -830,50 +797,47 @@ export default function AdminDashboardPage() {
                     Operations Shortcuts
                   </h2>
                   <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setQuickModal({ title: 'Create Order', desc: 'Manual order creation intake is seeded for immediate handler dispatch testing.' })}
+                    <Link to="/admin/orders"
                       className="p-3.5 rounded-xl bg-[#f6f3ee] hover:bg-[#ebe8e3] transition-all text-left flex flex-col justify-between group border border-[#e5e2dd]/40 cursor-pointer"
                     >
                       <span className="material-symbols-outlined text-[20px] text-[#180f0a] group-hover:text-[#964735] transition-colors">
                         add_shopping_cart
                       </span>
                       <span className="mt-2 text-[13px] font-semibold text-[#180f0a]">Create Order</span>
-                    </button>
+                    </Link>
 
-                    <button
-                      type="button"
-                      onClick={() => setQuickModal({ title: 'Add Product', desc: 'Product creation wizard is pre-configured with botanical attributes for Phase 2B catalog uploads.' })}
+                    <Link to="/admin/products"
                       className="p-3.5 rounded-xl bg-[#f6f3ee] hover:bg-[#ebe8e3] transition-all text-left flex flex-col justify-between group border border-[#e5e2dd]/40 cursor-pointer"
                     >
                       <span className="material-symbols-outlined text-[20px] text-[#180f0a] group-hover:text-[#964735] transition-colors">
                         post_add
                       </span>
                       <span className="mt-2 text-[13px] font-semibold text-[#180f0a]">Add Product</span>
-                    </button>
+                    </Link>
 
-                    <button
-                      type="button"
-                      onClick={() => setQuickModal({ title: 'Update Inventory', desc: 'Direct stock counter and batch arrival logs are scheduled for Phase 2B.' })}
+                    <Link to="/admin/inventory/adjust"
                       className="p-3.5 rounded-xl bg-[#f6f3ee] hover:bg-[#ebe8e3] transition-all text-left flex flex-col justify-between group border border-[#e5e2dd]/40 cursor-pointer"
                     >
                       <span className="material-symbols-outlined text-[20px] text-[#180f0a] group-hover:text-[#964735] transition-colors">
                         edit_note
                       </span>
                       <span className="mt-2 text-[13px] font-semibold text-[#180f0a]">Update Inventory</span>
-                    </button>
+                    </Link>
 
                     <button
                       type="button"
                       onClick={() => {
-                        const csvContent = 'data:text/csv;charset=utf-8,Order ID,Customer,Amount,Status\nFA-1048,Aarav,₹899,In Production\nFA-1047,Ananya,₹1499,Ready to Dispatch\nFA-1046,Riya,₹599,Confirmed\nFA-1045,Kabir,₹1099,Quality Check\nFA-1044,Meera,₹1799,Shipped';
-                        const encodedUri = encodeURI(csvContent);
+                        const orders = getOrders();
+                        const rows = [['Order ID', 'Customer', 'Amount', 'Status']];
+                        orders.forEach(o => rows.push([o.id, o.customerName || 'Guest', formatINR(o.total || 0), o.orderStatus || 'new']));
+                        const csv = rows.map(r => r.join(',')).join('\n');
+                        const blob = new Blob([csv], { type: 'text/csv' });
+                        const url = URL.createObjectURL(blob);
                         const link = document.createElement('a');
-                        link.setAttribute('href', encodedUri);
-                        link.setAttribute('download', 'flora_alchemy_summary.csv');
-                        document.body.appendChild(link);
+                        link.href = url;
+                        link.download = 'flora_alchemy_summary.csv';
                         link.click();
-                        document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
                       }}
                       className="p-3.5 rounded-xl bg-[#f6f3ee] hover:bg-[#ebe8e3] transition-all text-left flex flex-col justify-between group border border-[#e5e2dd]/40 cursor-pointer"
                     >

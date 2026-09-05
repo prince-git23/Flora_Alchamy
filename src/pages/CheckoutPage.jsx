@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ShieldCheck, Truck, CreditCard, QrCode, Lock, CheckCircle2 } from 'lucide-react';
 import { useStore } from '../context/StoreContext.jsx';
-import { createOrder } from '../services/api.js';
+import { createOrder } from '../services/orderService.js';
+import { getActiveCustomerId } from '../services/customerService.js';
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
@@ -75,19 +76,22 @@ export default function CheckoutPage() {
 
     try {
       const newOrder = await createOrder({
+        customerId: getActiveCustomerId(),
         items: cart,
+        subtotal: cartSubtotal,
+        shipping: shippingCost,
         total: totalAmount,
-        paymentMethod: paymentMethod.toUpperCase(),
-        delivery: {
-          recipientName: formData.fullName,
-          email: formData.email,
-          phone: formData.phone,
+        paymentStatus: paymentMethod.toUpperCase(),
+        shippingAddress: {
+          name: formData.fullName,
           address: formData.address,
           city: formData.city,
           state: formData.state,
           pincode: formData.pincode,
-          shippingType: shippingMethod === 'express' ? 'Express Atelier Dispatch' : 'Standard Pan-India Dispatch'
-        }
+          phone: formData.phone,
+        },
+        giftMessage: 'Thank you for your order.',
+        isRush: shippingMethod === 'express',
       });
 
       // Update state in store

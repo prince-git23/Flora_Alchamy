@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { User, Package, Heart, MapPin, Sparkles, Mail, Phone, Edit2, LogOut } from 'lucide-react';
-import { getAccount, getOrders } from '../services/api.js';
+import { getAccount } from '../services/customerService.js';
+import { getOrdersByCustomer } from '../services/orderService.js';
 
 export default function AccountPage() {
   const [account, setAccount] = useState(null);
@@ -10,8 +11,11 @@ export default function AccountPage() {
 
   useEffect(() => {
     async function load() {
-      const [acc, ords] = await Promise.all([getAccount(), getOrders()]);
+      const acc = await getAccount();
       setAccount(acc);
+      // Get orders for this customer
+      const customerId = acc.customerId || acc.id || 'cust-demo-001';
+      const ords = await getOrdersByCustomer(customerId);
       setOrders(ords);
     }
     load();
@@ -42,7 +46,7 @@ export default function AccountPage() {
                 {account.name}
               </h1>
               <p className="text-[13px] text-[#80756f]">
-                {account.email} · Guest / Demo Profile
+                {account.email} · {account.customerId ? 'Registered Customer' : 'Guest / Demo Profile'}
               </p>
             </div>
           </div>
@@ -114,7 +118,7 @@ export default function AccountPage() {
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="px-3 py-1 rounded-full bg-[#ffdad3] text-[#964735] text-[11px] font-bold uppercase">
-                        {ord.status}
+                        {ord.orderStatus ? ord.orderStatus.replace(/_/g, ' ') : ord.status}
                       </span>
                       <Link
                         to={`/order-tracking/${ord.orderId}`}
