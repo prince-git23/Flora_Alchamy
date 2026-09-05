@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import PromoBar from './components/PromoBar.jsx';
 import Navbar from './components/Navbar.jsx';
 import Footer from './components/Footer.jsx';
@@ -20,6 +20,12 @@ import OurCreationsPage from './pages/OurCreationsPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import NotFoundPage from './pages/NotFoundPage.jsx';
 
+// Admin / Handler Pages (Phase 2A)
+import AdminDashboardPage from './pages/admin/AdminDashboardPage.jsx';
+import AdminAccessPage from './pages/admin/AdminAccessPage.jsx';
+import AdminGeneralSettingsPage from './pages/admin/AdminGeneralSettingsPage.jsx';
+import AdminStorePreferencesPage from './pages/admin/AdminStorePreferencesPage.jsx';
+
 function ScrollToTop() {
   const { pathname } = useLocation();
 
@@ -31,14 +37,18 @@ function ScrollToTop() {
 }
 
 export default function App() {
+  const location = useLocation();
+  const isAdminRoute = location.pathname.startsWith('/admin');
+
   return (
     <div className="flex flex-col min-h-screen bg-[#fcf9f4] text-[#1c1c19] selection:bg-[#ffdad3] selection:text-[#772f1f]">
       <ScrollToTop />
-      <PromoBar />
-      <Navbar />
+      {!isAdminRoute && <PromoBar />}
+      {!isAdminRoute && <Navbar />}
 
       <main className="flex-grow">
         <Routes>
+          {/* Storefront Routes */}
           <Route path="/" element={<HomePage />} />
           <Route path="/shop" element={<ShopPage />} />
           <Route path="/product/:id" element={<ProductPage />} />
@@ -55,11 +65,20 @@ export default function App() {
           <Route path="/collections" element={<CollectionsPage />} />
           <Route path="/our-creations" element={<OurCreationsPage />} />
           <Route path="/login" element={<LoginPage />} />
+
+          {/* Admin / Handler Portal Routes (Phase 2A) */}
+          <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+          <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+          <Route path="/admin/access" element={<AdminAccessPage />} />
+          <Route path="/admin/settings" element={<AdminGeneralSettingsPage />} />
+          <Route path="/admin/store-preferences" element={<AdminStorePreferencesPage />} />
+
+          {/* Wildcard Fallback */}
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </main>
 
-      <Footer />
+      {!isAdminRoute && <Footer />}
     </div>
   );
 }

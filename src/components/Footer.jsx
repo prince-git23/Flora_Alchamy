@@ -76,7 +76,7 @@ export default function Footer() {
               <li><Link to="/cart" className="hover:text-[#180f0a] transition-colors">Shopping Bag</Link></li>
               <li><Link to="/wishlist" className="hover:text-[#180f0a] transition-colors">Saved Keepsakes</Link></li>
               <li><Link to="/account" className="hover:text-[#180f0a] transition-colors">Customer Account</Link></li>
-              <li><Link to="/login" className="hover:text-[#180f0a] transition-colors">Sign In / Register</Link></li>
+              <li><Link to="/admin/dashboard" className="hover:text-[#964735] transition-colors font-medium flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">admin_panel_settings</span> Handler Portal</Link></li>
             </ul>
           </div>
 
