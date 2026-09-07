@@ -1,21 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { CheckCircle2, ArrowRight, Package, Printer, Heart, Clock, Truck } from 'lucide-react';
-import { getOrder } from '../services/api.js';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { CheckCircle2, ArrowRight, Truck, Package, Heart, Clock } from 'lucide-react';
+import { getOrderById, formatINR, formatDate } from '../services/orderService.js';
+import OrderStatusTracker from '../components/OrderStatusTracker.jsx';
 
 export default function OrderSuccessPage() {
   const { orderId } = useParams();
+  const navigate = useNavigate();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchOrder() {
       setLoading(true);
-      const data = await getOrder(orderId || 'FA-1024');
+      if (!orderId) {
+        // No reference provided — drop the customer at account/order history.
+        navigate('/account', { replace: true });
+        return;
+      }
+      const data = await getOrderById(orderId);
       setOrder(data);
       setLoading(false);
     }
     fetchOrder();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderId]);
 
   if (loading) {
@@ -45,6 +53,10 @@ export default function OrderSuccessPage() {
     );
   }
 
+  const items = order.items || [];
+  const paymentStatus = order.paymentStatus || 'Paid';
+  const delivery = order.shippingAddress || {};
+
   return (
     <div className="w-full bg-[#fcf9f4] min-h-screen py-10 lg:py-16">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -63,66 +75,34 @@ export default function OrderSuccessPage() {
           </h1>
 
           <p className="text-[15px] text-[#4e4540] max-w-xl mx-auto leading-relaxed">
-            Your handcrafted order <strong>#{order.orderId}</strong> has entered our studio. Our artisans are carefully preparing each stem and personalized botanical card.
+            Your handcrafted order <strong>#{order.id}</strong> has entered our studio. Our artisans are carefully preparing each stem and personalized botanical card.
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            {order.trackingNumber && (
+              <div className="px-4 py-1.5 rounded-full bg-[#f6f3ee] text-[13px] text-[#180f0a] border border-[#e5e2dd]">
+                Tracking ID: <span className="font-mono font-bold text-[#964735]">{order.trackingNumber}</span>
+              </div>
+            )}
             <div className="px-4 py-1.5 rounded-full bg-[#f6f3ee] text-[13px] text-[#180f0a] border border-[#e5e2dd]">
-              Tracking ID: <span className="font-mono font-bold text-[#964735]">{order.trackingNumber}</span>
-            </div>
-            <div className="px-4 py-1.5 rounded-full bg-[#f6f3ee] text-[13px] text-[#180f0a] border border-[#e5e2dd]">
-              Order Date: <span className="font-medium">{order.date}</span>
+              Order Date: <span className="font-medium">{formatDate(order.createdAt)}</span>
             </div>
           </div>
         </div>
 
-        {/* Timeline Status */}
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#e5e2dd] shadow-xs mb-8 space-y-6">
-          <div className="flex items-center justify-between">
+        {/* Status Tracker */}
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#e5e2dd] shadow-xs mb-8">
+          <div className="flex items-center justify-between mb-2">
             <h2 className="font-serif text-[22px] text-[#180f0a]">Craft & Dispatch Journey</h2>
             <Link
-              to={`/order-tracking/${order.orderId}`}
+              to={`/order-tracking/${order.id}`}
               className="text-[12px] font-bold text-[#964735] hover:underline flex items-center gap-1"
             >
               <span>View Full Tracker</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
-
-          {/* Stepper */}
-          <div className="grid grid-cols-4 gap-2 text-center relative">
-            <div className="space-y-1">
-              <div className="w-8 h-8 rounded-full bg-[#180f0a] text-white flex items-center justify-center mx-auto text-[12px] font-bold">
-                ✓
-              </div>
-              <p className="text-[12px] font-semibold text-[#180f0a]">Order Received</p>
-              <p className="text-[10px] text-[#80756f]">Confirmed</p>
-            </div>
-
-            <div className="space-y-1">
-              <div className="w-8 h-8 rounded-full bg-[#964735] text-white flex items-center justify-center mx-auto text-[12px] font-bold animate-pulse">
-                ✂️
-              </div>
-              <p className="text-[12px] font-semibold text-[#964735]">Being Crafted</p>
-              <p className="text-[10px] text-[#964735]">In Studio</p>
-            </div>
-
-            <div className="space-y-1 opacity-50">
-              <div className="w-8 h-8 rounded-full bg-[#ebe8e3] text-[#4e4540] flex items-center justify-center mx-auto text-[12px] font-bold">
-                📦
-              </div>
-              <p className="text-[12px] font-semibold text-[#4e4540]">Wax Sealed</p>
-              <p className="text-[10px] text-[#80756f]">Packaging</p>
-            </div>
-
-            <div className="space-y-1 opacity-50">
-              <div className="w-8 h-8 rounded-full bg-[#ebe8e3] text-[#4e4540] flex items-center justify-center mx-auto text-[12px] font-bold">
-                🚚
-              </div>
-              <p className="text-[12px] font-semibold text-[#4e4540]">Delivered</p>
-              <p className="text-[10px] text-[#80756f]">Pan-India</p>
-            </div>
-          </div>
+          <OrderStatusTracker order={order} />
         </div>
 
         {/* Order Details & Summary */}
@@ -132,7 +112,7 @@ export default function OrderSuccessPage() {
           </h2>
 
           <div className="divide-y divide-[#e5e2dd] space-y-4">
-            {order.items && order.items.map((item, idx) => (
+            {items.map((item, idx) => (
               <div key={idx} className="pt-4 first:pt-0 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <img src={item.image} alt={item.name} className="w-16 h-16 rounded-2xl object-cover border border-[#e5e2dd]" />
@@ -151,20 +131,45 @@ export default function OrderSuccessPage() {
             ))}
           </div>
 
+          {delivery.name && (
+            <div className="border-t border-[#e5e2dd] pt-4 flex flex-col sm:flex-row sm:items-start justify-between gap-3 text-[13px]">
+              <div className="text-[#4e4540]">
+                <p className="font-bold text-[#180f0a] flex items-center gap-1.5">
+                  <Package className="w-4 h-4 text-[#964735]" /> Delivering to
+                </p>
+                <p>{delivery.name} · {delivery.address}, {delivery.city} {delivery.pincode}</p>
+              </div>
+              <div className="text-[#4e4540] sm:text-right">
+                <p className="font-bold text-[#180f0a] flex items-center gap-1.5 justify-start sm:justify-end">
+                  <Clock className="w-4 h-4 text-[#964735]" /> Estimated arrival
+                </p>
+                <p>{order.deliveryTarget ? formatDate(order.deliveryTarget) : (order.isRush ? '2–3 business days' : '3–5 business days')}</p>
+              </div>
+            </div>
+          )}
+
           <div className="border-t border-[#e5e2dd] pt-4 flex justify-between text-[18px] font-bold text-[#180f0a]">
-            <span>Total Paid ({order.paymentMethod})</span>
-            <span>₹{order.total.toLocaleString('en-IN')}</span>
+            <span>Total ({paymentStatus})</span>
+            <span>{formatINR(order.total)}</span>
           </div>
         </div>
 
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center justify-center gap-4">
           <Link
-            to={`/order-tracking/${order.orderId}`}
+            to={`/order-tracking/${order.id}`}
             className="px-7 py-3.5 rounded-full bg-[#180f0a] text-white hover:bg-[#964735] transition-colors text-[13px] font-semibold flex items-center gap-2 shadow-sm"
           >
             <Truck className="w-4 h-4" />
             <span>Track Delivery Progress</span>
+          </Link>
+
+          <Link
+            to="/account"
+            className="px-7 py-3.5 rounded-full bg-white text-[#180f0a] border border-[#e5e2dd] hover:bg-[#f6f3ee] transition-colors text-[13px] font-semibold flex items-center gap-2"
+          >
+            <Heart className="w-4 h-4" />
+            <span>View My Account</span>
           </Link>
 
           <Link

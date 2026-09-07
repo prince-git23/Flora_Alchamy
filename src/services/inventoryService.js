@@ -1,6 +1,5 @@
 import { getStored, setStored } from './storage.js';
 import { PRODUCTS } from '../data/products.js';
-import { getOrderById } from './orderService.js';
 
 const STORAGE_KEY = 'flora_alchemy_inventory';
 const HISTORY_KEY = 'flora_alchemy_inventory_history';
@@ -97,7 +96,7 @@ export function getCriticalStockItems() {
 
 export function adjustInventory(productId, quantityChange, type = 'Adjustment', reference = null, notes = '') {
   const inventory = getInventory();
-  const idx = inventory.findIndex(i => i.productId === productId);
+  let idx = inventory.findIndex(i => i.productId === productId);
 
   if (idx === -1) {
     // Auto-create inventory entry for unknown products

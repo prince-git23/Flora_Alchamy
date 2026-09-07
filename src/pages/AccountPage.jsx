@@ -1,25 +1,35 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { User, Package, Heart, MapPin, Sparkles, Mail, Phone, Edit2, LogOut } from 'lucide-react';
-import { getAccount } from '../services/customerService.js';
-import { getOrdersByCustomer } from '../services/orderService.js';
+import { getAccount, apiLogout, getActiveCustomerId } from '../services/customerService.js';
+import { getOrdersByCustomer, getStatusLabel, formatDate } from '../services/orderService.js';
 
 export default function AccountPage() {
+  const navigate = useNavigate();
   const [account, setAccount] = useState(null);
   const [orders, setOrders] = useState([]);
   const [activeTab, setActiveTab] = useState('orders');
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     async function load() {
       const acc = await getAccount();
       setAccount(acc);
-      // Get orders for this customer
-      const customerId = acc.customerId || acc.id || 'cust-demo-001';
-      const ords = await getOrdersByCustomer(customerId);
-      setOrders(ords);
+      // Only the authenticated customer's own orders are shown.
+      const customerId = acc ? acc.customerId || acc.id : getActiveCustomerId();
+      if (customerId) {
+        const ords = await getOrdersByCustomer(customerId);
+        setOrders(ords);
+      }
+      setLoaded(true);
     }
     load();
   }, []);
+
+  // Guests are sent to the sign-in page — the account is private.
+  if (loaded && !account) {
+    return <Navigate to="/login" replace />;
+  }
 
   if (!account) {
     return (
@@ -28,6 +38,11 @@ export default function AccountPage() {
       </div>
     );
   }
+
+  const handleSignOut = async () => {
+    await apiLogout();
+    navigate('/');
+  };
 
   return (
     <div className="w-full bg-[#fcf9f4] min-h-screen py-10 lg:py-16">
@@ -58,13 +73,14 @@ export default function AccountPage() {
             >
               Browse Catalog
             </Link>
-            <Link
-              to="/login"
+            <button
+              type="button"
+              onClick={handleSignOut}
               className="px-4 py-2 rounded-full border border-[#e5e2dd] text-[#80756f] hover:text-[#180f0a] text-[12px] flex items-center gap-1.5 transition-colors"
             >
               <LogOut className="w-3.5 h-3.5" />
               <span>Sign Out</span>
-            </Link>
+            </button>
           </div>
         </div>
 
@@ -110,18 +126,18 @@ export default function AccountPage() {
               </div>
             ) : (
               orders.map((ord) => (
-                <div key={ord.orderId} className="bg-white rounded-3xl p-6 border border-[#e5e2dd] shadow-xs space-y-4">
+                <div key={ord.id || ord.orderId} className="bg-white rounded-3xl p-6 border border-[#e5e2dd] shadow-xs space-y-4">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#e5e2dd] pb-4">
                     <div>
-                      <span className="text-[12px] font-bold text-[#180f0a]">Order #{ord.orderId}</span>
-                      <span className="text-[12px] text-[#80756f] ml-3">{ord.date}</span>
+                      <span className="text-[12px] font-bold text-[#180f0a]">Order #{ord.id || ord.orderId}</span>
+                      <span className="text-[12px] text-[#80756f] ml-3">{formatDate(ord.createdAt || ord.date)}</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="px-3 py-1 rounded-full bg-[#ffdad3] text-[#964735] text-[11px] font-bold uppercase">
-                        {ord.orderStatus ? ord.orderStatus.replace(/_/g, ' ') : ord.status}
+                        {getStatusLabel(ord.orderStatus || ord.status || 'new')}
                       </span>
                       <Link
-                        to={`/order-tracking/${ord.orderId}`}
+                        to={`/order-tracking/${ord.id || ord.orderId}`}
                         className="text-[12px] font-bold text-[#180f0a] hover:text-[#964735] underline"
                       >
                         Track Dispatch →
@@ -147,7 +163,7 @@ export default function AccountPage() {
                   </div>
 
                   <div className="border-t border-[#e5e2dd] pt-3 flex justify-between text-[14px]">
-                    <span className="text-[#80756f]">Payment: {ord.paymentMethod}</span>
+                    <span className="text-[#80756f]">Payment: {ord.paymentStatus || ord.paymentMethod || 'Paid'}</span>
                     <span className="font-bold text-[#180f0a]">Total: ₹{ord.total.toLocaleString('en-IN')}</span>
                   </div>
                 </div>

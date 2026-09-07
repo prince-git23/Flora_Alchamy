@@ -46,6 +46,13 @@ export function StoreProvider({ children }) {
     setCart(updated);
   };
 
+  // Persisted empty cart (used after a successful order) so a later reload
+  // never resurrects the purchased items.
+  const clearCart = async () => {
+    await updateCart([]);
+    setCart([]);
+  };
+
   const toggleWishlist = async (product) => {
     const isSaved = wishlist.some(item => item.id === product.id);
     if (isSaved) {
@@ -75,6 +82,7 @@ export function StoreProvider({ children }) {
       addItemToCart,
       removeItemFromCart,
       updateItemQuantity,
+      clearCart,
       toggleWishlist,
       isWishlisted,
       showToast,

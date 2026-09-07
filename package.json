@@ -8,7 +8,11 @@
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist",
-    "lint": "vite build"
+    "lint": "vite build",
+    "api": "cd backend && npm start",
+    "api:dev": "cd backend && npm run dev",
+    "api:seed": "cd backend && npm run seed",
+    "test:api": "cd backend && npm run test:api"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

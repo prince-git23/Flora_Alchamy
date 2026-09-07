@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Search, X, Sparkles, ArrowRight } from 'lucide-react';
 import ProductCard from '../components/ProductCard.jsx';
-import { getProducts } from '../services/api.js';
+import { getProducts } from '../services/productService.js';
 
 export default function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -24,9 +24,14 @@ export default function SearchPage() {
   ];
 
   useEffect(() => {
-    async function executeSearch() {
+    function executeSearch() {
       setLoading(true);
-      const matched = await getProducts({ search: query });
+      const q = query.trim().toLowerCase();
+      const all = getProducts();
+      const matched = q
+        ? all.filter(p => p.visibility !== 'Hidden' && [p.name, p.shortDescription, p.description, p.categoryLabel, ...(p.tags || [])]
+            .filter(Boolean).join(' ').toLowerCase().includes(q))
+        : all.filter(p => p.visibility !== 'Hidden');
       setResults(matched);
       setLoading(false);
     }

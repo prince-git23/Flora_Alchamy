@@ -1,58 +1,25 @@
 import { getStored, setStored, clearStored } from './storage.js';
-import { getCustomerByEmail, createCustomer } from './customerService.js';
+import { api, setToken, clearToken } from './apiClient.js';
 
 const CUSTOMER_SESSION_KEY = 'flora_alchemy_customer_session';
 const ADMIN_SESSION_KEY = 'flora_alchemy_admin_session';
 
-// ─── Customer Auth ───
+/**
+ * Phase 3B — real authentication against the Express/MongoDB backend.
+ *
+ * Admin (handler) authentication posts to POST /api/auth/login and stores the
+ * returned JWT + profile under the same admin session key the Handler Portal
+ * has always used, so AdminRoute/AdminSessionContext behavior is unchanged.
+ *
+ * The customer identity for the storefront lives in customerService
+ * (flora_alchemy_account) — set only by an explicit login/registration.
+ * A fresh browser is always GUEST.
+ */
 
-const DEMO_CUSTOMER_EMAIL = 'customer@example.com';
-const DEMO_CUSTOMER_PASSWORD = 'demo1234';
+// ─── Customer Auth (see customerService.apiLogin/apiRegister) ───
 
-export function customerLogin(email, password) {
-  if (email === DEMO_CUSTOMER_EMAIL && password === DEMO_CUSTOMER_PASSWORD) {
-    const session = {
-      email,
-      customerId: 'cust-demo-001',
-      name: 'Demo Customer',
-      loggedInAt: new Date().toISOString(),
-    };
-    setStored(CUSTOMER_SESSION_KEY, session);
-    return { success: true, session };
-  }
-
-  // For demo: accept any valid email/password combination
-  if (email && password && password.length >= 6) {
-    const { customer } = createCustomer({ email, name: email.split('@')[0], phone: '' });
-    const session = {
-      email,
-      customerId: customer.id,
-      name: customer.name,
-      loggedInAt: new Date().toISOString(),
-    };
-    setStored(CUSTOMER_SESSION_KEY, session);
-    return { success: true, session };
-  }
-
-  return { success: false, error: 'Invalid credentials. Use demo account or any email with 6+ character password.' };
-}
-
-export function customerRegister(name, email, password, phone) {
-  if (!email || !password || password.length < 6) {
-    return { success: false, error: 'Email and password (6+ characters) required.' };
-  }
-
-  const { customer, created } = createCustomer({ name, email, phone });
-  const session = {
-    email,
-    customerId: customer.id,
-    name: customer.name,
-    loggedInAt: new Date().toISOString(),
-  };
-  setStored(CUSTOMER_SESSION_KEY, session);
-  return { success: true, session, isNew: created };
-}
-
+// Legacy sync helpers retained for callers that only inspect session state;
+// credential validation now happens on the server through customerService.
 export function getCustomerSession() {
   try {
     const stored = localStorage.getItem(CUSTOMER_SESSION_KEY);
@@ -64,38 +31,46 @@ export function getCustomerSession() {
 
 export function customerLogout() {
   clearStored(CUSTOMER_SESSION_KEY);
+  clearToken('customer');
 }
 
 // ─── Admin Auth ───
 
-const DEMO_ADMIN_EMAIL = 'handler.admin@flora-alchemy.demo';
-const DEMO_ADMIN_PASSWORD = 'handler1234';
-
-export function adminLogin(email, password) {
-  if (email === DEMO_ADMIN_EMAIL && password === DEMO_ADMIN_PASSWORD) {
-    const session = {
-      email,
-      name: 'Handler Admin',
-      role: 'ADMINISTRATOR',
-      loggedInAt: new Date().toISOString(),
-    };
-    setStored(ADMIN_SESSION_KEY, session);
-    return { success: true, session };
+/**
+ * Authenticate a handler/admin against the backend. Returns
+ * { success, session } or { success:false, error }.
+ */
+export async function adminLogin(email, password) {
+  const res = await api.post('/auth/login', { email, password });
+  if (!res.ok) {
+    return { success: false, error: res.message || 'Sign in failed.' };
   }
-  return { success: false, error: 'Invalid handler credentials. Demo: handler.admin@flora-alchemy.demo / handler1234' };
+  const { token, user } = res.data || {};
+  if (!token || !['admin', 'handler'].includes(user?.role)) {
+    return {
+      success: false,
+      error: 'This account does not have Handler Portal access.',
+    };
+  }
+  const session = {
+    token,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+    loggedInAt: new Date().toISOString(),
+  };
+  setStored(ADMIN_SESSION_KEY, session);
+  setToken(token, 'admin');
+  return { success: true, session };
 }
 
 export function getAdminSession() {
-  try {
-    const stored = localStorage.getItem(ADMIN_SESSION_KEY);
-    return stored ? JSON.parse(stored) : null;
-  } catch {
-    return null;
-  }
+  return getStored(ADMIN_SESSION_KEY, null);
 }
 
 export function adminLogout() {
   clearStored(ADMIN_SESSION_KEY);
+  clearToken('admin');
 }
 
 export function isAdminAuthenticated() {
@@ -103,5 +78,5 @@ export function isAdminAuthenticated() {
 }
 
 export function isCustomerAuthenticated() {
-  return getCustomerSession() !== null;
+  return getCustomerSession() !== null || !!localStorage.getItem('flora_alchemy_account');
 }

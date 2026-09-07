@@ -6,8 +6,8 @@ const AdminSessionContext = createContext(null);
 export function AdminSessionProvider({ children }) {
   const [session, setSession] = useState(() => getAdminSession());
 
-  const login = (email, password) => {
-    const result = adminLogin(email, password);
+  const login = async (email, password) => {
+    const result = await adminLogin(email, password);
     if (result.success) {
       setSession(result.session);
     }

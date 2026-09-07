@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Star, Heart, ShoppingBag, ShieldCheck, Truck, RefreshCw, Sparkles, ChevronRight, Check } from 'lucide-react';
-import { getProductById } from '../services/api.js';
-import { PRODUCTS } from '../data/products.js';
+import { getProductById, getProducts as getCatalogProducts } from '../services/productService.js';
 import { useStore } from '../context/StoreContext.jsx';
 import ProductCard from '../components/ProductCard.jsx';
 
@@ -12,6 +11,7 @@ export default function ProductPage() {
   const { addItemToCart, toggleWishlist, isWishlisted } = useStore();
 
   const [product, setProduct] = useState(null);
+  const [notFound, setNotFound] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedPalette, setSelectedPalette] = useState(null);
   const [selectedRibbon, setSelectedRibbon] = useState(null);
@@ -20,21 +20,33 @@ export default function ProductPage() {
   const [activeTab, setActiveTab] = useState('craft');
 
   useEffect(() => {
-    async function load() {
-      const found = await getProductById(id);
-      if (found) {
-        setProduct(found);
-        setSelectedImage(0);
-        setSelectedPalette(found.palettes && found.palettes.length > 0 ? found.palettes[0].name : null);
-        setSelectedRibbon(found.ribbons && found.ribbons.length > 0 ? found.ribbons[0].name : null);
-      } else {
-        // Fallback to first product if not found
-        setProduct(PRODUCTS[0]);
-      }
+    const found = getProductById(id);
+    if (found) {
+      setProduct(found);
+      setNotFound(false);
+      setSelectedImage(0);
+      setSelectedPalette(found.palettes && found.palettes.length > 0 ? found.palettes[0].name : null);
+      setSelectedRibbon(found.ribbons && found.ribbons.length > 0 ? found.ribbons[0].name : null);
+    } else {
+      setProduct(null);
+      setNotFound(true);
     }
-    load();
     window.scrollTo(0, 0);
   }, [id]);
+
+  if (notFound) {
+    return (
+      <div className="w-full min-h-[60vh] flex flex-col items-center justify-center bg-[#fcf9f4] px-4 text-center space-y-4">
+        <div className="w-16 h-16 rounded-full bg-[#f6f3ee] mx-auto flex items-center justify-center text-3xl">🥀</div>
+        <p className="font-serif text-[24px] text-[#180f0a]">This keepsake is no longer available</p>
+        <p className="text-[14px] text-[#4e4540] max-w-md">It may have sold out or been retired from the catalogue.</p>
+        <div className="flex gap-3 pt-2">
+          <Link to="/shop" className="px-6 py-2.5 rounded-full bg-[#180f0a] text-white text-[13px] font-semibold">Browse the Shop</Link>
+          <Link to="/" className="px-6 py-2.5 rounded-full bg-white border border-[#e5e2dd] text-[#180f0a] text-[13px] font-semibold">Back to Home</Link>
+        </div>
+      </div>
+    );
+  }
 
   if (!product) {
     return (
@@ -57,7 +69,9 @@ export default function ProductPage() {
     });
   };
 
-  const relatedProducts = PRODUCTS.filter((p) => p.id !== product.id).slice(0, 4);
+  const relatedProducts = getCatalogProducts()
+    .filter((p) => p.id !== product.id && p.visibility !== 'Hidden')
+    .slice(0, 4);
 
   return (
     <div className="w-full bg-[#fcf9f4] min-h-screen py-8 lg:py-12">

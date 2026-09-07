@@ -1,6 +1,7 @@
 import { getStored, setStored } from './storage.js';
 import { getCustomerById, addOrderToCustomer, getActiveCustomerId } from './customerService.js';
 import { getInventoryItem, adjustInventory } from './inventoryService.js';
+import { isCatalogueProduct } from './productService.js';
 import { PRODUCTS } from '../data/products.js';
 
 const STORAGE_KEY = 'flora_alchemy_orders';
@@ -140,6 +141,189 @@ function mapPaymentStatus(status) {
 }
 
 // ─── Seed initial data ───
+const SAMPLE_DATA_CUSTOMER_IDS = [
+  'cust-10428', 'cust-10503', 'cust-10352', 'cust-10445', 'cust-10187',
+  'cust-10612', 'cust-10721', 'cust-10834', 'cust-10947', 'cust-11005',
+  'cust-11078', 'cust-10298',
+];
+
+const SAMPLE_DATA_ORDERS = [
+  {
+    id: 'FA-84291',
+    customerId: 'cust-10428',
+    customerName: 'Aarav Sharma',
+    customerEmail: 'aarav.sharma@example.com',
+    items: [
+      { productId: 'dusty-rose-lavender-posy', name: 'Dusty Rose & Lavender Posy', price: 1850, quantity: 1, image: PRODUCTS[0].images[0] },
+      { productId: 'pressed-wildflower-cards', name: 'Pressed Botanical Wildflower Cards', price: 850, quantity: 1, image: PRODUCTS[1].images[0] },
+      { productId: 'gold-foil-pressed-stickers', name: 'Gold Foil Pressed Botanical Stickers', price: 450, quantity: 1, image: PRODUCTS[6].images[0] },
+    ],
+    subtotal: 3150, shipping: 0, total: 3150,
+    paymentStatus: 'Paid', orderStatus: 'in_production',
+    shippingAddress: { name: 'Aarav Sharma', address: '14 Hill Road, Bandra West', city: 'Mumbai', state: 'Maharashtra', pincode: '400050', phone: '+91 98200 12345' },
+    createdAt: daysAgo(0), updatedAt: daysAgo(0), deliveryTarget: daysAgo(-2),
+    isRush: true, trackingNumber: null,
+  },
+  {
+    id: 'FA-84276',
+    customerId: 'cust-10503',
+    customerName: 'Meera Joshi',
+    customerEmail: 'meera.joshi@example.com',
+    items: [
+      { productId: 'heirloom-keepsake-hamper', name: 'Heirloom Keepsake Wooden Hamper Box', price: 3450, quantity: 1, image: PRODUCTS[3].images[0] },
+    ],
+    subtotal: 3450, shipping: 0, total: 3450,
+    paymentStatus: 'Paid', orderStatus: 'ready_to_dispatch',
+    shippingAddress: { name: 'Meera Joshi', address: '89 Malviya Nagar', city: 'Jaipur', state: 'Rajasthan', pincode: '302017', phone: '+91 98555 67890' },
+    createdAt: daysAgo(1), updatedAt: daysAgo(1), deliveryTarget: daysAgo(-1),
+    isRush: false, trackingNumber: null,
+  },
+  {
+    id: 'FA-84254',
+    customerId: 'cust-10352',
+    customerName: 'Riya Patel',
+    customerEmail: 'riya.patel@example.com',
+    items: [
+      { productId: 'vintage-peony-eucalyptus-posy', name: 'Vintage Peony & Eucalyptus Posy', price: 2150, quantity: 1, image: PRODUCTS[4].images[0] },
+      { productId: 'pressed-wildflower-cards', name: 'Pressed Botanical Wildflower Cards', price: 850, quantity: 1, image: PRODUCTS[1].images[0] },
+    ],
+    subtotal: 3000, shipping: 0, total: 3000,
+    paymentStatus: 'Paid', orderStatus: 'confirmed',
+    shippingAddress: { name: 'Riya Patel', address: '78 Lajpat Nagar II', city: 'New Delhi', state: 'Delhi', pincode: '110024', phone: '+91 98111 23456' },
+    createdAt: daysAgo(2), updatedAt: daysAgo(2), deliveryTarget: daysAgo(-3),
+    isRush: false, trackingNumber: null,
+  },
+  {
+    id: 'FA-84231',
+    customerId: 'cust-10445',
+    customerName: 'Kabir Singh',
+    customerEmail: 'kabir.singh@example.com',
+    items: [
+      { productId: 'dusty-rose-lavender-posy', name: 'Dusty Rose & Lavender Posy', price: 1850, quantity: 1, image: PRODUCTS[0].images[0] },
+    ],
+    subtotal: 1850, shipping: 0, total: 1850,
+    paymentStatus: 'Pending', orderStatus: 'new',
+    shippingAddress: { name: 'Kabir Singh', address: '12 Koregaon Park', city: 'Pune', state: 'Maharashtra', pincode: '411001', phone: '+91 98444 56789' },
+    createdAt: daysAgo(2), updatedAt: daysAgo(2), deliveryTarget: daysAgo(-4),
+    isRush: false, trackingNumber: null,
+  },
+  {
+    id: 'FA-84219',
+    customerId: 'cust-10187',
+    customerName: 'Ananya Verma',
+    customerEmail: 'ananya.verma@example.com',
+    items: [
+      { productId: 'pressed-wildflower-cards', name: 'Handmade Botanical Card Set', price: 850, quantity: 1, image: PRODUCTS[1].images[0] },
+    ],
+    subtotal: 850, shipping: 0, total: 850,
+    paymentStatus: 'Paid', orderStatus: 'quality_check',
+    shippingAddress: { name: 'Ananya Verma', address: '45 Koramangala 5th Block', city: 'Bangalore', state: 'Karnataka', pincode: '560095', phone: '+91 98333 45678' },
+    createdAt: daysAgo(3), updatedAt: daysAgo(1), deliveryTarget: daysAgo(-1),
+    isRush: false, trackingNumber: null,
+  },
+  {
+    id: 'FA-84190',
+    customerId: 'cust-10612',
+    customerName: 'Devansh Mehta',
+    customerEmail: 'devansh.mehta@example.com',
+    items: [
+      { productId: 'desk-bloom-ceramic-pot', name: 'Desk Bloom in Ceramic Pot', price: 1250, quantity: 1, image: PRODUCTS[2].images[0] },
+      { productId: 'botanical-wax-seal-kit', name: 'Botanical Wax Seal Ritual Kit', price: 1150, quantity: 1, image: PRODUCTS[9].images[0] },
+    ],
+    subtotal: 2400, shipping: 0, total: 2400,
+    paymentStatus: 'Paid', orderStatus: 'shipped',
+    shippingAddress: { name: 'Devansh Mehta', address: '23 T Nagar', city: 'Chennai', state: 'Tamil Nadu', pincode: '600017', phone: '+91 98666 78901' },
+    createdAt: daysAgo(4), updatedAt: daysAgo(1), deliveryTarget: daysAgo(-1),
+    isRush: false, trackingNumber: 'FA-TRK-84190',
+  },
+  {
+    id: 'FA-84175',
+    customerId: 'cust-10721',
+    customerName: 'Isha Gupta',
+    customerEmail: 'isha.gupta@example.com',
+    items: [
+      { productId: 'dusty-rose-lavender-posy', name: 'Dusty Rose & Lavender Posy (5-Stem)', price: 1850, quantity: 1, image: PRODUCTS[0].images[0] },
+    ],
+    subtotal: 1850, shipping: 0, total: 1850,
+    paymentStatus: 'Paid', orderStatus: 'delivered',
+    shippingAddress: { name: 'Isha Gupta', address: '56 Park Street', city: 'Kolkata', state: 'West Bengal', pincode: '700016', phone: '+91 98777 89012' },
+    createdAt: daysAgo(5), updatedAt: daysAgo(2), deliveryTarget: daysAgo(-2),
+    isRush: false, trackingNumber: 'FA-TRK-84175',
+  },
+  {
+    id: 'FA-84160',
+    customerId: 'cust-10834',
+    customerName: 'Arjun Reddy',
+    customerEmail: 'arjun.reddy@example.com',
+    items: [
+      { productId: 'heirloom-keepsake-hamper', name: 'Heirloom Keepsake Hamper', price: 3450, quantity: 1, image: PRODUCTS[3].images[0] },
+      { productId: 'chenille-garden-mascot-charm', name: 'Chenille Garden Sunflower Charm', price: 650, quantity: 2, image: PRODUCTS[5].images[0] },
+    ],
+    subtotal: 4750, shipping: 0, total: 4750,
+    paymentStatus: 'Paid', orderStatus: 'in_production',
+    shippingAddress: { name: 'Arjun Reddy', address: '67 Banjara Hills', city: 'Hyderabad', state: 'Telangana', pincode: '500034', phone: '+91 98888 90123' },
+    createdAt: daysAgo(1), updatedAt: daysAgo(1), deliveryTarget: daysAgo(-3),
+    isRush: false, trackingNumber: null,
+  },
+  {
+    id: 'FA-84145',
+    customerId: 'cust-10947',
+    customerName: 'Sneha Nair',
+    customerEmail: 'sneha.nair@example.com',
+    items: [
+      { productId: 'rakhi-everlasting-bloom-set', name: 'Rakhi Everlasting Ceremonial Bloom Set', price: 2200, quantity: 1, image: PRODUCTS[7].images[0] },
+    ],
+    subtotal: 2200, shipping: 0, total: 2200,
+    paymentStatus: 'Paid', orderStatus: 'delivered',
+    shippingAddress: { name: 'Sneha Nair', address: '34 MG Road', city: 'Kochi', state: 'Kerala', pincode: '682016', phone: '+91 98999 01234' },
+    createdAt: daysAgo(10), updatedAt: daysAgo(5), deliveryTarget: daysAgo(-5),
+    isRush: false, trackingNumber: 'FA-TRK-84145',
+  },
+  {
+    id: 'FA-84130',
+    customerId: 'cust-11005',
+    customerName: 'Rajesh Kumar',
+    customerEmail: 'rajesh.kumar@example.com',
+    items: [
+      { productId: 'chenille-garden-mascot-charm', name: 'Chenille Garden Sunflower Mascot Charm', price: 650, quantity: 1, image: PRODUCTS[5].images[0] },
+    ],
+    subtotal: 650, shipping: 0, total: 650,
+    paymentStatus: 'Paid', orderStatus: 'shipped',
+    shippingAddress: { name: 'Rajesh Kumar', address: '19 Hazratganj', city: 'Lucknow', state: 'Uttar Pradesh', pincode: '226001', phone: '+91 98000 11223' },
+    createdAt: daysAgo(6), updatedAt: daysAgo(2), deliveryTarget: daysAgo(-2),
+    isRush: false, trackingNumber: 'FA-TRK-84130',
+  },
+  {
+    id: 'FA-84115',
+    customerId: 'cust-11078',
+    customerName: 'Divya Menon',
+    customerEmail: 'divya.menon@example.com',
+    items: [
+      { productId: 'gold-foil-pressed-stickers', name: 'Gold Foil Pressed Botanical Stickers', price: 450, quantity: 2, image: PRODUCTS[6].images[0] },
+      { productId: 'botanical-wax-seal-kit', name: 'Botanical Wax Seal Ritual Kit', price: 1150, quantity: 1, image: PRODUCTS[9].images[0] },
+    ],
+    subtotal: 2050, shipping: 0, total: 2050,
+    paymentStatus: 'Paid', orderStatus: 'confirmed',
+    shippingAddress: { name: 'Divya Menon', address: '42 Adyar', city: 'Chennai', state: 'Tamil Nadu', pincode: '600020', phone: '+91 98111 22334' },
+    createdAt: daysAgo(3), updatedAt: daysAgo(3), deliveryTarget: daysAgo(-5),
+    isRush: false, trackingNumber: null,
+  },
+  {
+    id: 'FA-84100',
+    customerId: 'cust-10298',
+    customerName: 'Rohan Patel',
+    customerEmail: 'rohan.patel@example.com',
+    items: [
+      { productId: 'vintage-peony-eucalyptus-posy', name: 'Vintage Peony & Eucalyptus Posy', price: 2150, quantity: 1, image: PRODUCTS[4].images[0] },
+    ],
+    subtotal: 2150, shipping: 0, total: 2150,
+    paymentStatus: 'Paid', orderStatus: 'delivered',
+    shippingAddress: { name: 'Rohan Patel', address: '32 Satellite Road', city: 'Ahmedabad', state: 'Gujarat', pincode: '380015', phone: '+91 98222 34567' },
+    createdAt: daysAgo(14), updatedAt: daysAgo(8), deliveryTarget: daysAgo(-8),
+    isRush: false, trackingNumber: 'FA-TRK-84100',
+  },
+];
+
 function seedInitialOrders() {
   const initial = [];
   // Demo customer orders
@@ -184,6 +368,11 @@ function seedInitialOrders() {
     isRush: false,
   });
 
+  // Add all sample orders from adminData
+  SAMPLE_DATA_ORDERS.forEach(order => {
+    initial.push(order);
+  });
+
   setStored(STORAGE_KEY, initial);
   return initial;
 }
@@ -221,6 +410,10 @@ export function createOrder(orderData) {
   const now = new Date().toISOString();
 
   const customerId = orderData.customerId || getActiveCustomerId();
+  if (!customerId) {
+    // No guest orders: every order must belong to an authenticated customer.
+    throw new Error('Sign in to your account to complete checkout.');
+  }
   const customer = getCustomerById(customerId);
 
   const trackingNumber = orderData.trackingNumber || generateTrackingNumber('');
@@ -228,8 +421,8 @@ export function createOrder(orderData) {
   const newOrder = {
     id: orderData.id || generateOrderId(),
     customerId: customerId,
-    customerName: customer?.name || 'Guest Customer',
-    customerEmail: customer?.email || orderData.customerEmail || 'guest@example.com',
+    customerName: customer?.name || 'Customer',
+    customerEmail: customer?.email || orderData.customerEmail || '',
     items: orderData.items || [],
     subtotal: orderData.subtotal || (orderData.items || []).reduce((s, i) => s + (i.price || 0) * (i.quantity || 1), 0),
     shipping: orderData.shipping || 0,
@@ -261,12 +454,15 @@ export function createOrder(orderData) {
   // Update customer stats
   addOrderToCustomer(customerId, newOrder.total);
 
-  // Decrement inventory
+  // Decrement inventory (only for real, stock-tracked catalogue products —
+  // made-to-order custom items are not deducted)
   if (newOrder.items && newOrder.items.length > 0) {
     newOrder.items.forEach(item => {
       const productId = item.productId || item.id;
       const qty = item.quantity || 1;
-      adjustInventory(productId, -qty, 'Sale', `Order ${newOrder.id}`);
+      if (isCatalogueProduct(productId)) {
+        adjustInventory(productId, -qty, 'Sale', `Order ${newOrder.id}`);
+      }
     });
   }
 

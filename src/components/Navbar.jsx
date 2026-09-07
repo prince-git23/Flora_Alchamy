@@ -2,11 +2,16 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Search, Heart, ShoppingBag, User, Menu, X } from 'lucide-react';
 import { useStore } from '../context/StoreContext.jsx';
+import { getActiveCustomer } from '../services/customerService.js';
 
 export default function Navbar() {
   const location = useLocation();
   const { cartCount, cartSubtotal, wishlist } = useStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Auth-aware account entry: guests go to /login, customers to /account.
+  const activeCustomer = getActiveCustomer();
+  const isAuthed = !!activeCustomer;
 
   const navLinks = [
     { label: 'Home', path: '/' },
@@ -94,13 +99,18 @@ export default function Navbar() {
             </span>
           </Link>
 
-          {/* Account Button */}
+          {/* Account Button — auth-aware */}
           <Link
-            to="/account"
-            className="flex items-center justify-center w-8 h-8 rounded-full bg-[#180f0a] hover:bg-[#964735] text-white transition-colors"
-            title="Customer Account"
+            to={isAuthed ? '/account' : '/login'}
+            className="flex items-center gap-2 pl-2 pr-3 py-1 rounded-full bg-[#180f0a] hover:bg-[#964735] text-white transition-colors"
+            title={isAuthed ? 'My Account' : 'Sign In'}
           >
-            <User className="w-4 h-4 text-white" />
+            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-white/15 text-[11px] font-bold">
+              {isAuthed ? (activeCustomer.name || 'A').charAt(0).toUpperCase() : <User className="w-3.5 h-3.5" />}
+            </span>
+            <span className="text-[11px] font-semibold hidden sm:inline">
+              {isAuthed ? 'My Account' : 'Sign In'}
+            </span>
           </Link>
 
           {/* Mobile Menu Hamburger */}
@@ -132,21 +142,14 @@ export default function Navbar() {
               {link.label}
             </Link>
           ))}
-          <div className="pt-2 border-t border-[#e5e2dd] flex items-center justify-between">
+          <div className="pt-2 border-t border-[#e5e2dd]">
             <Link
-              to="/account"
+              to={isAuthed ? '/account' : '/login'}
               onClick={() => setMobileMenuOpen(false)}
               className="text-[13px] font-semibold text-[#964735] flex items-center gap-1.5"
             >
               <User className="w-4 h-4" />
-              <span>Customer Account</span>
-            </Link>
-            <Link
-              to="/login"
-              onClick={() => setMobileMenuOpen(false)}
-              className="text-[13px] font-semibold text-[#4e4540] hover:text-[#180f0a]"
-            >
-              Sign In / Register
+              <span>{isAuthed ? `My Account${activeCustomer ? ` (${activeCustomer.name})` : ''}` : 'Sign In / Create Account'}</span>
             </Link>
           </div>
         </div>

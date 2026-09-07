@@ -16,7 +16,7 @@ export default function AdminLoginPage() {
     setError('');
     setLoading(true);
 
-    const result = login(email, password);
+    const result = await login(email, password);
 
     if (result.success) {
       navigate('/admin/dashboard');

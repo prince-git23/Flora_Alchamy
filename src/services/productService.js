@@ -95,3 +95,9 @@ export function deleteProduct(id) {
 export function getProductImage(product) {
   return product.images && product.images.length > 0 ? product.images[0] : '/assets/images/flora-asset-01.jpg';
 }
+
+// Made-to-order / custom items (and anything not in the catalogue) have no
+// tracked stock, so they must never block or deduct inventory.
+export function isCatalogueProduct(productId) {
+  return getProducts().some(p => p.id === productId);
+}

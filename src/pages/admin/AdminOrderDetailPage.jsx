@@ -109,7 +109,7 @@ export default function AdminOrderDetailPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[13px] font-semibold text-[#180f0a] truncate">{item.name}</p>
-                      <p className="text-[12px] text-[#80756f]">Qty: {item.quantity} · SKU: {item.productId.slice(0, 12).toUpperCase()}</p>
+                      <p className="text-[12px] text-[#80756f]">Qty: {item.quantity} · SKU: {(item.sku || item.productId || item.id || 'FA').toString().slice(0, 12).toUpperCase()}</p>
                     </div>
                     <span className="text-[13px] font-mono font-semibold text-[#180f0a] whitespace-nowrap">{formatINR(item.price * item.quantity)}</span>
                   </div>

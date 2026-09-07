@@ -1,0 +1,39 @@
+import mongoose from 'mongoose';
+
+const inventorySchema = new mongoose.Schema(
+  {
+    productSlug: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+    },
+    sku: { type: String, default: '' },
+    productName: { type: String, default: '' },
+    currentStock: { type: Number, default: 0, min: 0 },
+    reorderLevel: { type: Number, default: 0 },
+    unit: { type: String, default: 'units' },
+    isFixture: { type: Boolean, default: false },
+  },
+  {
+    timestamps: true,
+    toJSON: {
+      virtuals: true,
+      transform(_doc, ret) {
+        ret.id = ret._id.toString();
+        ret.status =
+          ret.currentStock <= 0
+            ? 'Out of Stock'
+            : ret.currentStock <= ret.reorderLevel
+              ? 'Low Stock'
+              : 'In Stock';
+        delete ret._id;
+        delete ret.__v;
+        return ret;
+      },
+    },
+  }
+);
+
+const Inventory = mongoose.model('Inventory', inventorySchema);
+export default Inventory;

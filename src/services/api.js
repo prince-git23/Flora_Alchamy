@@ -181,12 +181,12 @@ export async function getProductById(id) {
 }
 
 export async function getWishlist() {
-  const ids = getStored(STORAGE_KEYS.WISHLIST, INITIAL_WISHLIST);
+  const ids = getStored(STORAGE_KEYS.WISHLIST, []);
   return PRODUCTS.filter(p => ids.includes(p.id));
 }
 
 export async function addToWishlist(productId) {
-  const current = getStored(STORAGE_KEYS.WISHLIST, INITIAL_WISHLIST);
+  const current = getStored(STORAGE_KEYS.WISHLIST, []);
   if (!current.includes(productId)) {
     const updated = [...current, productId];
     setStored(STORAGE_KEYS.WISHLIST, updated);
@@ -196,14 +196,16 @@ export async function addToWishlist(productId) {
 }
 
 export async function removeFromWishlist(productId) {
-  const current = getStored(STORAGE_KEYS.WISHLIST, INITIAL_WISHLIST);
+  const current = getStored(STORAGE_KEYS.WISHLIST, []);
   const updated = current.filter(id => id !== productId);
   setStored(STORAGE_KEYS.WISHLIST, updated);
   return updated;
 }
 
+// A fresh visitor starts with an empty bag — demo cart items are never
+// loaded as the current user's own purchases.
 export async function getCart() {
-  return getStored(STORAGE_KEYS.CART, INITIAL_CART);
+  return getStored(STORAGE_KEYS.CART, []);
 }
 
 export async function updateCart(items) {

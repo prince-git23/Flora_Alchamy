@@ -1,11 +1,78 @@
-import React, { useState } from 'react';
-import { useLocation, Link } from 'react-router-dom';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
+import { getOrders, formatINR } from '../../services/orderService.js';
+import { getCustomers } from '../../services/customerService.js';
+import { getProducts } from '../../services/productService.js';
+import { getCollections } from '../../services/collectionService.js';
+import { useAdminSession } from '../../context/AdminSessionContext.jsx';
 
 export default function AdminHeader({ onOpenMobileMenu }) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { logout } = useAdminSession();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchFocused, setSearchFocused] = useState(false);
+  const searchBoxRef = useRef(null);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (searchBoxRef.current && !searchBoxRef.current.contains(e.target)) {
+        setSearchFocused(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Grouped live search across orders, customers, products, collections
+  const searchResults = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return null;
+
+    const orders = getOrders()
+      .filter(
+        (o) =>
+          String(o.id || '').toLowerCase().includes(q) ||
+          String(o.customerName || o.customer?.name || '').toLowerCase().includes(q)
+      )
+      .slice(0, 4);
+
+    const customers = getCustomers()
+      .filter(
+        (c) =>
+          String(c.name || '').toLowerCase().includes(q) ||
+          String(c.email || '').toLowerCase().includes(q)
+      )
+      .slice(0, 4);
+
+    const products = getProducts()
+      .filter(
+        (p) =>
+          String(p.name || '').toLowerCase().includes(q) ||
+          String(p.categoryLabel || p.category || '').toLowerCase().includes(q)
+      )
+      .slice(0, 4);
+
+    const collections = getCollections()
+      .filter((c) => String(c.name || '').toLowerCase().includes(q))
+      .slice(0, 4);
+
+    if (!orders.length && !customers.length && !products.length && !collections.length) {
+      return { empty: true };
+    }
+    return { orders, customers, products, collections };
+  }, [searchQuery]);
+
+  const goToResult = (path) => {
+    setSearchQuery('');
+    setSearchFocused(false);
+    navigate(path);
+  };
+
+  const hasAnyResults = searchResults && !searchResults.empty;
 
   // Derive breadcrumbs based on pathname
   const getBreadcrumbs = () => {
@@ -94,7 +161,7 @@ export default function AdminHeader({ onOpenMobileMenu }) {
   ];
 
   return (
-    <header className="sticky top-0 z-20 h-16 bg-[#fcf9f4]/90 backdrop-blur-xl border-b border-[#e5e2dd] px-4 md:px-8 flex items-center justify-between gap-4 select-none">
+    <header className="sticky top-0 z-30 h-16 bg-[#fcf9f4]/90 backdrop-blur-xl border-b border-[#e5e2dd] px-4 md:px-8 flex items-center justify-between gap-4 select-none">
       {/* Left Area: Mobile Menu button & Breadcrumbs */}
       <div className="flex items-center gap-3 min-w-0">
         <button
@@ -128,7 +195,7 @@ export default function AdminHeader({ onOpenMobileMenu }) {
       {/* Right Area: Search, Notifications, Profile */}
       <div className="flex items-center gap-3 md:gap-4 shrink-0">
         {/* Global Search Bar */}
-        <div className="relative hidden sm:flex items-center">
+        <div ref={searchBoxRef} className="relative hidden sm:flex items-center">
           <span className="material-symbols-outlined absolute left-3 text-[18px] text-[#80756f] pointer-events-none">
             search
           </span>
@@ -136,12 +203,81 @@ export default function AdminHeader({ onOpenMobileMenu }) {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search orders, products, inventory... ⌘K"
+            onFocus={() => setSearchFocused(true)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') setSearchFocused(false);
+            }}
+            placeholder="Search orders, customers, products..."
             className="pl-9 pr-10 py-1.5 w-60 lg:w-72 bg-[#f6f3ee] text-[#1c1c19] text-[13px] rounded-full placeholder:text-[#80756f] focus:outline-none focus:bg-white focus:ring-1 focus:ring-[#180f0a] transition-all border border-transparent focus:border-[#e5e2dd]"
           />
-          <kbd className="absolute right-2.5 text-[10px] bg-[#e5e2dd] text-[#4e4540] px-1.5 py-0.5 rounded font-mono font-medium">
-            ⌘K
-          </kbd>
+          {!searchQuery && (
+            <kbd className="absolute right-2.5 text-[10px] bg-[#e5e2dd] text-[#4e4540] px-1.5 py-0.5 rounded font-mono font-medium">
+              ⌘K
+            </kbd>
+          )}
+
+          {/* Grouped Results Dropdown */}
+          {searchFocused && searchQuery.trim() && searchResults && (
+            <div className="absolute right-0 top-10 w-[22rem] bg-white rounded-2xl shadow-xl border border-[#e5e2dd] z-50 animate-fade-in max-h-[26rem] overflow-y-auto">
+              {searchResults.empty ? (
+                <div className="p-5 text-center">
+                  <p className="text-[13px] font-semibold text-[#180f0a]">No results for &ldquo;{searchQuery}&rdquo;</p>
+                  <p className="text-[11px] text-[#80756f] mt-1">Try an order ID, customer name, or product name.</p>
+                </div>
+              ) : (
+                <>
+                  {searchResults.orders.length > 0 && (
+                    <SearchGroup label="ORDERS" icon="receipt_long">
+                      {searchResults.orders.map((o) => (
+                        <SearchRow
+                          key={o.id}
+                          title={o.id}
+                          subtitle={`${o.customerName || 'Customer'} · ${formatINR(o.total)}`}
+                          onClick={() => goToResult(`/admin/orders/${o.id}`)}
+                        />
+                      ))}
+                    </SearchGroup>
+                  )}
+                  {searchResults.customers.length > 0 && (
+                    <SearchGroup label="CUSTOMERS" icon="person">
+                      {searchResults.customers.map((c) => (
+                        <SearchRow
+                          key={c.id}
+                          title={c.name}
+                          subtitle={`${c.email} · ${c.orders || 0} orders`}
+                          onClick={() => goToResult(`/admin/customers/${c.id}`)}
+                        />
+                      ))}
+                    </SearchGroup>
+                  )}
+                  {searchResults.products.length > 0 && (
+                    <SearchGroup label="PRODUCTS" icon="local_florist">
+                      {searchResults.products.map((p) => (
+                        <SearchRow
+                          key={p.id}
+                          title={p.name}
+                          subtitle={`${p.categoryLabel || 'Product'} · ${formatINR(p.price)}`}
+                          onClick={() => goToResult(`/admin/products/${p.id}`)}
+                        />
+                      ))}
+                    </SearchGroup>
+                  )}
+                  {searchResults.collections.length > 0 && (
+                    <SearchGroup label="COLLECTIONS" icon="collections_bookmark">
+                      {searchResults.collections.map((c) => (
+                        <SearchRow
+                          key={c.id}
+                          title={c.name}
+                          subtitle={c.description || 'Collection'}
+                          onClick={() => goToResult(`/admin/collections/${c.id}`)}
+                        />
+                      ))}
+                    </SearchGroup>
+                  )}
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Notification Bell */}
@@ -246,18 +382,51 @@ export default function AdminHeader({ onOpenMobileMenu }) {
                 </Link>
               </div>
               <div className="pt-1 border-t border-[#f0ede9]">
-                <Link
-                  to="/login"
-                  className="flex items-center gap-2 px-3 py-2 rounded-xl text-[#ba1a1a] hover:bg-[#ffdad6]/40"
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowProfileMenu(false);
+                    logout();
+                    navigate('/admin/login');
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-[#ba1a1a] hover:bg-[#ffdad6]/40"
                 >
                   <span className="material-symbols-outlined text-[17px]">logout</span>
                   <span>Sign Out Session</span>
-                </Link>
+                </button>
               </div>
             </div>
           )}
         </div>
       </div>
     </header>
+  );
+}
+
+function SearchGroup({ label, icon, children }) {
+  return (
+    <div className="py-1.5">
+      <div className="px-3 pt-2 pb-1 flex items-center gap-1.5">
+        <span className="material-symbols-outlined text-[13px] text-[#964735]">{icon}</span>
+        <span className="text-[10px] font-bold tracking-widest text-[#80756f]">{label}</span>
+      </div>
+      <div className="divide-y divide-[#f6f3ee]">{children}</div>
+    </div>
+  );
+}
+
+function SearchRow({ title, subtitle, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full text-left px-4 py-2.5 flex items-center justify-between gap-3 hover:bg-[#f6f3ee] transition-colors"
+    >
+      <div className="min-w-0">
+        <p className="text-[13px] font-semibold text-[#180f0a] truncate">{title}</p>
+        {subtitle && <p className="text-[11px] text-[#80756f] truncate">{subtitle}</p>}
+      </div>
+      <span className="material-symbols-outlined text-[16px] text-[#d1c4bd] shrink-0">chevron_right</span>
+    </button>
   );
 }

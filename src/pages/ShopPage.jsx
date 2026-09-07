@@ -1,32 +1,51 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { Filter, SlidersHorizontal, ArrowUpDown, X, Search, RotateCcw } from 'lucide-react';
 import ProductCard from '../components/ProductCard.jsx';
-import { PRODUCTS, CATEGORIES } from '../data/products.js';
-import { getProducts } from '../services/api.js';
+import { getProducts as getCatalogProducts } from '../services/productService.js';
 
 export default function ShopPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialCategory = searchParams.get('category') || 'all';
 
-  const [products, setProducts] = useState(PRODUCTS);
+  // Canonical catalogue — same persisted product set the Handler Portal manages,
+  // so admin product edits/creations immediately reach the storefront.
+  const catalog = getCatalogProducts();
+  const maxPriceCap = Math.max(
+    4000,
+    Math.ceil(Math.max(0, ...catalog.map(p => Number(p.price) || 0)) / 500) * 500
+  );
+
+  // Derive real category chips from the catalogue (no ghost/empty categories).
+  const categoryMap = catalog.reduce((acc, p) => {
+    if (p.category && !acc[p.category]) {
+      acc[p.category] = { id: p.category, label: p.categoryLabel || p.category };
+    }
+    return acc;
+  }, {});
+  const categoryOptions = [{ id: 'all', label: 'All Keepsakes' }, ...Object.values(categoryMap)];
+
+  const [products, setProducts] = useState(() => getCatalogProducts());
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
-  const [maxPrice, setMaxPrice] = useState(4000);
+  const [maxPrice, setMaxPrice] = useState(maxPriceCap);
   const [sortBy, setSortBy] = useState('featured');
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
 
   useEffect(() => {
-    async function filterData() {
-      const filtered = await getProducts({
-        category: selectedCategory,
-        maxPrice: Number(maxPrice),
-        search: searchQuery,
-        sort: sortBy === 'featured' ? null : sortBy
-      });
-      setProducts(filtered);
-    }
-    filterData();
+    const base = getCatalogProducts();
+    const q = searchQuery.trim().toLowerCase();
+    let filtered = base.filter(p =>
+      p.visibility !== 'Hidden' &&
+      (selectedCategory === 'all' || p.category === selectedCategory) &&
+      Number(p.price || 0) <= Number(maxPrice) &&
+      (!q || [p.name, p.shortDescription, p.description, p.categoryLabel, ...(p.tags || [])]
+        .filter(Boolean).join(' ').toLowerCase().includes(q))
+    );
+    if (sortBy === 'price-asc') filtered = [...filtered].sort((a, b) => (a.price || 0) - (b.price || 0));
+    if (sortBy === 'price-desc') filtered = [...filtered].sort((a, b) => (b.price || 0) - (a.price || 0));
+    if (sortBy === 'rating') filtered = [...filtered].sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    setProducts(filtered);
   }, [selectedCategory, maxPrice, sortBy, searchQuery]);
 
   const handleCategoryChange = (catId) => {
@@ -41,7 +60,7 @@ export default function ShopPage() {
 
   const handleResetFilters = () => {
     setSelectedCategory('all');
-    setMaxPrice(4000);
+    setMaxPrice(maxPriceCap);
     setSortBy('featured');
     setSearchQuery('');
     setSearchParams({});
@@ -70,7 +89,7 @@ export default function ShopPage() {
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pb-6 border-b border-[#e5e2dd] mb-8">
           {/* Categories Horizontal Scroll */}
           <div className="flex items-center gap-2 overflow-x-auto w-full lg:w-auto pb-2 lg:pb-0 scrollbar-none">
-            {CATEGORIES.map((cat) => (
+            {categoryOptions.map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => handleCategoryChange(cat.id)}
@@ -130,7 +149,7 @@ export default function ShopPage() {
             <div className="bg-white rounded-3xl p-6 border border-[#e5e2dd] shadow-xs space-y-6">
               <div className="flex items-center justify-between border-b border-[#e5e2dd] pb-3">
                 <span className="font-serif text-[18px] text-[#180f0a] font-medium">Refine Catalog</span>
-                {(selectedCategory !== 'all' || maxPrice < 4000 || searchQuery) && (
+                {(selectedCategory !== 'all' || maxPrice < maxPriceCap || searchQuery) && (
                   <button
                     onClick={handleResetFilters}
                     className="text-[11px] font-bold uppercase tracking-wider text-[#964735] hover:underline flex items-center gap-1"
@@ -150,7 +169,7 @@ export default function ShopPage() {
                 <input
                   type="range"
                   min="400"
-                  max="4000"
+                  max={maxPriceCap}
                   step="50"
                   value={maxPrice}
                   onChange={(e) => setMaxPrice(e.target.value)}
@@ -158,7 +177,7 @@ export default function ShopPage() {
                 />
                 <div className="flex items-center justify-between text-[10px] text-[#80756f] font-bold uppercase">
                   <span>₹400</span>
-                  <span>₹4,000+</span>
+                  <span>₹{maxPriceCap.toLocaleString('en-IN')}+</span>
                 </div>
               </div>
 
@@ -219,16 +238,24 @@ export default function ShopPage() {
                 <div className="w-16 h-16 rounded-full bg-[#f6f3ee] mx-auto flex items-center justify-center text-3xl">
                   🥀
                 </div>
-                <h3 className="font-serif text-[24px] text-[#180f0a]">No keepsakes match your filters</h3>
+                <h3 className="font-serif text-[24px] text-[#180f0a]">No creations found</h3>
                 <p className="text-[14px] text-[#4e4540] max-w-md mx-auto">
-                  Try adjusting your price ceiling, removing search keywords, or browsing our full botanical collections.
+                  Try widening your price range, clearing the search, or choosing another category.
                 </p>
-                <button
-                  onClick={handleResetFilters}
-                  className="px-6 py-2.5 rounded-full bg-[#180f0a] text-white text-[13px] font-semibold hover:bg-[#964735] transition-colors"
-                >
-                  Reset All Filters
-                </button>
+                <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
+                  <button
+                    onClick={handleResetFilters}
+                    className="px-6 py-2.5 rounded-full bg-[#180f0a] text-white text-[13px] font-semibold hover:bg-[#964735] transition-colors"
+                  >
+                    Clear Filters
+                  </button>
+                  <Link
+                    to="/shop"
+                    className="px-6 py-2.5 rounded-full bg-white border border-[#e5e2dd] text-[#180f0a] text-[13px] font-semibold hover:bg-[#f6f3ee] transition-colors"
+                  >
+                    Continue Shopping
+                  </Link>
+                </div>
               </div>
             )}
           </main>

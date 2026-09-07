@@ -3,6 +3,7 @@ import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import PromoBar from './components/PromoBar.jsx';
 import Navbar from './components/Navbar.jsx';
 import Footer from './components/Footer.jsx';
+import MinimalHeader from './components/MinimalHeader.jsx';
 import AdminRoute from './components/AdminRoute.jsx';
 
 import HomePage from './pages/HomePage.jsx';
@@ -60,13 +61,18 @@ function ScrollToTop() {
 
 export default function App() {
   const location = useLocation();
-  const isAdminRoute = location.pathname.startsWith('/admin');
+  const { pathname } = location;
+  const isAdminRoute = pathname.startsWith('/admin');
+  // Conversion/auth pages get a focused minimal header instead of the
+  // full marketing navigation — the customer stays in the purchase flow.
+  const isMinimalRoute = pathname.startsWith('/checkout') || pathname === '/login';
 
   return (
     <div className="flex flex-col min-h-screen bg-[#fcf9f4] text-[#1c1c19] selection:bg-[#ffdad3] selection:text-[#772f1f]">
       <ScrollToTop />
-      {!isAdminRoute && <PromoBar />}
-      {!isAdminRoute && <Navbar />}
+      {!isAdminRoute && !isMinimalRoute && <PromoBar />}
+      {!isAdminRoute && !isMinimalRoute && <Navbar />}
+      {!isAdminRoute && isMinimalRoute && <MinimalHeader variant={pathname.startsWith('/checkout') ? 'checkout' : 'auth'} />}
 
       <main className="flex-grow">
         <Routes>
@@ -125,7 +131,7 @@ export default function App() {
         </Routes>
       </main>
 
-      {!isAdminRoute && <Footer />}
+      {!isAdminRoute && !isMinimalRoute && <Footer />}
     </div>
   );
 }

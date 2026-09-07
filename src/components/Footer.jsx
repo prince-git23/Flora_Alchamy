@@ -72,11 +72,15 @@ export default function Footer() {
           <div className="md:col-span-2 space-y-3">
             <h3 className="text-[11px] uppercase font-bold tracking-widest text-[#1c1c19]">Customer Care</h3>
             <ul className="space-y-2 text-[13px] text-[#4e4540]">
-              <li><Link to="/order-tracking/FA-1024" className="hover:text-[#180f0a] transition-colors">Order Tracking</Link></li>
+              <li><Link to="/order-tracking" className="hover:text-[#180f0a] transition-colors">Order Tracking</Link></li>
               <li><Link to="/cart" className="hover:text-[#180f0a] transition-colors">Shopping Bag</Link></li>
               <li><Link to="/wishlist" className="hover:text-[#180f0a] transition-colors">Saved Keepsakes</Link></li>
               <li><Link to="/account" className="hover:text-[#180f0a] transition-colors">Customer Account</Link></li>
-              <li><Link to="/admin/dashboard" className="hover:text-[#964735] transition-colors font-medium flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">admin_panel_settings</span> Handler Portal</Link></li>
+              <li>
+                <Link to="/admin/login" className="text-[12px] text-[#a89f99] hover:text-[#180f0a] transition-colors">
+                  Staff / Admin Login
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -111,7 +115,7 @@ export default function Footer() {
           <div className="flex items-center gap-6">
             <Link to="/shop" className="hover:text-[#180f0a] transition-colors">Curated Catalog</Link>
             <Link to="/custom-gifts" className="hover:text-[#180f0a] transition-colors">Bespoke Studio</Link>
-            <Link to="/order-tracking/FA-1024" className="hover:text-[#180f0a] transition-colors">Track Order</Link>
+            <Link to="/order-tracking" className="hover:text-[#180f0a] transition-colors">Track Order</Link>
           </div>
         </div>
       </div>

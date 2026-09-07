@@ -1,8 +1,16 @@
 import React from 'react';
-import { NavLink, useLocation, Link } from 'react-router-dom';
+import { NavLink, useLocation, Link, useNavigate } from 'react-router-dom';
+import { useAdminSession } from '../../context/AdminSessionContext.jsx';
 
 export default function AdminSidebar({ isOpen, onClose }) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { logout } = useAdminSession();
+
+  const handleSignOut = () => {
+    logout();
+    navigate('/admin/login');
+  };
 
 
   const navGroups = [
@@ -215,13 +223,14 @@ export default function AdminSidebar({ isOpen, onClose }) {
           </span>
           <span className="material-symbols-outlined text-[16px] text-[#80756f]">open_in_new</span>
         </Link>
-        <Link
-          to="/login"
-          className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-[13px] font-medium text-[#4e4540] hover:text-[#ba1a1a] hover:bg-[#ffdad6]/40 transition-all"
+        <button
+          type="button"
+          onClick={handleSignOut}
+          className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-[13px] font-medium text-[#4e4540] hover:text-[#ba1a1a] hover:bg-[#ffdad6]/40 transition-all"
         >
           <span className="material-symbols-outlined text-[18px]">logout</span>
           <span>Sign Out</span>
-        </Link>
+        </button>
       </div>
     </div>
   );

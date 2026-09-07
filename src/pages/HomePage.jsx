@@ -130,7 +130,7 @@ export default function HomePage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             <Link
-              to="/shop"
+              to="/shop?category=bouquets"
               className="group relative rounded-3xl p-6 bg-[#f6f3ee] hover:bg-[#f0ede9] hover:shadow-xl transition-all duration-300 flex flex-col justify-between h-72 overflow-hidden border border-[#e5e2dd]"
             >
               <div className="absolute top-0 right-0 w-44 h-44 rounded-full bg-[#ffdad3]/40 -mr-10 -mt-10 blur-2xl group-hover:scale-125 transition-transform duration-500" />
@@ -155,7 +155,7 @@ export default function HomePage() {
             </Link>
 
             <Link
-              to="/shop"
+              to="/shop?category=cards"
               className="group relative rounded-3xl p-6 bg-[#f6f3ee] hover:bg-[#f0ede9] hover:shadow-xl transition-all duration-300 flex flex-col justify-between h-72 overflow-hidden border border-[#e5e2dd]"
             >
               <div className="absolute top-0 right-0 w-44 h-44 rounded-full bg-[#d8e7cd]/40 -mr-10 -mt-10 blur-2xl group-hover:scale-125 transition-transform duration-500" />
@@ -205,7 +205,7 @@ export default function HomePage() {
             </Link>
 
             <Link
-              to="/shop"
+              to="/shop?category=charms"
               className="group relative rounded-3xl p-6 bg-[#f6f3ee] hover:bg-[#f0ede9] hover:shadow-xl transition-all duration-300 flex flex-col justify-between h-72 overflow-hidden border border-[#e5e2dd]"
             >
               <div className="relative z-10 flex items-start justify-between">
@@ -229,7 +229,7 @@ export default function HomePage() {
             </Link>
 
             <Link
-              to="/shop"
+              to="/shop?category=cards"
               className="group relative rounded-3xl p-6 bg-[#f6f3ee] hover:bg-[#f0ede9] hover:shadow-xl transition-all duration-300 flex flex-col justify-between h-72 overflow-hidden border border-[#e5e2dd]"
             >
               <div className="relative z-10 flex items-start justify-between">

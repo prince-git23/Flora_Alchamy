@@ -1,33 +1,59 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ShieldCheck, Truck, CreditCard, QrCode, Lock, CheckCircle2 } from 'lucide-react';
+import { ShieldCheck, CreditCard, QrCode, Lock, UserRound, ArrowRight } from 'lucide-react';
 import { useStore } from '../context/StoreContext.jsx';
 import { createOrder } from '../services/orderService.js';
-import { getActiveCustomerId } from '../services/customerService.js';
+import { isCatalogueProduct } from '../services/productService.js';
+import { validateStock } from '../services/inventoryService.js';
+import { getActiveCustomer, getActiveCustomerId } from '../services/customerService.js';
+import { getSettings, getShippingCost } from '../services/settingsService.js';
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
-  const { cart, cartSubtotal, setCart } = useStore();
+  const { cart, cartSubtotal, clearCart } = useStore();
+
+  // Checkout requires an authenticated customer — there is no guest checkout.
+  const activeCustomer = getActiveCustomer();
+  const isAuthed = !!activeCustomer;
 
   const [formData, setFormData] = useState({
-    fullName: 'Demo Customer',
-    email: 'customer@example.com',
-    phone: '+91 98000 00000',
-    address: 'Bandra West',
-    city: 'Mumbai',
-    state: 'Maharashtra',
-    pincode: '400050',
-    deliveryInstructions: 'Please leave with reception if unavailable.'
+    fullName: '',
+    email: '',
+    phone: '',
+    address: '',
+    city: '',
+    state: '',
+    pincode: '',
+    deliveryInstructions: ''
   });
+
+  // Prefill delivery details from the authenticated customer's profile/address.
+  useEffect(() => {
+    if (!activeCustomer) return;
+    const addr = (activeCustomer.addresses || []).find((a) => a.isDefault);
+    setFormData((prev) => ({
+      ...prev,
+      fullName: prev.fullName || activeCustomer.name || '',
+      email: prev.email || activeCustomer.email || '',
+      phone: prev.phone || activeCustomer.phone || '',
+      address: prev.address || addr?.address || '',
+      city: prev.city || addr?.city || '',
+      state: prev.state || addr?.state || '',
+      pincode: prev.pincode || addr?.pincode || '',
+    }));
+  }, [activeCustomer?.id]);
 
   const [errors, setErrors] = useState({});
   const [shippingMethod, setShippingMethod] = useState('standard');
   const [paymentMethod, setPaymentMethod] = useState('upi');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [inventoryWarning, setInventoryWarning] = useState('');
 
-  const shippingCost = shippingMethod === 'express' ? 250 : (cartSubtotal >= 1999 ? 0 : 150);
+  const settings = getSettings();
+  const shippingCost = getShippingCost(cartSubtotal);
   const totalAmount = cartSubtotal + shippingCost;
+  const freeShippingThreshold = settings.freeShippingAbove || 1999;
 
   const validate = () => {
     const errs = {};
@@ -73,6 +99,27 @@ export default function CheckoutPage() {
 
     setIsSubmitting(true);
     setSubmitError('');
+    setInventoryWarning('');
+
+    // Validate inventory before creating the order so no stock is
+    // deducted (and no order created) when items are unavailable.
+    // Made-to-order custom items are not stock-tracked and are skipped.
+    const stockIssues = cart
+      .map(item => {
+        const productId = item.productId || item.id;
+        if (!isCatalogueProduct(productId)) return null;
+        const qty = item.quantity || 1;
+        const check = validateStock(productId, qty);
+        return check.available ? null : { name: item.name, ...check };
+      })
+      .filter(Boolean);
+
+    if (stockIssues.length > 0) {
+      setIsSubmitting(false);
+      const first = stockIssues[0];
+      setInventoryWarning(`"${first.name}" is out of stock (${first.currentStock} available). Please update the quantity in your bag before continuing.`);
+      return;
+    }
 
     try {
       const newOrder = await createOrder({
@@ -94,10 +141,10 @@ export default function CheckoutPage() {
         isRush: shippingMethod === 'express',
       });
 
-      // Update state in store
-      setCart([]);
+      // Persist the empty cart so a reload does not resurrect purchased items.
+      await clearCart();
       setIsSubmitting(false);
-      navigate(`/order-success/${newOrder.orderId}`);
+      navigate(`/order-success/${newOrder.id || newOrder.orderId}`);
     } catch (err) {
       setIsSubmitting(false);
       setSubmitError(err.message || 'Order placement encountered an issue. Please try again.');
@@ -108,16 +155,71 @@ export default function CheckoutPage() {
     <div className="w-full bg-[#fcf9f4] min-h-screen py-10 lg:py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Title */}
-        <div className="space-y-1 mb-8">
+        <div className="space-y-1 mb-6">
           <span className="text-[11px] uppercase font-bold tracking-widest text-[#964735]">
-            Secure Atelier Checkout
+            Flora Alchemy Checkout
           </span>
           <h1 className="font-serif text-[36px] sm:text-[42px] text-[#180f0a] font-normal tracking-tight">
-            Shipping & Dispatch
+            Shipping & Delivery
           </h1>
         </div>
 
-        {cart.length === 0 ? (
+        {/* Checkout Progress */}
+        <div className="flex items-center gap-2 sm:gap-3 mb-10 max-w-3xl overflow-x-auto pb-1">
+          {['Account', 'Delivery', 'Payment', 'Review'].map((step, i) => {
+            const done = i < (isAuthed ? 1 : 0);
+            const current = isAuthed ? i === 1 : i === 0;
+            return (
+              <div key={step} className="flex items-center gap-2 sm:gap-3 shrink-0">
+                <div className="flex items-center gap-2">
+                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold ${
+                    current ? 'bg-[#180f0a] text-white' : done ? 'bg-[#d8e7cd] text-[#081405]' : 'bg-[#ebe8e3] text-[#80756f]'
+                  }`}>
+                    {done && !current ? '✓' : i + 1}
+                  </span>
+                  <span className={`text-[12px] font-semibold ${current ? 'text-[#180f0a]' : 'text-[#80756f]'}`}>{step}</span>
+                </div>
+                {i < 3 && <span className="w-6 h-px bg-[#e5e2dd]" />}
+              </div>
+            );
+          })}
+        </div>
+
+        {!isAuthed ? (
+          /* AUTHENTICATION GATE — no guest checkout */
+          <div className="bg-white rounded-3xl p-10 sm:p-14 border border-[#e5e2dd] text-center space-y-5 shadow-sm max-w-xl mx-auto my-8">
+            <div className="w-14 h-14 rounded-full bg-[#f6f3ee] flex items-center justify-center mx-auto">
+              <UserRound className="w-6 h-6 text-[#964735]" />
+            </div>
+            <div className="space-y-1">
+              <h2 className="font-serif text-[28px] text-[#180f0a]">Sign in to continue</h2>
+              <p className="text-[14px] text-[#4e4540] max-w-sm mx-auto">
+                Create an account or sign in to continue with checkout. Your bag is safe — we&rsquo;ll
+                bring you right back here.
+              </p>
+            </div>
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <Link
+                to="/login?redirect=/checkout"
+                className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-[#180f0a] hover:bg-[#964735] text-white text-[13px] font-semibold flex items-center justify-center gap-2 shadow-md transition-colors"
+              >
+                Sign In
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+              <Link
+                to="/login?mode=register&redirect=/checkout"
+                className="w-full sm:w-auto px-8 py-3.5 rounded-full border border-[#e5e2dd] text-[#180f0a] hover:bg-[#f6f3ee] text-[13px] font-semibold transition-colors"
+              >
+                Create Account
+              </Link>
+            </div>
+            <div>
+              <Link to="/cart" className="text-[12px] font-semibold text-[#964735] hover:underline">
+                ← Back to Cart
+              </Link>
+            </div>
+          </div>
+        ) : cart.length === 0 ? (
           <div className="bg-white rounded-3xl p-10 sm:p-14 border border-[#e5e2dd] text-center space-y-4 shadow-sm max-w-xl mx-auto my-8">
             <p className="font-serif text-[24px] text-[#180f0a]">Your shopping bag is currently empty.</p>
             <p className="text-[14px] text-[#4e4540]">
@@ -139,19 +241,24 @@ export default function CheckoutPage() {
                 {submitError}
               </div>
             )}
+            {inventoryWarning && (
+              <div className="p-4 rounded-2xl bg-amber-50 text-amber-900 text-[13px] font-medium border border-amber-200 mb-6">
+                {inventoryWarning}
+                <Link to="/cart" className="ml-2 underline font-semibold">Review your bag</Link>
+              </div>
+            )}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
             {/* Left Details (7 cols) */}
             <div className="lg:col-span-7 space-y-8">
               {/* Express UPI Banner */}
-              <div className="p-4 rounded-3xl bg-white border border-[#e5e2dd] shadow-xs space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#80756f]">
-                    Express Checkout
-                  </span>
-                  <span className="text-[11px] text-[#5b6d54] font-semibold flex items-center gap-1">
-                    <Lock className="w-3 h-3" /> 256-Bit Encrypted
-                  </span>
-                </div>
+              <div className="p-4 rounded-3xl bg-white border border-[#e5e2dd] shadow-xs space-y-3">                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#80756f]">
+                      Payment Method
+                    </span>
+                    <span className="text-[11px] text-[#5b6d54] font-semibold">
+                      Demo payment · No real charge
+                    </span>
+                  </div>
                 <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
@@ -184,6 +291,12 @@ export default function CheckoutPage() {
                   </button>
                 </div>
               </div>
+
+              {/* Authenticated context note */}
+              <p className="text-[12px] text-[#80756f] flex items-center gap-1.5">
+                <UserRound className="w-3.5 h-3.5 shrink-0" />
+                <span>Checkout as {activeCustomer.name || 'you'} · {activeCustomer.email}</span>
+              </p>
 
               {/* Delivery Address Section */}
               <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#e5e2dd] shadow-xs space-y-6">
@@ -357,8 +470,11 @@ export default function CheckoutPage() {
             <div className="lg:col-span-5 sticky top-24 space-y-6">
               <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#e5e2dd] shadow-lg space-y-6">
                 <div className="border-b border-[#e5e2dd] pb-4 flex items-center justify-between">
-                  <h3 className="font-serif text-[22px] text-[#180f0a]">Keepsake Summary</h3>
-                  <span className="text-[13px] text-[#80756f]">{cart.length} item{cart.length > 1 ? 's' : ''}</span>
+                  <h3 className="font-serif text-[22px] text-[#180f0a]">Order Summary</h3>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[13px] text-[#80756f]">{cart.length} item{cart.length > 1 ? 's' : ''}</span>
+                    <Link to="/cart" className="text-[11px] font-bold text-[#964735] hover:underline">Edit Cart</Link>
+                  </div>
                 </div>
 
                 {/* Compact Item List */}
