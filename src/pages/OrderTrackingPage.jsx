@@ -1,12 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Search, Package, MapPin, Sparkles, Clock } from 'lucide-react';
+import { Search, Package, MapPin, Sparkles, Clock, UserRound, ArrowRight } from 'lucide-react';
 import { getOrderById, formatINR, formatDate, getCustomerFacingStatus } from '../services/orderService.js';
+import { getActiveCustomerId } from '../services/customerService.js';
 import OrderStatusTracker from '../components/OrderStatusTracker.jsx';
 
 export default function OrderTrackingPage() {
   const { orderId } = useParams();
   const [searchCode, setSearchCode] = useState(orderId || '');
+
+  // Tracking requires an authenticated customer — orders are private records.
+  // The sign-in destination preserves any order reference in the URL.
+  const isAuthed = !!getActiveCustomerId();
+  const trackingRedirect = orderId ? `/order-tracking/${orderId}` : '/order-tracking';
+
   const [currentOrder, setCurrentOrder] = useState(null);
   const [error, setError] = useState(null);
   const [searched, setSearched] = useState(false);
@@ -58,17 +65,50 @@ export default function OrderTrackingPage() {
         {/* Title Header */}
         <div className="text-center max-w-2xl mx-auto mb-10 space-y-2">
           <span className="text-[11px] uppercase font-bold tracking-widest text-[#964735]">
-            Atelier Dispatch Logistics
+            Order Tracking
           </span>
           <h1 className="font-serif text-[36px] sm:text-[44px] text-[#180f0a] font-normal tracking-tight">
             Track Your Botanical Keepsake
           </h1>
           <p className="text-[15px] text-[#4e4540]">
-            Follow the handcrafting, wax packaging, and courier journey of your order.
+            Follow the handcrafting, wax packaging, and dispatch journey of your order.
           </p>
+        </div>
 
-          {/* Quick Search Bar */}
-          <form onSubmit={handleSearch} className="flex gap-2 max-w-md mx-auto pt-4">
+        {!isAuthed ? (
+          /* Tracking requires an authenticated customer — no public order lookup */
+          <div className="bg-white rounded-3xl p-10 sm:p-14 border border-[#e5e2dd] text-center space-y-5 shadow-sm max-w-xl mx-auto">
+            <div className="w-14 h-14 rounded-full bg-[#f6f3ee] flex items-center justify-center mx-auto">
+              <UserRound className="w-6 h-6 text-[#964735]" />
+            </div>
+            <div className="space-y-1">
+              <h2 className="font-serif text-[28px] text-[#180f0a]">Sign in to track your order.</h2>
+              <p className="text-[14px] text-[#4e4540] max-w-sm mx-auto">
+                Order details are private. Sign in to see the dispatch status of your own orders —
+                we&rsquo;ll bring you right back here.
+              </p>
+            </div>
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <Link
+                to={`/login?redirect=${encodeURIComponent(trackingRedirect)}`}
+                className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-[#180f0a] hover:bg-[#964735] text-white text-[13px] font-semibold flex items-center justify-center gap-2 shadow-md transition-colors"
+              >
+                Sign In
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+              <Link
+                to="/shop"
+                className="w-full sm:w-auto px-8 py-3.5 rounded-full border border-[#e5e2dd] text-[#180f0a] hover:bg-[#f6f3ee] text-[13px] font-semibold transition-colors"
+              >
+                Back to Store
+              </Link>
+            </div>
+          </div>
+        ) : (
+        <>
+        {/* Quick Search Bar — authenticated customers only (their own orders) */}
+        <div className="max-w-md mx-auto -mt-6 mb-10">
+          <form onSubmit={handleSearch} className="flex gap-2">
             <input
               type="text"
               value={searchCode}
@@ -84,7 +124,6 @@ export default function OrderTrackingPage() {
               <span>Track</span>
             </button>
           </form>
-
           {error && <p className="text-[12px] text-[#964735] font-medium pt-2">{error}</p>}
           {searched && !error && currentOrder && (
             <p className="text-[12px] text-[#5b6d54] font-semibold pt-1">
@@ -199,7 +238,7 @@ export default function OrderTrackingPage() {
           <div className="bg-white rounded-3xl p-10 sm:p-14 border border-[#e5e2dd] text-center space-y-4 shadow-sm max-w-xl mx-auto">
             <p className="font-serif text-[24px] text-[#180f0a]">Track your order</p>
             <p className="text-[14px] text-[#4e4540]">
-              Enter the order reference from your confirmation (for example FA-1024) or your tracking code above to see its live journey.
+              Enter the order reference from your confirmation (for example FA-1024) or your tracking code above to see its journey.
             </p>
             <div className="pt-2">
               <Link to="/account" className="inline-flex px-7 py-3.5 rounded-full bg-[#180f0a] text-white text-[13px] font-semibold hover:bg-[#964735] transition-colors shadow-sm">
@@ -207,6 +246,8 @@ export default function OrderTrackingPage() {
               </Link>
             </div>
           </div>
+        )}
+        </>
         )}
       </div>
     </div>

@@ -136,29 +136,10 @@ export default function AdminHeader({ onOpenMobileMenu }) {
 
   const breadcrumbs = getBreadcrumbs();
 
-  const notifications = [
-    {
-      id: 1,
-      title: 'Order FA-1048 ready for hand-assembly',
-      time: '10 mins ago',
-      type: 'order',
-      unread: true
-    },
-    {
-      id: 2,
-      title: 'Critical stock: Dusty Rose Velvet Ribbon (2 spools)',
-      time: '45 mins ago',
-      type: 'alert',
-      unread: true
-    },
-    {
-      id: 3,
-      title: 'Priya Sharma updated regional delivery schedules',
-      time: '2 hours ago',
-      type: 'audit',
-      unread: false
-    }
-  ];
+  // No live notification workflow exists (the backend Notification model has
+  // no delivery pipeline) — show an honest empty state rather than static
+  // sample alerts pretending to be live (Phase 3D.5, E-04).
+  const notifications = [];
 
   return (
     <header className="sticky top-0 z-30 h-16 bg-[#fcf9f4]/90 backdrop-blur-xl border-b border-[#e5e2dd] px-4 md:px-8 flex items-center justify-between gap-4 select-none">
@@ -289,29 +270,19 @@ export default function AdminHeader({ onOpenMobileMenu }) {
             aria-label="Toggle notifications"
           >
             <span className="material-symbols-outlined text-[20px]">notifications</span>
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#964735]"></span>
           </button>
 
           {showNotifications && (
             <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-[#e5e2dd] p-3 z-50 animate-fade-in">
               <div className="flex items-center justify-between pb-2 border-b border-[#f0ede9]">
-                <span className="text-[13px] font-semibold text-[#180f0a]">Handler Activity Stream</span>
-                <span className="text-[10px] uppercase font-bold text-[#964735] bg-[#ffdad3] px-2 py-0.5 rounded-full">
-                  2 New
-                </span>
+                <span className="text-[13px] font-semibold text-[#180f0a]">Notifications</span>
               </div>
-              <div className="divide-y divide-[#f6f3ee] max-h-64 overflow-y-auto">
-                {notifications.map((item) => (
-                  <div key={item.id} className="py-2.5 px-1 flex items-start gap-2.5 hover:bg-[#fcf9f4] transition-colors rounded-lg">
-                    <span className="material-symbols-outlined text-[18px] text-[#964735] mt-0.5">
-                      {item.type === 'alert' ? 'warning' : item.type === 'order' ? 'local_florist' : 'verified_user'}
-                    </span>
-                    <div className="flex-1 text-[12px]">
-                      <p className="text-[#1c1c19] font-medium leading-snug">{item.title}</p>
-                      <p className="text-[11px] text-[#80756f] mt-0.5">{item.time}</p>
-                    </div>
-                  </div>
-                ))}
+              <div className="max-h-64 overflow-y-auto py-6 text-center space-y-1">
+                <span className="material-symbols-outlined text-[26px] text-[#d1c4bd] inline-block">notifications_off</span>
+                <p className="text-[13px] font-medium text-[#4e4540]">No live notifications configured.</p>
+                <p className="text-[11px] text-[#80756f]">
+                  Notification delivery is not connected in this prototype.
+                </p>
               </div>
               <div className="pt-2 border-t border-[#f0ede9] text-center">
                 <button
@@ -319,7 +290,7 @@ export default function AdminHeader({ onOpenMobileMenu }) {
                   onClick={() => setShowNotifications(false)}
                   className="text-[11px] text-[#964735] font-semibold hover:underline"
                 >
-                  Mark all as reviewed
+                  Close
                 </button>
               </div>
             </div>

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
+import { Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import PromoBar from './components/PromoBar.jsx';
 import Navbar from './components/Navbar.jsx';
 import Footer from './components/Footer.jsx';
@@ -61,11 +61,31 @@ function ScrollToTop() {
 
 export default function App() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { pathname } = location;
   const isAdminRoute = pathname.startsWith('/admin');
   // Conversion/auth pages get a focused minimal header instead of the
   // full marketing navigation — the customer stays in the purchase flow.
   const isMinimalRoute = pathname.startsWith('/checkout') || pathname === '/login';
+
+  // Session hardening: when the backend rejects a token (401), the app
+  // clears that session and returns the user to the right login screen.
+  // Checkout context is preserved so a mid-purchase session expiry returns
+  // the customer to checkout after re-authentication.
+  useEffect(() => {
+    const onAuthExpired = (e) => {
+      const scope = e && e.detail && e.detail.scope;
+      if (scope === 'admin') {
+        if (pathname !== '/admin/login') navigate('/admin/login', { replace: true });
+      } else if (scope === 'customer') {
+        if (pathname === '/login') return;
+        const redirect = pathname.startsWith('/checkout') ? '?redirect=/checkout' : '';
+        navigate(`/login${redirect}`, { replace: true });
+      }
+    };
+    window.addEventListener('fa:auth-expired', onAuthExpired);
+    return () => window.removeEventListener('fa:auth-expired', onAuthExpired);
+  }, [pathname, navigate]);
 
   return (
     <div className="flex flex-col min-h-screen bg-[#fcf9f4] text-[#1c1c19] selection:bg-[#ffdad3] selection:text-[#772f1f]">

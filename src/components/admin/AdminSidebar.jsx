@@ -21,8 +21,7 @@ export default function AdminSidebar({ isOpen, onClose }) {
           name: 'Dashboard',
           path: '/admin/dashboard',
           aliases: ['/admin'],
-          icon: 'dashboard',
-          implemented: true
+          icon: 'dashboard'
         }
       ]
     },
@@ -32,21 +31,17 @@ export default function AdminSidebar({ isOpen, onClose }) {
         {
           name: 'Orders',
           path: '/admin/orders',
-          icon: 'shopping_bag',
-          badge: '8',
-          implemented: true
+          icon: 'shopping_bag'
         },
         {
           name: 'Products',
           path: '/admin/products',
-          icon: 'inventory_2',
-          implemented: true
+          icon: 'inventory_2'
         },
         {
           name: 'Collections',
           path: '/admin/collections',
-          icon: 'auto_stories',
-          implemented: true
+          icon: 'auto_stories'
         }
       ]
     },
@@ -56,15 +51,12 @@ export default function AdminSidebar({ isOpen, onClose }) {
         {
           name: 'Inventory',
           path: '/admin/inventory',
-          icon: 'warehouse',
-          indicator: 'Low',
-          implemented: true
+          icon: 'warehouse'
         },
         {
           name: 'Customers',
           path: '/admin/customers',
-          icon: 'group',
-          implemented: true
+          icon: 'group'
         }
       ]
     },
@@ -74,8 +66,7 @@ export default function AdminSidebar({ isOpen, onClose }) {
         {
           name: 'Analytics',
           path: '/admin/analytics',
-          icon: 'analytics',
-          implemented: true
+          icon: 'analytics'
         }
       ]
     },
@@ -86,14 +77,12 @@ export default function AdminSidebar({ isOpen, onClose }) {
           name: 'Settings',
           path: '/admin/settings',
           aliases: ['/admin/store-preferences'],
-          icon: 'settings',
-          implemented: true
+          icon: 'settings'
         },
         {
           name: 'Access',
           path: '/admin/access',
-          icon: 'shield_person',
-          implemented: true
+          icon: 'shield_person'
         }
       ]
     }
@@ -145,61 +134,31 @@ export default function AdminSidebar({ isOpen, onClose }) {
                     location.pathname === item.path ||
                     (item.aliases && item.aliases.includes(location.pathname));
 
-                  if (item.implemented) {
-                    return (
-                      <NavLink
-                        key={item.name}
-                        to={item.path}
-                        onClick={onClose}
-                        className={`flex items-center justify-between px-2.5 py-2 rounded-xl text-[13px] font-medium transition-all ${
-                          isActive
-                            ? 'bg-[#180f0a] text-white font-semibold shadow-sm'
-                            : 'text-[#4e4540] hover:bg-[#ebe8e3] hover:text-[#1c1c19]'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <span
-                            className={`material-symbols-outlined text-[19px] ${
-                              isActive ? 'text-white' : 'text-[#80756f]'
-                            }`}
-                          >
-                            {item.icon}
-                          </span>
-                          <span>{item.name}</span>
-                        </div>
-                        {isActive && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#ffdad3]"></span>
-                        )}
-                      </NavLink>
-                    );
-                  }
-
                   return (
-                    <a
+                    <NavLink
                       key={item.name}
-                      href={item.path}
-                      onClick={(e) => handleFutureModuleClick(e, item.name)}
-                      className="flex items-center justify-between px-2.5 py-2 rounded-xl text-[13px] font-medium text-[#4e4540] hover:bg-[#ebe8e3] hover:text-[#1c1c19] transition-all cursor-pointer group"
-                      title={`${item.name} (Scheduled for Phase 2B)`}
+                      to={item.path}
+                      onClick={onClose}
+                      className={`flex items-center justify-between px-2.5 py-2 rounded-xl text-[13px] font-medium transition-all ${
+                        isActive
+                          ? 'bg-[#180f0a] text-white font-semibold shadow-sm'
+                          : 'text-[#4e4540] hover:bg-[#ebe8e3] hover:text-[#1c1c19]'
+                      }`}
                     >
                       <div className="flex items-center gap-2.5">
-                        <span className="material-symbols-outlined text-[19px] text-[#80756f] group-hover:text-[#1c1c19]">
+                        <span
+                          className={`material-symbols-outlined text-[19px] ${
+                            isActive ? 'text-white' : 'text-[#80756f]'
+                          }`}
+                        >
                           {item.icon}
                         </span>
                         <span>{item.name}</span>
                       </div>
-                      {item.badge && (
-                        <span className="px-2 py-0.5 bg-[#ffdad3] text-[#783020] text-[10px] font-bold rounded-full">
-                          {item.badge}
-                        </span>
+                      {isActive && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#ffdad3]"></span>
                       )}
-                      {item.indicator && (
-                        <span className="flex items-center gap-1 text-[10px] font-semibold text-[#ba1a1a]">
-                          <span className="w-2 h-2 rounded-full bg-[#ba1a1a] animate-pulse"></span>
-                          {item.indicator}
-                        </span>
-                      )}
-                    </a>
+                    </NavLink>
                   );
                 })}
               </nav>

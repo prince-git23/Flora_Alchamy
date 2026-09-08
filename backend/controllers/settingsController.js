@@ -28,6 +28,12 @@ export async function updateSettings(req, res, next) {
       'acceptNewOrders',
       'shippingConfiguration',
       'customGiftConfiguration',
+      'storeTagline',
+      'contactEmail',
+      'contactPhone',
+      'timezone',
+      'commerceConfiguration',
+      'notificationConfiguration',
     ];
     for (const field of allowedTop) {
       if (req.body[field] !== undefined) {

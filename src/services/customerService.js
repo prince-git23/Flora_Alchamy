@@ -1,6 +1,6 @@
 import { getStored, setStored, clearStored } from './storage.js';
 import { api, setToken, clearToken } from './apiClient.js';
-import { store, signalDataChanged } from './dataStore.js';
+import { store, signalDataChanged, upsertCustomer } from './dataStore.js';
 
 /**
  * Phase 3C — customerService.
@@ -81,15 +81,84 @@ export async function updateCustomer(customerId, updates) {
     err.code = res.code;
     throw err;
   }
-  store.customers = [
-    ...store.customers.filter((c) => String(c.id || c._id) !== String(customerId)),
-    res.data.customer,
-  ];
-  if (store.currentCustomer && String(store.currentCustomer.id || store.currentCustomer._id) === String(customerId)) {
-    store.currentCustomer = res.data.customer;
+  upsertCustomer(res.data.customer);
+  // Keep the lightweight account marker in sync so the navbar/account header
+  // reflect the saved name immediately.
+  if (res.data.customer) {
+    const updated = withDerivedStats(res.data.customer);
+    setAccount({
+      name: updated.name,
+      email: updated.email,
+      phone: updated.phone || '',
+      customerId: updated.id,
+    });
   }
-  signalDataChanged();
   return withDerivedStats(res.data.customer);
+}
+
+// ─── Own addresses (backend-owned, Phase 3D) ───
+
+function addressPayload(addr) {
+  const payload = {};
+  for (const field of ['label', 'name', 'address', 'city', 'state', 'pincode', 'phone', 'isDefault']) {
+    if (addr[field] !== undefined) payload[field] = addr[field];
+  }
+  return payload;
+}
+
+/** Add an address to the authenticated customer's address book. */
+export async function addAddress(addr) {
+  const res = await api.post('/customers/me/addresses', addressPayload(addr), { scope: 'customer' });
+  if (!res.ok) {
+    const err = new Error(res.message || 'Address could not be saved.');
+    err.code = res.code;
+    err.status = res.status;
+    throw err;
+  }
+  upsertCustomer(res.data.customer);
+  return res.data.customer;
+}
+
+/** Edit an address (owner only). */
+export async function updateAddress(addressId, updates) {
+  const res = await api.patch(
+    `/customers/me/addresses/${encodeURIComponent(addressId)}`,
+    addressPayload(updates),
+    { scope: 'customer' }
+  );
+  if (!res.ok) {
+    const err = new Error(res.message || 'Address could not be updated.');
+    err.code = res.code;
+    err.status = res.status;
+    throw err;
+  }
+  upsertCustomer(res.data.customer);
+  return res.data.customer;
+}
+
+/** Delete an address (owner only). */
+export async function deleteAddress(addressId) {
+  const res = await api.delete(`/customers/me/addresses/${encodeURIComponent(addressId)}`, { scope: 'customer' });
+  if (!res.ok) {
+    const err = new Error(res.message || 'Address could not be removed.');
+    err.code = res.code;
+    err.status = res.status;
+    throw err;
+  }
+  upsertCustomer(res.data.customer);
+  return res.data.customer;
+}
+
+/** Re-read the authenticated customer's live profile from the backend. */
+export async function refreshCurrentCustomer() {
+  const res = await api.get('/auth/me', { scope: 'customer' });
+  if (!res.ok) {
+    const err = new Error(res.message || 'Profile could not be loaded.');
+    err.code = res.code;
+    throw err;
+  }
+  if (res.data.customer) upsertCustomer(res.data.customer);
+  return res.data.customer || null;
 }
 
 /** Server maintains customer stats with each order — no local bookkeeping. */

@@ -9,7 +9,6 @@ import {
 } from '../../services/adminSettings.js';
 
 export default function AdminAccessPage() {
-  const [viewState, setViewState] = useState('normal'); // 'normal' | 'skeleton' | 'empty'
   const [users, setUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('ALL');
@@ -46,7 +45,7 @@ export default function AdminAccessPage() {
     setNewUserName('');
     setNewUserEmail('');
     setShowAddModal(false);
-    triggerToast(`Sent workstation credentials invite to ${newUserEmail}`);
+    triggerToast(`Invitation recorded for ${newUserEmail} in this sample environment. No email was sent.`);
   };
 
   const handleStatusChange = (userId, newStatus, userEmail) => {
@@ -122,45 +121,6 @@ export default function AdminAccessPage() {
               </p>
             </div>
 
-            {/* Prototype View State Switcher */}
-            <div className="flex items-center gap-1.5 bg-[#e5e2dd]/70 p-1.5 rounded-full shadow-inner self-start md:self-auto">
-              <span className="text-[#4e4540] text-[11px] font-bold px-2 uppercase tracking-wider">
-                State:
-              </span>
-              <button
-                type="button"
-                onClick={() => setViewState('normal')}
-                className={`px-3 py-1 rounded-full text-[12px] font-semibold transition-all ${
-                  viewState === 'normal'
-                    ? 'bg-white shadow-xs text-[#180f0a]'
-                    : 'text-[#4e4540] hover:text-[#180f0a]'
-                }`}
-              >
-                Normal
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewState('skeleton')}
-                className={`px-3 py-1 rounded-full text-[12px] font-semibold transition-all ${
-                  viewState === 'skeleton'
-                    ? 'bg-white shadow-xs text-[#180f0a]'
-                    : 'text-[#4e4540] hover:text-[#180f0a]'
-                }`}
-              >
-                Skeleton
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewState('empty')}
-                className={`px-3 py-1 rounded-full text-[12px] font-semibold transition-all ${
-                  viewState === 'empty'
-                    ? 'bg-white shadow-xs text-[#180f0a]'
-                    : 'text-[#4e4540] hover:text-[#180f0a]'
-                }`}
-              >
-                Empty Sample
-              </button>
-            </div>
           </div>
 
           {/* Sub Navigation Tabs */}
@@ -268,7 +228,7 @@ export default function AdminAccessPage() {
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#f6f3ee] text-[#1c1c19] text-[13px] font-semibold hover:bg-[#ebe8e3] transition-all"
               >
                 <span className="material-symbols-outlined text-[18px]">mail</span>
-                <span>Invite User</span>
+                <span>Record Invitation</span>
               </button>
 
               <button
@@ -327,41 +287,8 @@ export default function AdminAccessPage() {
             </div>
           </div>
 
-          {/* VIEW: SKELETON */}
-          {viewState === 'skeleton' && (
-            <div className="space-y-3 py-2 animate-pulse">
-              <div className="h-12 bg-[#f0ede9] rounded-xl w-full"></div>
-              <div className="h-14 bg-[#ebe8e3] rounded-xl w-full"></div>
-              <div className="h-14 bg-[#f6f3ee] rounded-xl w-full"></div>
-              <div className="h-14 bg-[#ebe8e3] rounded-xl w-full"></div>
-              <div className="h-14 bg-[#f6f3ee] rounded-xl w-full"></div>
-            </div>
-          )}
-
-          {/* VIEW: EMPTY SAMPLE */}
-          {viewState === 'empty' && (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="w-16 h-16 rounded-full bg-[#f6f3ee] flex items-center justify-center text-[#80756f] mb-3">
-                <span className="material-symbols-outlined text-[32px]">folder_off</span>
-              </div>
-              <h3 className="font-serif text-2xl text-[#180f0a] font-medium">
-                No pending invites or inactive users
-              </h3>
-              <p className="text-[14px] text-[#4e4540] max-w-sm mt-1">
-                All handlers are presently operational and active within this sample environment session.
-              </p>
-              <button
-                type="button"
-                onClick={() => setViewState('normal')}
-                className="mt-4 px-4 py-2 rounded-full bg-[#180f0a] text-white text-[13px] font-semibold shadow-xs hover:bg-[#2e241e]"
-              >
-                Reset Filter View
-              </button>
-            </div>
-          )}
-
           {/* VIEW: NORMAL TABLE */}
-          {viewState === 'normal' && (
+          <div className="overflow-x-auto">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-[13px]">
                 <thead>
@@ -471,7 +398,7 @@ export default function AdminAccessPage() {
                                 <>
                                   <button
                                     type="button"
-                                    onClick={() => triggerToast(`Resent invitation credentials to ${u.email}`)}
+                                    onClick={() => triggerToast(`Invitation re-recorded for ${u.email} in this sample environment. No email was sent.`)}
                                     className="p-1 rounded hover:bg-[#ebe8e3] text-[#964735] hover:text-[#783020] transition-colors"
                                     title="Resend Invite"
                                   >
@@ -555,7 +482,7 @@ export default function AdminAccessPage() {
                 </div>
               </div>
             </div>
-          )}
+          </div>
         </div>
 
         {/* Configuration Comparison Matrix Between Administrative and Handler Scopes */}

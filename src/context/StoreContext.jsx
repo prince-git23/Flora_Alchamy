@@ -1,6 +1,10 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { getCart, updateCart, addToCart as apiAddToCart, removeFromCart as apiRemoveFromCart, getWishlist, addToWishlist as apiAddToWishlist, removeFromWishlist as apiRemoveFromWishlist } from '../services/api.js';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
+import { Heart, ArrowRight } from 'lucide-react';
+import { getCart, updateCart, addToCart as apiAddToCart, removeFromCart as apiRemoveFromCart } from '../services/api.js';
 import { getProducts } from '../services/productService.js';
+import { getActiveCustomerId } from '../services/customerService.js';
+import { getWishlist as apiGetWishlist, addToWishlist as apiAddWishlist, removeFromWishlist as apiRemoveWishlist } from '../services/wishlistService.js';
 import { subscribeStore } from '../services/dataStore.js';
 
 const StoreContext = createContext(null);
@@ -8,40 +12,70 @@ const StoreContext = createContext(null);
 export function StoreProvider({ children }) {
   const [cart, setCart] = useState([]);
   const [wishlist, setWishlist] = useState([]);
+  const [wishlistUnavailable, setWishlistUnavailable] = useState([]);
+  const [wishlistGateOpen, setWishlistGateOpen] = useState(false);
   const [toast, setToast] = useState(null);
+  const authIdRef = useRef(null);
+
+  // Resolve wishlist ids against the API catalogue; ids whose product no
+  // longer exists (deleted/hidden) are surfaced separately so the customer
+  // can remove them instead of silently losing them.
+  function resolveWishlist(ids) {
+    const catalog = getProducts();
+    const rows = [];
+    const unavailable = [];
+    (ids || []).forEach((id) => {
+      const p = catalog.find((prod) => prod.id === id);
+      if (p) rows.push(p);
+      else unavailable.push(id);
+    });
+    return { rows, unavailable };
+  }
+
+  async function loadWishlist() {
+    const customerId = getActiveCustomerId();
+    if (!customerId) {
+      setWishlist([]);
+      setWishlistUnavailable([]);
+      return;
+    }
+    try {
+      const data = await apiGetWishlist();
+      const { rows, unavailable } = resolveWishlist(data.productIds);
+      setWishlist(rows);
+      setWishlistUnavailable([...new Set([...unavailable, ...data.unavailableIds])]);
+    } catch {
+      // Session expiry is handled centrally (401 → login). Keep current UI.
+    }
+  }
 
   useEffect(() => {
     let mounted = true;
 
-    // Resolve stored wishlist IDs against the server catalogue. Products are
-    // never read from a static array — rows come from the API-hydrated store,
-    // and IDs whose product no longer exists are dropped.
-    async function syncWishlistFromCatalogue() {
-      const ids = await getWishlist();
-      if (!mounted) return;
-      const catalog = getProducts();
-      const resolved = ids
-        .map((id) => catalog.find((p) => p.id === id))
-        .filter(Boolean);
-      setWishlist((prev) =>
-        prev.length === resolved.length && prev.every((x, i) => x && x.id === resolved[i].id)
-          ? prev
-          : resolved
-      );
-    }
-
     async function loadData() {
       const c = await getCart();
       if (mounted) setCart(c);
-      await syncWishlistFromCatalogue();
     }
 
     loadData();
-    const unsub = subscribeStore(syncWishlistFromCatalogue);
+    authIdRef.current = getActiveCustomerId();
+    loadWishlist();
+
+    // Reload the wishlist whenever the authenticated customer changes
+    // (login, register, logout — dataStore commits on those signals).
+    const unsub = subscribeStore(() => {
+      const id = getActiveCustomerId();
+      if (id !== authIdRef.current) {
+        authIdRef.current = id;
+        loadWishlist();
+      }
+    });
+
     return () => {
       mounted = false;
       unsub();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const showToast = (message, type = 'success') => {
@@ -81,22 +115,45 @@ export function StoreProvider({ children }) {
   };
 
   const toggleWishlist = async (product) => {
-    const isSaved = wishlist.some(item => item.id === product.id);
-    if (isSaved) {
-      await apiRemoveFromWishlist(product.id);
-      setWishlist(prev => prev.filter(item => item.id !== product.id));
-      showToast(`Removed "${product.name}" from your wishlist`);
-    } else {
-      await apiAddToWishlist(product.id);
-      // Persist only the ID; the full row is resolved from the catalogue.
-      const resolved = getProducts().find((p) => p.id === product.id) || product;
-      setWishlist(prev => [resolved, ...prev]);
-      showToast(`Saved "${product.name}" to your wishlist`);
+    // Guests have no persistent wishlist — offer sign-in instead of a fake
+    // local account.
+    if (!getActiveCustomerId()) {
+      setWishlistGateOpen(true);
+      return;
+    }
+
+    const isSaved = wishlist.some((item) => item.id === product.id);
+    try {
+      const data = isSaved
+        ? await apiRemoveWishlist(product.id)
+        : await apiAddWishlist(product.id);
+      const { rows, unavailable } = resolveWishlist(data.productIds);
+      setWishlist(rows);
+      setWishlistUnavailable(unavailable);
+      showToast(
+        isSaved
+          ? `Removed "${product.name}" from your wishlist`
+          : `Saved "${product.name}" to your wishlist`
+      );
+    } catch (err) {
+      showToast(err.message || 'Wishlist update failed. Please try again.', 'error');
+    }
+  };
+
+  const removeUnavailableFromWishlist = async (productId) => {
+    if (!getActiveCustomerId()) return;
+    try {
+      const data = await apiRemoveWishlist(productId);
+      const { rows, unavailable } = resolveWishlist(data.productIds);
+      setWishlist(rows);
+      setWishlistUnavailable(unavailable);
+    } catch {
+      /* keep current UI */
     }
   };
 
   const isWishlisted = (productId) => {
-    return wishlist.some(item => item.id === productId);
+    return wishlist.some((item) => item.id === productId);
   };
 
   const cartCount = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
@@ -106,6 +163,7 @@ export function StoreProvider({ children }) {
     <StoreContext.Provider value={{
       cart,
       wishlist,
+      wishlistUnavailable,
       cartCount,
       cartSubtotal,
       addItemToCart,
@@ -114,6 +172,7 @@ export function StoreProvider({ children }) {
       clearCart,
       toggleWishlist,
       isWishlisted,
+      removeUnavailableFromWishlist,
       showToast,
       setCart
     }}>
@@ -126,6 +185,50 @@ export function StoreProvider({ children }) {
           <span className="text-[13px] font-medium tracking-wide">{toast.message}</span>
         </div>
       )}
+
+      {/* Guest wishlist gate — no fake local account */}
+      {wishlistGateOpen && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm flex items-center justify-center px-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Sign in to save your wishlist"
+          onClick={() => setWishlistGateOpen(false)}
+        >
+          <div
+            className="bg-white rounded-3xl p-8 sm:p-10 max-w-md w-full text-center space-y-4 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-14 h-14 rounded-full bg-[#f6f3ee] flex items-center justify-center mx-auto">
+              <Heart className="w-6 h-6 text-[#964735]" />
+            </div>
+            <h2 className="font-serif text-[26px] text-[#180f0a]">
+              Sign in to save your favorite creations.
+            </h2>
+            <p className="text-[14px] text-[#4e4540]">
+              Your wishlist lives with your account, so your saved blooms follow you
+              across devices. Browsing and adding to your bag never require an account.
+            </p>
+            <div className="pt-3 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <Link
+                to="/login?redirect=/wishlist"
+                onClick={() => setWishlistGateOpen(false)}
+                className="w-full sm:w-auto px-7 py-3 rounded-full bg-[#180f0a] hover:bg-[#964735] text-white text-[13px] font-semibold flex items-center justify-center gap-2 transition-colors"
+              >
+                Sign In
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+              <button
+                type="button"
+                onClick={() => setWishlistGateOpen(false)}
+                className="w-full sm:w-auto px-7 py-3 rounded-full border border-[#e5e2dd] text-[#180f0a] hover:bg-[#f6f3ee] text-[13px] font-semibold transition-colors"
+              >
+                Continue Shopping
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </StoreContext.Provider>
   );
 }
@@ -136,4 +239,4 @@ export function useStore() {
     throw new Error('useStore must be used within a StoreProvider');
   }
   return context;
-}
+}

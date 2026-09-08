@@ -281,6 +281,67 @@ async function main() {
   r = await req('GET', '/customers/not-a-valid-id', { token: TOKEN_ADMIN });
   check('invalid customer id → 404', r.status === 404);
 
+  console.log('\n— WISHLIST (customer-owned, cross-customer isolation) —');
+  r = await req('GET', '/wishlist');
+  check('wishlist without token → 401', r.status === 401);
+  r = await req('GET', '/wishlist', { token: TOKEN_ADMIN });
+  check('handler cannot read a wishlist → 403', r.status === 403);
+  r = await req('GET', '/wishlist', { token: TOKEN_A });
+  check('fresh customer wishlist → 200 empty', r.status === 200 && r.json.wishlist.productIds.length === 0);
+  r = await req('POST', '/wishlist/does-not-exist', { token: TOKEN_A });
+  check('add unknown product → 404 PRODUCT_NOT_FOUND', r.status === 404 && r.json.code === 'PRODUCT_NOT_FOUND');
+  r = await req('POST', '/wishlist/dusty-rose-lavender-posy', { token: TOKEN_A });
+  check('customer A adds posy → 200', r.status === 200 && r.json.wishlist.productIds.includes('dusty-rose-lavender-posy'));
+  check('resolved product row returned', r.json.wishlist.products.some((p) => p.id === 'dusty-rose-lavender-posy'));
+  r = await req('POST', '/wishlist/dusty-rose-lavender-posy', { token: TOKEN_A });
+  check('duplicate add deduped', r.status === 200 && r.json.wishlist.productIds.filter((id) => id === 'dusty-rose-lavender-posy').length === 1);
+  r = await req('POST', '/wishlist/heirloom-keepsake-hamper', { token: TOKEN_A });
+  check('customer A adds second product', r.status === 200 && r.json.wishlist.productIds.length === 2);
+  r = await req('GET', '/wishlist', { token: TOKEN_B });
+  check('customer B wishlist independent (empty)', r.status === 200 && r.json.wishlist.productIds.length === 0);
+  r = await req('POST', '/wishlist/vintage-peony-eucalyptus-posy', { token: TOKEN_B });
+  check('customer B adds own product', r.status === 200);
+  r = await req('GET', '/wishlist', { token: TOKEN_A });
+  check('A never sees B’s wishlist', r.status === 200 && !r.json.wishlist.productIds.includes('vintage-peony-eucalyptus-posy'));
+  r = await req('GET', '/wishlist', { token: TOKEN_B });
+  check('B never sees A’s wishlist', r.status === 200 && !r.json.wishlist.productIds.includes('dusty-rose-lavender-posy'));
+  r = await req('DELETE', '/wishlist/vintage-peony-eucalyptus-posy', { token: TOKEN_A });
+  check('A removing B’s item is a no-op (B unaffected)', r.status === 200 && r.json.wishlist.productIds.length === 2);
+  r = await req('GET', '/wishlist', { token: TOKEN_B });
+  check('B still has own item', r.status === 200 && r.json.wishlist.productIds.includes('vintage-peony-eucalyptus-posy'));
+  r = await req('DELETE', '/wishlist/dusty-rose-lavender-posy', { token: TOKEN_A });
+  check('A removes own product → 200', r.status === 200 && !r.json.wishlist.productIds.includes('dusty-rose-lavender-posy'));
+  r = await req('DELETE', '/wishlist', { token: TOKEN_B });
+  check('B clears wishlist → 200 empty', r.status === 200 && r.json.wishlist.productIds.length === 0);
+
+  console.log('\n— ADDRESSES (customer-owned persistence) —');
+  r = await req('GET', '/customers/me/addresses', { token: TOKEN_A });
+  check('fresh customer has no addresses', r.status === 200 && r.json.addresses.length === 0);
+  r = await req('POST', '/customers/me/addresses', {
+    token: TOKEN_A,
+    body: { label: 'Home', name: 'Smoke A', address: '14 Flower Lane', city: 'Mumbai', state: 'Maharashtra', pincode: '400001', phone: '+91 90000 00001' },
+  });
+  check('add first address → 201 + auto-default', r.status === 201 && r.json.customer.addresses.length === 1 && r.json.customer.addresses[0].isDefault === true);
+  const ADDR_ID = r.json.customer.addresses[0].id || String(r.json.customer.addresses[0]._id);
+  r = await req('POST', '/customers/me/addresses', {
+    token: TOKEN_A,
+    body: { label: 'Work', address: '22 Studio Row', city: 'Pune', state: 'Maharashtra', pincode: '411001' },
+  });
+  check('add second address → 201, first stays default', r.status === 201 && r.json.customer.addresses.length === 2 && r.json.customer.addresses.filter((a) => a.isDefault).length === 1);
+  const ADDR2_ID = r.json.customer.addresses[1].id || String(r.json.customer.addresses[1]._id);
+  r = await req('PATCH', `/customers/me/addresses/${ADDR2_ID}`, { token: TOKEN_A, body: { isDefault: true } });
+  check('set default switches ownership (one default)', r.status === 200 && r.json.customer.addresses.filter((a) => a.isDefault).length === 1 && r.json.customer.addresses.find((a) => String(a._id) === ADDR2_ID)?.isDefault === true);
+  r = await req('PATCH', `/customers/me/addresses/${ADDR2_ID}`, { token: TOKEN_A, body: { city: 'Mumbai' } });
+  check('edit address persists', r.status === 200 && r.json.customer.addresses.find((a) => String(a._id) === ADDR2_ID)?.city === 'Mumbai');
+  r = await req('POST', '/customers/me/addresses', { token: TOKEN_A, body: { address: 'x', city: 'Mumbai', state: 'MH', pincode: '400001' } });
+  check('invalid address rejected → 422', r.status === 422);
+  r = await req('DELETE', `/customers/me/addresses/${ADDR2_ID}`, { token: TOKEN_A });
+  check('delete default promotes remaining address', r.status === 200 && r.json.customer.addresses.length === 1 && r.json.customer.addresses[0].isDefault === true);
+  r = await req('GET', '/customers/me/addresses', { token: TOKEN_B });
+  check('customer B addresses independent of A', r.status === 200 && r.json.addresses.length === 0);
+  r = await req('POST', '/customers/me/addresses', { token: TOKEN_ADMIN, body: { address: 'x', city: 'y', state: 'z', pincode: '400001' } });
+  check('handler cannot manage customer addresses → 403', r.status === 403);
+
   console.log('\n— ANALYTICS (server-derived) —');
   r = await req('GET', '/analytics/overview', { token: TOKEN_ADMIN });
   check('overview → 200', r.status === 200);

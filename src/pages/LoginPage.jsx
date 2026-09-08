@@ -314,14 +314,14 @@ export default function LoginPage() {
                 onClick={handleFillDemo}
                 className="text-[12px] font-semibold text-[#964735] hover:underline"
               >
-                ⚡ Quick Fill with Demo Account
+                ⚡ Quick Fill with Demo Account (DEV ONLY)
               </button>
             </div>
           )}
 
           <div className="flex items-center justify-center gap-2 text-[11px] text-[#80756f] text-center">
             <Info className="w-3.5 h-3.5 shrink-0" />
-            <span>Prototype authentication · Sample data environment</span>
+            <span>Prototype authentication · Sample data environment · Demo credentials never sign you in automatically</span>
           </div>
         </div>
       </div>

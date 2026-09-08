@@ -9,7 +9,9 @@ export default function Footer() {
   const handleSubscribe = (e) => {
     e.preventDefault();
     if (email.trim()) {
-      showToast('Thank you for subscribing to Flora Alchemy studio notes!');
+      // Honest prototype feedback — no email infrastructure exists yet
+      // (Phase 3D.5, E-05).
+      showToast('Newsletter signup is currently a preview. No email will be sent.');
       setEmail('');
     }
   };

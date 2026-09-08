@@ -4,15 +4,23 @@ import {
   getCustomer,
   getMyProfile,
   updateCustomer,
+  getMyAddresses,
+  addAddress,
+  updateAddress,
+  deleteAddress,
 } from '../controllers/customerController.js';
-import { protect, adminOrHandler } from '../middleware/authMiddleware.js';
+import { protect, adminOrHandler, requireRole } from '../middleware/authMiddleware.js';
 
 const router = Router();
 
 router.use(protect);
 
-// Own profile (must be declared before /:id).
+// Own profile + own addresses (must be declared before /:id).
 router.get('/me', getMyProfile);
+router.get('/me/addresses', requireRole('customer'), getMyAddresses);
+router.post('/me/addresses', requireRole('customer'), addAddress);
+router.patch('/me/addresses/:addressId', requireRole('customer'), updateAddress);
+router.delete('/me/addresses/:addressId', requireRole('customer'), deleteAddress);
 
 // Staff-only collection listing (handler portal customer list).
 router.get('/', adminOrHandler, listCustomers);

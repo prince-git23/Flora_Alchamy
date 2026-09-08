@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   hydratePublic,
   hydrateAdmin,
@@ -13,6 +13,7 @@ const DataContext = createContext(null);
 
 export function DataProvider({ children }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const [status, setStatus] = useState('loading'); // 'loading' | 'ready' | 'error'
   const [error, setError] = useState('');
   const [tick, setTick] = useState(0);
@@ -24,15 +25,26 @@ export function DataProvider({ children }) {
     if (syncing.current) return;
     syncing.current = true;
     setStatus('loading');
+    let admin = false;
     try {
       await hydratePublic();
-      const admin = hasAdminSessionScope();
+      admin = hasAdminSessionScope();
       const customer = hasCustomerSessionScope();
       if (admin) await hydrateAdmin();
       if (customer && !admin) await hydrateCustomer();
       if (!customer && !admin) clearSessionData();
       setStatus('ready');
     } catch (err) {
+      // Session hardening: a 401 during hydration means the stored session
+      // is invalid/expired. apiClient already cleared the markers — send the
+      // user to the correct login screen instead of a dead-end error page.
+      // (App is not mounted while hydration runs, so this must live here.)
+      if (err && err.status === 401) {
+        const target = admin ? '/admin/login' : '/login';
+        if (location.pathname !== target) navigate(target, { replace: true });
+        setStatus('ready');
+        return;
+      }
       console.error('[data] hydration failed', err);
       setError(err.message || 'Unable to load data from the server.');
       setStatus('error');

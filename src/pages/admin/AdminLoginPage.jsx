@@ -6,8 +6,10 @@ import { Lock, Mail, ShieldCheck, ArrowRight, AlertCircle } from 'lucide-react';
 export default function AdminLoginPage() {
   const navigate = useNavigate();
   const { login } = useAdminSession();
-  const [email, setEmail] = useState('handler.admin@flora-alchemy.demo');
-  const [password, setPassword] = useState('handler1234');
+  // Demo credentials are NOT pre-filled — the handler must explicitly
+  // quick-fill and submit (demo data ≠ authenticated session).
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -104,9 +106,9 @@ export default function AdminLoginPage() {
               onClick={() => { setEmail('handler.admin@flora-alchemy.demo'); setPassword('handler1234'); setError(''); }}
               className="text-[12px] font-semibold text-[#964735] hover:underline"
             >
-              Quick Fill Demo Credentials
+              ⚡ Quick Fill Demo Credentials (DEV ONLY)
             </button>
-            <p className="text-[11px] text-[#80756f]">Demo: handler.admin@flora-alchemy.demo / handler1234</p>
+            <p className="text-[11px] text-[#80756f]">Developer helper — handler.admin@flora-alchemy.demo / handler1234</p>
           </div>
 
           <div className="flex items-center justify-center gap-2 text-[11px] text-[#80756f]">

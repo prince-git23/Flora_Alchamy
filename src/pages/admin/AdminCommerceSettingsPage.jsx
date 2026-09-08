@@ -1,46 +1,72 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout.jsx';
 import AdminSettingsTabs from '../../components/admin/AdminSettingsTabs.jsx';
+import { getSettings, updateSettings } from '../../services/settingsService.js';
 
-const INITIAL_COMMERCE = {
-  currency: 'INR',
-  currencySymbol: '₹',
-  shippingEnabled: true,
-  shippingFreeAbove: 1999,
-  standardShippingRate: 0,
-  expressShippingRate: 149,
-  taxEnabled: false,
-  taxRate: 0,
-  taxLabel: 'GST',
-  minimumOrderValue: 250,
-  maximumOrderItems: 20,
-  orderCancellationWindow: 2,
-  returnWindow: 7,
-  paymentMethods: { upi: true, cards: true, netbanking: true, cod: false, wallets: true },
-  autoConfirmOrders: true,
-  autoAssignShipping: true,
-  orderPrefix: 'FA',
-  trackingEnabled: true,
-};
-
+/**
+ * Order & Commerce Settings — unified settings authority (Phase 3D.5, E-01).
+ * Reads/writes the backend Settings document (shippingConfiguration +
+ * commerceConfiguration) via settingsService. Saved only after the server
+ * confirms (PATCH /api/settings → MongoDB).
+ */
 export default function AdminCommerceSettingsPage() {
-  const [settings, setSettings] = useState(INITIAL_COMMERCE);
+  const [settings, setSettings] = useState(null);
+  const [saving, setSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
 
-  const triggerToast = (msg) => { setToastMessage(msg); setTimeout(() => setToastMessage(null), 3000); };
+  useEffect(() => {
+    setSettings(getSettings());
+  }, []);
 
-  const handleSave = () => {
-    triggerToast('Commerce settings saved locally (sample data). Backend integration pending.');
+  const triggerToast = (msg) => { setToastMessage(msg); setTimeout(() => setToastMessage(null), 3200); };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const updated = await updateSettings({
+        shippingEnabled: settings.shippingEnabled,
+        freeShippingAbove: settings.shippingFreeAbove,
+        standardShippingRate: settings.standardShippingRate,
+        expressShippingRate: settings.expressShippingRate,
+        paymentMethods: settings.paymentMethods,
+        autoConfirmOrders: settings.autoConfirmOrders,
+        autoAssignShipping: settings.autoAssignShipping,
+        trackingEnabled: settings.trackingEnabled,
+        taxEnabled: settings.taxEnabled,
+        taxRate: settings.taxRate,
+        taxLabel: settings.taxLabel,
+        minimumOrderValue: settings.minimumOrderValue,
+        maximumOrderItems: settings.maximumOrderItems,
+        orderCancellationWindow: settings.orderCancellationWindow,
+        returnWindow: settings.returnWindow,
+        orderPrefix: settings.orderPrefix,
+      });
+      setSettings(updated);
+      triggerToast('Commerce settings saved to the backend.');
+    } catch (err) {
+      triggerToast(err.message || 'Commerce settings could not be saved. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleReset = () => {
-    setSettings(INITIAL_COMMERCE);
-    triggerToast('Commerce settings reset to defaults.');
+    // Reload server-confirmed values — no local authority to reset to.
+    setSettings(getSettings());
+    triggerToast('Changes discarded — settings reloaded from the backend.');
   };
 
-  const togglePaymentMethod = (key) => {
-    setSettings(prev => ({ ...prev, paymentMethods: { ...prev.paymentMethods, [key]: !prev.paymentMethods[key] } }));
-  };
+  if (!settings) {
+    return (
+      <AdminLayout>
+        <div className="max-w-7xl mx-auto p-8 text-[14px] text-[#80756f]">Loading settings…</div>
+      </AdminLayout>
+    );
+  }
+
+  const set = (field) => (e) => setSettings(p => ({ ...p, [field]: e.target.type === 'number' ? +e.target.value : e.target.value }));
+  const toggle = (key) => setSettings(p => ({ ...p, [key]: !p[key] }));
+  const togglePaymentMethod = (key) => setSettings(p => ({ ...p, paymentMethods: { ...p.paymentMethods, [key]: !p.paymentMethods[key] } }));
 
   return (
     <AdminLayout>
@@ -59,7 +85,7 @@ export default function AdminCommerceSettingsPage() {
                 Sample Configuration
               </span>
             </div>
-            <p className="text-[15px] text-[#4e4540] mt-1">Configure shipping, payments, taxes, and order lifecycle rules.</p>
+            <p className="text-[15px] text-[#4e4540] mt-1">Configure shipping, payments, and order lifecycle rules. Saved to the backend.</p>
           </div>
           <div className="mt-6 pt-2 border-t border-[#e5e2dd]/60">
             <AdminSettingsTabs activeTab="commerce" />
@@ -74,20 +100,25 @@ export default function AdminCommerceSettingsPage() {
             </h2>
             <div className="space-y-3">
               <label className="flex items-center justify-between py-2">
-                <span className="text-[13px] text-[#4e4540]">Enable Shipping</span>
-                <button type="button" onClick={() => setSettings(p => ({ ...p, shippingEnabled: !p.shippingEnabled }))}
+                <span className="text-[13px] text-[#4e4540]">Enable Pan-India Shipping</span>
+                <button type="button" onClick={() => toggle('shippingEnabled')}
                   className={`w-10 h-6 rounded-full transition-colors ${settings.shippingEnabled ? 'bg-[#5b6d54]' : 'bg-[#d1c4bd]'}`}>
                   <span className={`block w-4 h-4 bg-white rounded-full transition-transform shadow-sm ${settings.shippingEnabled ? 'translate-x-5' : 'translate-x-1'}`}></span>
                 </button>
               </label>
               <div>
-                <label className="block text-[12px] font-semibold text-[#4e4540] mb-1">Free Shipping Above</label>
-                <input type="number" value={settings.shippingFreeAbove} onChange={e => setSettings(p => ({ ...p, shippingFreeAbove: +e.target.value }))}
+                <label className="block text-[12px] font-semibold text-[#4e4540] mb-1">Free Shipping Above (₹)</label>
+                <input type="number" value={settings.shippingFreeAbove} onChange={set('shippingFreeAbove')}
+                  className="w-full text-[13px] bg-[#f6f3ee] border border-[#d1c4bd] focus:border-[#180f0a] rounded-lg px-3 py-2 focus:ring-1 focus:ring-[#180f0a] transition" />
+              </div>
+              <div>
+                <label className="block text-[12px] font-semibold text-[#4e4540] mb-1">Standard Shipping Rate (₹)</label>
+                <input type="number" value={settings.standardShippingRate} onChange={set('standardShippingRate')}
                   className="w-full text-[13px] bg-[#f6f3ee] border border-[#d1c4bd] focus:border-[#180f0a] rounded-lg px-3 py-2 focus:ring-1 focus:ring-[#180f0a] transition" />
               </div>
               <div>
                 <label className="block text-[12px] font-semibold text-[#4e4540] mb-1">Express Shipping Rate (₹)</label>
-                <input type="number" value={settings.expressShippingRate} onChange={e => setSettings(p => ({ ...p, expressShippingRate: +e.target.value }))}
+                <input type="number" value={settings.expressShippingRate} onChange={set('expressShippingRate')}
                   className="w-full text-[13px] bg-[#f6f3ee] border border-[#d1c4bd] focus:border-[#180f0a] rounded-lg px-3 py-2 focus:ring-1 focus:ring-[#180f0a] transition" />
               </div>
             </div>
@@ -98,6 +129,9 @@ export default function AdminCommerceSettingsPage() {
             <h2 className="font-serif text-lg text-[#180f0a] font-medium flex items-center gap-2">
               <span className="material-symbols-outlined text-[20px]">payments</span> Payment Methods
             </h2>
+            <p className="text-[12px] text-[#80756f]">
+              Prototype listing — no real gateway is connected. These preferences are stored so checkout can honor them later.
+            </p>
             <div className="space-y-3">
               {Object.entries(settings.paymentMethods).map(([key, enabled]) => (
                 <label key={key} className="flex items-center justify-between py-2">
@@ -119,22 +153,27 @@ export default function AdminCommerceSettingsPage() {
             <div className="space-y-3">
               <div>
                 <label className="block text-[12px] font-semibold text-[#4e4540] mb-1">Order Prefix</label>
-                <input type="text" value={settings.orderPrefix} onChange={e => setSettings(p => ({ ...p, orderPrefix: e.target.value }))}
+                <input type="text" value={settings.orderPrefix} onChange={set('orderPrefix')}
                   className="w-full text-[13px] bg-[#f6f3ee] border border-[#d1c4bd] focus:border-[#180f0a] rounded-lg px-3 py-2 focus:ring-1 focus:ring-[#180f0a] transition" />
               </div>
               <div>
                 <label className="block text-[12px] font-semibold text-[#4e4540] mb-1">Cancellation Window (hours)</label>
-                <input type="number" value={settings.orderCancellationWindow} onChange={e => setSettings(p => ({ ...p, orderCancellationWindow: +e.target.value }))}
+                <input type="number" value={settings.orderCancellationWindow} onChange={set('orderCancellationWindow')}
                   className="w-full text-[13px] bg-[#f6f3ee] border border-[#d1c4bd] focus:border-[#180f0a] rounded-lg px-3 py-2 focus:ring-1 focus:ring-[#180f0a] transition" />
               </div>
               <div>
                 <label className="block text-[12px] font-semibold text-[#4e4540] mb-1">Return Window (days)</label>
-                <input type="number" value={settings.returnWindow} onChange={e => setSettings(p => ({ ...p, returnWindow: +e.target.value }))}
+                <input type="number" value={settings.returnWindow} onChange={set('returnWindow')}
                   className="w-full text-[13px] bg-[#f6f3ee] border border-[#d1c4bd] focus:border-[#180f0a] rounded-lg px-3 py-2 focus:ring-1 focus:ring-[#180f0a] transition" />
               </div>
               <div>
                 <label className="block text-[12px] font-semibold text-[#4e4540] mb-1">Minimum Order Value (₹)</label>
-                <input type="number" value={settings.minimumOrderValue} onChange={e => setSettings(p => ({ ...p, minimumOrderValue: +e.target.value }))}
+                <input type="number" value={settings.minimumOrderValue} onChange={set('minimumOrderValue')}
+                  className="w-full text-[13px] bg-[#f6f3ee] border border-[#d1c4bd] focus:border-[#180f0a] rounded-lg px-3 py-2 focus:ring-1 focus:ring-[#180f0a] transition" />
+              </div>
+              <div>
+                <label className="block text-[12px] font-semibold text-[#4e4540] mb-1">Maximum Items per Order</label>
+                <input type="number" value={settings.maximumOrderItems} onChange={set('maximumOrderItems')}
                   className="w-full text-[13px] bg-[#f6f3ee] border border-[#d1c4bd] focus:border-[#180f0a] rounded-lg px-3 py-2 focus:ring-1 focus:ring-[#180f0a] transition" />
               </div>
             </div>
@@ -148,25 +187,30 @@ export default function AdminCommerceSettingsPage() {
             <div className="space-y-3">
               <label className="flex items-center justify-between py-2">
                 <span className="text-[13px] text-[#4e4540]">Auto-Confirm Orders</span>
-                <button type="button" onClick={() => setSettings(p => ({ ...p, autoConfirmOrders: !p.autoConfirmOrders }))}
+                <button type="button" onClick={() => toggle('autoConfirmOrders')}
                   className={`w-10 h-6 rounded-full transition-colors ${settings.autoConfirmOrders ? 'bg-[#5b6d54]' : 'bg-[#d1c4bd]'}`}>
                   <span className={`block w-4 h-4 bg-white rounded-full transition-transform shadow-sm ${settings.autoConfirmOrders ? 'translate-x-5' : 'translate-x-1'}`}></span>
                 </button>
               </label>
               <label className="flex items-center justify-between py-2">
                 <span className="text-[13px] text-[#4e4540]">Auto-Assign Shipping</span>
-                <button type="button" onClick={() => setSettings(p => ({ ...p, autoAssignShipping: !p.autoAssignShipping }))}
+                <button type="button" onClick={() => toggle('autoAssignShipping')}
                   className={`w-10 h-6 rounded-full transition-colors ${settings.autoAssignShipping ? 'bg-[#5b6d54]' : 'bg-[#d1c4bd]'}`}>
                   <span className={`block w-4 h-4 bg-white rounded-full transition-transform shadow-sm ${settings.autoAssignShipping ? 'translate-x-5' : 'translate-x-1'}`}></span>
                 </button>
               </label>
               <label className="flex items-center justify-between py-2">
                 <span className="text-[13px] text-[#4e4540]">Order Tracking Enabled</span>
-                <button type="button" onClick={() => setSettings(p => ({ ...p, trackingEnabled: !p.trackingEnabled }))}
+                <button type="button" onClick={() => toggle('trackingEnabled')}
                   className={`w-10 h-6 rounded-full transition-colors ${settings.trackingEnabled ? 'bg-[#5b6d54]' : 'bg-[#d1c4bd]'}`}>
                   <span className={`block w-4 h-4 bg-white rounded-full transition-transform shadow-sm ${settings.trackingEnabled ? 'translate-x-5' : 'translate-x-1'}`}></span>
                 </button>
               </label>
+              <div className="pt-1">
+                <label className="block text-[12px] font-semibold text-[#4e4540] mb-1">Tax Label</label>
+                <input type="text" value={settings.taxLabel} onChange={set('taxLabel')}
+                  className="w-full text-[13px] bg-[#f6f3ee] border border-[#d1c4bd] focus:border-[#180f0a] rounded-lg px-3 py-2 focus:ring-1 focus:ring-[#180f0a] transition" />
+              </div>
             </div>
           </div>
         </div>
@@ -174,10 +218,10 @@ export default function AdminCommerceSettingsPage() {
         {/* Action Buttons */}
         <div className="flex items-center justify-between pt-4">
           <button type="button" onClick={handleReset} className="px-5 py-2 text-[13px] font-semibold text-[#4e4540] bg-white hover:bg-[#f6f3ee] border border-[#d1c4bd] rounded-full transition">
-            Reset to Defaults
+            Discard Changes
           </button>
-          <button type="button" onClick={handleSave} className="px-6 py-2.5 text-[13px] font-semibold text-white bg-[#180f0a] hover:bg-[#2e241e] rounded-full transition shadow-sm">
-            Save Changes
+          <button type="button" onClick={handleSave} disabled={saving} className="px-6 py-2.5 text-[13px] font-semibold text-white bg-[#180f0a] hover:bg-[#2e241e] rounded-full transition shadow-sm disabled:opacity-60">
+            {saving ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
 

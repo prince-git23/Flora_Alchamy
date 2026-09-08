@@ -6,7 +6,6 @@ import { getInventory } from '../../services/inventoryService.js';
 import { formatINR, formatDate } from '../../services/orderService.js';
 
 export default function AdminProductsPage() {
-  const [viewState, setViewState] = useState('live');
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
 
@@ -45,10 +44,6 @@ export default function AdminProductsPage() {
             <p className="text-[14px] text-[#4e4540] mt-1">Manage the botanical product catalog, pricing, and visibility · <span className="font-semibold text-[#180f0a]">Sample Data Environment</span></p>
           </div>
           <div className="flex items-center gap-2.5">
-            <div className="flex items-center p-1 rounded-full bg-[#ebe8e3] text-[12px]">
-              <button type="button" onClick={() => setViewState('live')} className={`px-3 py-1 rounded-full font-semibold transition-all ${viewState === 'live' ? 'bg-white shadow-xs text-[#180f0a]' : 'text-[#4e4540]'}`}>Catalog ({PRODUCTS.length})</button>
-              <button type="button" onClick={() => setViewState('empty')} className={`px-3 py-1 rounded-full font-semibold transition-all ${viewState === 'empty' ? 'bg-white shadow-xs text-[#180f0a]' : 'text-[#4e4540]'}`}>Empty State</button>
-            </div>
             <Link to="/admin/products/new" className="inline-flex items-center gap-2 px-4 py-2 text-[12px] font-semibold text-white bg-[#180f0a] hover:bg-[#2e241e] rounded-full transition shadow-sm">
               <span className="material-symbols-outlined text-[16px]">add</span>
               + Add Product
@@ -63,7 +58,7 @@ export default function AdminProductsPage() {
               <span className="text-[11px] uppercase tracking-wider font-semibold">Total Products</span>
               <span className="material-symbols-outlined text-[16px]">inventory_2</span>
             </div>
-            <div className="text-3xl font-serif font-medium text-[#180f0a] leading-none">{PRODUCTS.length}</div>
+            <div className="text-3xl font-serif font-medium text-[#180f0a] leading-none">{products.length}</div>
           </div>
           <div className="bg-white p-4 rounded-xl border border-[#e5e2dd] shadow-xs">
             <div className="flex items-center justify-between text-[#80756f] mb-1.5">
@@ -107,8 +102,8 @@ export default function AdminProductsPage() {
           </div>
         </div>
 
-        {/* Empty State */}
-        {viewState === 'empty' && (
+        {/* Empty State (real — driven by current filters) */}
+        {filtered.length === 0 && (
           <div className="p-12 sm:p-16 bg-white rounded-2xl text-center space-y-4 shadow-xs border border-[#e5e2dd]">
             <div className="w-16 h-16 rounded-full bg-[#f6f3ee] mx-auto flex items-center justify-center text-[#80756f]">
               <span className="material-symbols-outlined text-[32px]">inventory_2</span>
@@ -117,12 +112,12 @@ export default function AdminProductsPage() {
               <h3 className="font-serif text-2xl text-[#180f0a] font-medium">No Products Found</h3>
               <p className="text-[14px] text-[#4e4540] mt-1.5">No products match your current search or filter criteria.</p>
             </div>
-            <button type="button" onClick={() => setViewState('live')} className="px-5 py-2 rounded-full bg-[#180f0a] text-white text-[13px] font-semibold shadow-xs hover:bg-[#2e241e] transition-colors">Return to Catalog</button>
+            <button type="button" onClick={() => { setCategoryFilter('all'); setSearchQuery(''); }} className="px-5 py-2 rounded-full bg-[#180f0a] text-white text-[13px] font-semibold shadow-xs hover:bg-[#2e241e] transition-colors">Clear Filters</button>
           </div>
         )}
 
         {/* Product Grid */}
-        {viewState === 'live' && (
+        {filtered.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {filtered.map(product => (
               <Link key={product.id} to={`/admin/products/${product.id}`}

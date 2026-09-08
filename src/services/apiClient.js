@@ -35,6 +35,29 @@ export function clearToken(scope = 'customer') {
   setToken(null, scope);
 }
 
+const ACCOUNT_KEY = 'flora_alchemy_account';
+const ADMIN_SESSION_KEY = 'flora_alchemy_admin_session';
+
+/**
+ * Session hardening: when the server rejects a request that carried a token
+ * with 401, the session is genuinely over. Clear that session's markers and
+ * notify the app so the user lands on the right login screen. Requests that
+ * carried no token (e.g. a failed login attempt) never trigger this.
+ */
+function handleSessionExpired(scope) {
+  try {
+    if (scope === 'admin') {
+      localStorage.removeItem(ADMIN_SESSION_KEY);
+    } else {
+      localStorage.removeItem(ACCOUNT_KEY);
+    }
+    localStorage.removeItem(scope === 'admin' ? ADMIN_TOKEN_KEY : CUSTOMER_TOKEN_KEY);
+    window.dispatchEvent(new CustomEvent('fa:auth-expired', { detail: { scope } }));
+  } catch {
+    /* non-browser */
+  }
+}
+
 async function request(method, path, { token, body, scope } = {}) {
   const headers = { 'Content-Type': 'application/json' };
   // scope === null → deliberately anonymous request (no auth header).
@@ -57,6 +80,12 @@ async function request(method, path, { token, body, scope } = {}) {
       code: 'NETWORK_ERROR',
       raw: err,
     };
+  }
+
+  // A token-bearing request that the server rejects with 401 means the
+  // session expired or was revoked — clear it and redirect the user.
+  if (res.status === 401 && activeToken) {
+    handleSessionExpired(scope === 'admin' ? 'admin' : 'customer');
   }
 
   let data = null;

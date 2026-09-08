@@ -128,7 +128,7 @@ export async function hydrateCustomer() {
   store.currentCustomer = me.data.customer || null;
 
   if (!hasAdminSessionScope()) {
-    const mine = await api.get('/orders/mine');
+    const mine = await api.get('/orders/mine', { scope: 'customer' });
     if (!mine.ok) throw new DataError(mine.message, mine.status, mine.code);
     store.orders = mine.data.orders || [];
   }
@@ -211,5 +211,23 @@ export function upsertOrders(orders) {
   const byId = new Map(store.orders.map((o) => [o.orderId || o.id, o]));
   orders.forEach((o) => byId.set(o.orderId || o.id, o));
   store.orders = [...byId.values()];
+  commit();
+}
+
+/**
+ * Merge an updated customer document into the store (list + current profile)
+ * and notify listeners — used after profile/address mutations so the UI
+ * reflects the server-confirmed state without a full re-hydration.
+ */
+export function upsertCustomer(customer) {
+  if (!customer) return;
+  const id = String(customer.id || customer._id);
+  store.customers = [
+    ...store.customers.filter((c) => String(c.id || c._id) !== id),
+    customer,
+  ];
+  if (store.currentCustomer && String(store.currentCustomer.id || store.currentCustomer._id) === id) {
+    store.currentCustomer = customer;
+  }
   commit();
 }

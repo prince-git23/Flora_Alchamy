@@ -5,7 +5,6 @@ import { getCustomers, getCustomerById } from '../../services/customerService.js
 import { getOrders, formatINR, formatDate } from '../../services/orderService.js';
 
 export default function AdminCustomersPage() {
-  const [viewState, setViewState] = useState('live');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
@@ -58,10 +57,6 @@ export default function AdminCustomersPage() {
             <p className="text-[14px] text-[#4e4540] mt-1">Manage customer profiles, order history, and engagement · <span className="font-semibold text-[#180f0a]">Sample Data Environment</span></p>
           </div>
           <div className="flex items-center gap-2.5">
-            <div className="flex items-center p-1 rounded-full bg-[#ebe8e3] text-[12px]">
-              <button type="button" onClick={() => setViewState('live')} className={`px-3 py-1 rounded-full font-semibold transition-all ${viewState === 'live' ? 'bg-white shadow-xs text-[#180f0a]' : 'text-[#4e4540]'}`}>Active ({totalCustomers})</button>
-              <button type="button" onClick={() => setViewState('empty')} className={`px-3 py-1 rounded-full font-semibold transition-all ${viewState === 'empty' ? 'bg-white shadow-xs text-[#180f0a]' : 'text-[#4e4540]'}`}>Empty State</button>
-            </div>
             <button type="button" onClick={handleExportCSV} className="inline-flex items-center gap-2 px-3.5 py-2 text-[12px] font-medium text-[#1c1c19] bg-white hover:bg-[#f6f3ee] border border-[#d1c4bd] rounded-full transition shadow-xs">
               <span className="material-symbols-outlined text-[16px]">download</span>
               Export CSV
@@ -108,7 +103,7 @@ export default function AdminCustomersPage() {
           </div>
         </div>
 
-        {viewState === 'empty' ? (
+        {filtered.length === 0 ? (
           <div className="p-12 sm:p-16 bg-white rounded-2xl text-center space-y-4 shadow-xs border border-[#e5e2dd]">
             <div className="w-16 h-16 rounded-full bg-[#f6f3ee] mx-auto flex items-center justify-center text-[#80756f]">
               <span className="material-symbols-outlined text-[32px]">group</span>
@@ -117,7 +112,7 @@ export default function AdminCustomersPage() {
               <h3 className="font-serif text-2xl text-[#180f0a] font-medium">No Customers Found</h3>
               <p className="text-[14px] text-[#4e4540] mt-1.5">No customers match your current filter criteria.</p>
             </div>
-            <button type="button" onClick={() => setViewState('live')} className="px-5 py-2 rounded-full bg-[#180f0a] text-white text-[13px] font-semibold shadow-xs hover:bg-[#2e241e] transition-colors">Return to Customer List</button>
+            <button type="button" onClick={() => { setStatusFilter('all'); setSearchQuery(''); }} className="px-5 py-2 rounded-full bg-[#180f0a] text-white text-[13px] font-semibold shadow-xs hover:bg-[#2e241e] transition-colors">Clear Filters</button>
           </div>
         ) : (
           <div className="bg-white rounded-xl border border-[#e5e2dd] shadow-xs overflow-hidden">

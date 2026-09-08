@@ -11,6 +11,7 @@ import orderRoutes from './routes/orderRoutes.js';
 import inventoryRoutes from './routes/inventoryRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
 import settingsRoutes from './routes/settingsRoutes.js';
+import wishlistRoutes from './routes/wishlistRoutes.js';
 import { seedIfEmpty } from './seed/seed.js';
 
 const app = express();
@@ -45,6 +46,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/wishlist', wishlistRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

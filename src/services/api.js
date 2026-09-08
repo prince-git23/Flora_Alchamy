@@ -1,21 +1,19 @@
 /**
- * Phase 3C — guest UI-state persistence only.
+ * Guest UI-state persistence only.
  *
  * Business data (products, collections, customers, orders, inventory,
- * analytics, settings, authentication) is authoritative in MongoDB and is
- * reached through the API via the service layer. This module persists only
- * temporary, non-authoritative browser state:
+ * analytics, settings, authentication, wishlist) is authoritative in MongoDB
+ * and is reached through the API via the service layer. This module persists
+ * only temporary, non-authoritative browser state:
  *
  *   - guest cart (local browser state — cart survives while browsing)
- *   - wishlist product IDs (local UI state; full product rows are resolved
- *     against the server catalogue at render time)
  *
- * No static catalogue, demo orders, or demo account lives here anymore.
+ * The wishlist is customer-owned backend state (Phase 3D): guests get a
+ * "Sign in to save" prompt instead of a local wishlist.
  */
 
 const STORAGE_KEYS = {
   CART: 'flora_alchemy_cart',
-  WISHLIST: 'flora_alchemy_wishlist',
 };
 
 function getStored(key, fallback) {
@@ -84,27 +82,5 @@ export async function removeFromCart(itemIndex) {
   const cart = await getCart();
   const updated = cart.filter((_, idx) => idx !== itemIndex);
   setStored(STORAGE_KEYS.CART, updated);
-  return updated;
-}
-
-// ─── Wishlist (IDs only; resolved against the API catalogue) ───
-export async function getWishlist() {
-  return getStored(STORAGE_KEYS.WISHLIST, []);
-}
-
-export async function addToWishlist(productId) {
-  const current = await getWishlist();
-  if (!current.includes(productId)) {
-    const updated = [...current, productId];
-    setStored(STORAGE_KEYS.WISHLIST, updated);
-    return updated;
-  }
-  return current;
-}
-
-export async function removeFromWishlist(productId) {
-  const current = await getWishlist();
-  const updated = current.filter((id) => id !== productId);
-  setStored(STORAGE_KEYS.WISHLIST, updated);
   return updated;
 }

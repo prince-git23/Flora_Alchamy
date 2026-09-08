@@ -1,26 +1,13 @@
-// Flora Alchemy Admin & Handler Portal Settings & State Storage
+// Flora Alchemy Admin & Handler Portal local UI state.
+//
+// Phase 3D.5 (E-01): business/store settings (general, commerce, notifications)
+// moved to settingsService → PATCH /api/settings → MongoDB. Only STRICTLY local
+// UI preferences and the prototype access roster remain here:
+//   PREFERENCES — per-operator UI preferences (theme, density, defaults)
+//   USERS       — sample access roster (no backend user-management API yet)
 const STORAGE_KEYS = {
-  GENERAL: 'flora_alchemy_admin_general_settings',
   PREFERENCES: 'flora_alchemy_admin_store_preferences',
   USERS: 'flora_alchemy_admin_users'
-};
-
-export const INITIAL_GENERAL_SETTINGS = {
-  storeName: 'Flora Alchemy',
-  storeTagline: 'Handcrafted botanical arrangements, preserved floral keepsakes, and personalized gifting.',
-  contactEmail: 'contact@flora-alchemy.demo',
-  contactPhone: '+91 98765 43210 (Sample)',
-  primaryCurrency: 'INR',
-  primaryCurrencyLabel: 'Indian Rupee (INR · ₹)',
-  timezone: 'Asia/Kolkata',
-  currencyFormat: 'inr_lakh',
-  dateFormat: 'dd_mmm_yyyy',
-  timeFormat: '12h',
-  firstDay: 'monday',
-  storeStatus: true,
-  ordersStatus: true,
-  bespokeStatus: true,
-  lastModified: 'Today at 10:42 AM IST'
 };
 
 export const INITIAL_STORE_PREFERENCES = {
@@ -118,24 +105,6 @@ function setStoredItem(key, val) {
   } catch {
     // Ignore quota errors
   }
-}
-
-export function getGeneralSettings() {
-  return getStoredItem(STORAGE_KEYS.GENERAL, INITIAL_GENERAL_SETTINGS);
-}
-
-export function saveGeneralSettings(settings) {
-  const updated = {
-    ...settings,
-    lastModified: `Today at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} IST`
-  };
-  setStoredItem(STORAGE_KEYS.GENERAL, updated);
-  return updated;
-}
-
-export function resetGeneralSettings() {
-  setStoredItem(STORAGE_KEYS.GENERAL, INITIAL_GENERAL_SETTINGS);
-  return INITIAL_GENERAL_SETTINGS;
 }
 
 export function getStorePreferences() {

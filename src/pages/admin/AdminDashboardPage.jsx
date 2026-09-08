@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout.jsx';
 import { getOrders, getOrderById, getStatusCounts, ORDER_STATUS_STYLES, ORDER_STATUSES } from '../../services/orderService.js';
 import { getLowStockItems } from '../../services/inventoryService.js';
@@ -11,7 +11,6 @@ function getStatusStyle(key) {
 }
 
 export default function AdminDashboardPage() {
-  const [viewState, setViewState] = useState('live'); // 'live' | 'empty' | 'loading'
   const [revenuePeriod, setRevenuePeriod] = useState('7d'); // '7d' | '30d' | '3m'
   const [quickModal, setQuickModal] = useState(null); // for '+ Add Product' / '+ Create Order'
   const [orderFilterStage, setOrderFilterStage] = useState(null);
@@ -26,7 +25,7 @@ export default function AdminDashboardPage() {
       palette: 'Dusty Rose · Ivory Wrap',
       transcript: '“Happy Birthday, dear Aisha!”',
       due: 'Today · 5:00 PM',
-      actionText: 'Mark as Ready',
+      actionText: 'Open Order',
       status: 'pending'
     },
     {
@@ -37,7 +36,7 @@ export default function AdminDashboardPage() {
       palette: 'Lavender · Sage Cotton',
       transcript: '“With love and gratitude”',
       due: 'Today · 6:00 PM',
-      actionText: 'Review & Pack',
+      actionText: 'Open Order',
       status: 'pending'
     },
     {
@@ -48,24 +47,16 @@ export default function AdminDashboardPage() {
       palette: 'Muted Gold · Cream Stems',
       transcript: null,
       due: 'Tomorrow · 11:00 AM',
-      actionText: 'Start Crafting',
+      actionText: 'Open Order',
       status: 'pending'
     }
   ]);
 
+  // Each crafting task references a real order — the action opens that order
+  // instead of simulating a completed task that has no backend state.
+  const navigate = useNavigate();
   const handleTaskAction = (taskId) => {
-    setCraftingTasks((prev) =>
-      prev.map((t) => {
-        if (t.id === taskId) {
-          return {
-            ...t,
-            actionText: 'Completed',
-            status: 'completed'
-          };
-        }
-        return t;
-      })
-    );
+    navigate(`/admin/orders/${taskId}`);
   };
 
   const compactINR = (n) => {
@@ -144,43 +135,6 @@ export default function AdminDashboardPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            {/* Prototype View Switcher */}
-            <div className="flex items-center p-1 rounded-full bg-[#ebe8e3] text-[12px]">
-              <button
-                type="button"
-                onClick={() => setViewState('live')}
-                className={`px-3 py-1 rounded-full font-semibold transition-all ${
-                  viewState === 'live'
-                    ? 'bg-white shadow-xs text-[#180f0a]'
-                    : 'text-[#4e4540] hover:text-[#180f0a]'
-                }`}
-              >
-                Active Live View
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewState('empty')}
-                className={`px-3 py-1 rounded-full font-semibold transition-all ${
-                  viewState === 'empty'
-                    ? 'bg-white shadow-xs text-[#180f0a]'
-                    : 'text-[#4e4540] hover:text-[#180f0a]'
-                }`}
-              >
-                Empty State
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewState('loading')}
-                className={`px-3 py-1 rounded-full font-semibold transition-all ${
-                  viewState === 'loading'
-                    ? 'bg-white shadow-xs text-[#180f0a]'
-                    : 'text-[#4e4540] hover:text-[#180f0a]'
-                }`}
-              >
-                Loading Skeleton
-              </button>
-            </div>
-
             {/* Quick Action Buttons */}
             <Link to="/admin/products"
               className="px-4 py-2 rounded-full border border-[#d1c4bd] bg-white text-[#180f0a] hover:bg-[#f6f3ee] text-[13px] font-semibold shadow-xs transition-all flex items-center gap-1.5"
@@ -198,51 +152,8 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* LOADING SKELETON STATE */}
-        {viewState === 'loading' && (
-          <div className="space-y-8 animate-pulse">
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-28 bg-[#ebe8e3] rounded-2xl"></div>
-              ))}
-            </div>
-            <div className="h-44 bg-[#ebe8e3] rounded-2xl"></div>
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-              <div className="lg:col-span-7 h-96 bg-[#ebe8e3] rounded-2xl"></div>
-              <div className="lg:col-span-5 h-96 bg-[#ebe8e3] rounded-2xl"></div>
-            </div>
-          </div>
-        )}
-
-        {/* EMPTY STATE */}
-        {viewState === 'empty' && (
-          <div className="p-12 sm:p-16 bg-white rounded-2xl text-center space-y-4 shadow-sm border border-[#e5e2dd]">
-            <div className="w-16 h-16 rounded-full bg-[#f6f3ee] mx-auto flex items-center justify-center text-[#80756f]">
-              <span className="material-symbols-outlined text-[32px]">inventory_2</span>
-            </div>
-            <div className="max-w-md mx-auto">
-              <h3 className="font-serif text-2xl text-[#180f0a] font-medium">
-                No Orders Requiring Crafting
-              </h3>
-              <p className="text-[14px] text-[#4e4540] mt-1.5">
-                All botanical stems, paper enclosures, and wax-sealed keepsakes have been fulfilled or dispatched.
-              </p>
-            </div>
-            <div className="pt-2 flex flex-wrap justify-center gap-3">
-              <button
-                type="button"
-                onClick={() => setViewState('live')}
-                className="px-5 py-2 rounded-full bg-[#180f0a] text-white text-[13px] font-semibold shadow-xs hover:bg-[#964735] transition-colors"
-              >
-                Return to Live Dashboard
-              </button>
-            </div>
-          </div>
-        )}
-
         {/* ACTIVE LIVE VIEW */}
-        {viewState === 'live' && (
-          <div className="space-y-8">
+        <div className="space-y-8">
             {/* 5-Card KPI Metrics Row */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
               {/* KPI 1: Total Orders */}
@@ -861,7 +772,6 @@ export default function AdminDashboardPage() {
               </div>
             </div>
           </div>
-        )}
 
         {/* Quick Information / Mock Action Modal */}
         {quickModal && (

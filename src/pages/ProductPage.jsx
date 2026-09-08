@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Star, Heart, ShoppingBag, ShieldCheck, Truck, RefreshCw, Sparkles, ChevronRight, Check } from 'lucide-react';
+import { Star, Heart, ShoppingBag, ShieldCheck, Truck, RefreshCw, Sparkles, ChevronRight, Check, Zap } from 'lucide-react';
 import { getProductById, getProducts as getCatalogProducts } from '../services/productService.js';
 import { useStore } from '../context/StoreContext.jsx';
 import ProductCard from '../components/ProductCard.jsx';
@@ -60,13 +60,23 @@ export default function ProductPage() {
 
   const wishlisted = isWishlisted(product.id);
 
+  const purchaseOptions = () => ({
+    quantity,
+    palette: selectedPalette,
+    ribbon: selectedRibbon,
+    giftMessage: giftMessage.trim() || undefined
+  });
+
   const handleAddToCart = () => {
-    addItemToCart(product, {
-      quantity,
-      palette: selectedPalette,
-      ribbon: selectedRibbon,
-      giftMessage: giftMessage.trim() || undefined
-    });
+    addItemToCart(product, purchaseOptions());
+  };
+
+  // Buy Now: add the exact selection (quantity/options/gift message) to the
+  // bag, then go straight to checkout. Guests reach the authentication gate
+  // at /checkout and return after signing in — the cart is never lost.
+  const handleBuyNow = () => {
+    addItemToCart(product, purchaseOptions());
+    navigate('/checkout');
   };
 
   const relatedProducts = getCatalogProducts()
@@ -302,6 +312,16 @@ export default function ProductPage() {
                 <Heart className={`w-5 h-5 ${wishlisted ? 'fill-[#964735]' : ''}`} />
               </button>
             </div>
+
+            {/* Buy Now — secondary purchase action (Phase 3D.5, E-06) */}
+            <button
+              type="button"
+              onClick={handleBuyNow}
+              className="w-full py-3.5 rounded-full bg-white border-2 border-[#180f0a] hover:bg-[#f6f3ee] text-[#180f0a] text-[13px] font-semibold tracking-wide flex items-center justify-center gap-2 shadow-sm transition-all active:translate-y-0.5"
+            >
+              <Zap className="w-4 h-4" />
+              <span>Buy Now · ₹{(product.price * quantity).toLocaleString('en-IN')}</span>
+            </button>
 
             {/* Trust Assurances */}
             <div className="grid grid-cols-3 gap-2 pt-4 text-center">
