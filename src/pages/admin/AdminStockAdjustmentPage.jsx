@@ -15,14 +15,18 @@ export default function AdminStockAdjustmentPage() {
   const inventory = getInventory();
   const triggerToast = (msg) => { setToastMessage(msg); setTimeout(() => setToastMessage(null), 3000); };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedProduct || !quantity || !reason) return;
     const qty = adjustmentType === 'add' ? Math.abs(parseInt(quantity)) : -Math.abs(parseInt(quantity));
-    adjustStock(selectedProduct, qty, adjustmentType === 'add' ? 'Addition' : 'Subtraction', reason);
-    setRecentAdjustments(getInventoryHistory());
-    triggerToast(`Stock adjustment saved: ${adjustmentType === 'add' ? '+' : ''}${qty} units — Sample environment saved`);
-    setSelectedProduct(''); setQuantity(''); setReason('');
+    try {
+      await adjustStock(selectedProduct, qty, adjustmentType === 'add' ? 'Addition' : 'Subtraction', reason);
+      setRecentAdjustments(getInventoryHistory());
+      triggerToast(`Stock adjustment saved to the backend: ${adjustmentType === 'add' ? '+' : ''}${qty} units`);
+      setSelectedProduct(''); setQuantity(''); setReason('');
+    } catch (err) {
+      triggerToast(err.message || 'Stock adjustment failed.');
+    }
   };
 
   return (

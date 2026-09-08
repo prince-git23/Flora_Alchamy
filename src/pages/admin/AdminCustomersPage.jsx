@@ -3,22 +3,14 @@ import { Link } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout.jsx';
 import { getCustomers, getCustomerById } from '../../services/customerService.js';
 import { getOrders, formatINR, formatDate } from '../../services/orderService.js';
-import { CUSTOMERS as ADMIN_SAMPLE_CUSTOMERS } from '../../services/adminData.js';
 
 export default function AdminCustomersPage() {
   const [viewState, setViewState] = useState('live');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  const allCustomers = useMemo(() => {
-    const serviceCustomers = getCustomers();
-    const serviceIds = new Set(serviceCustomers.map(c => c.id));
-    const merged = [...serviceCustomers];
-    ADMIN_SAMPLE_CUSTOMERS.forEach(c => {
-      if (!serviceIds.has(c.id)) merged.push(c);
-    });
-    return merged;
-  }, []);
+  // Live MongoDB customers only — static sample records are never merged in.
+  const allCustomers = useMemo(() => getCustomers(), []);
 
   const orders = useMemo(() => getOrders(), []);
 

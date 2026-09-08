@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Sparkles, Eye, Camera } from 'lucide-react';
-import { PRODUCTS } from '../data/products.js';
 
 export default function OurCreationsPage() {
   const [filter, setFilter] = useState('all');

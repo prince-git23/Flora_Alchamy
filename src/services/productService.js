@@ -1,103 +1,160 @@
-import { getStored, setStored } from './storage.js';
-import { PRODUCTS } from '../data/products.js';
-import { getInventory, adjustInventory } from './inventoryService.js';
+import api from './apiClient.js';
+import { store, signalDataChanged } from './dataStore.js';
 
-const STORAGE_KEY = 'flora_alchemy_products';
+/**
+ * Phase 3C — productService is now backed by the Express/MongoDB API.
+ * Reads come from the server-hydrated store (no localStorage, no static
+ * PRODUCTS array); writes POST/PATCH/DELETE and refresh the store from the
+ * server response. The UI shape (category keys, images[], visibility) is
+ * normalized here so pages were not rewritten.
+ */
 
-function generateId() {
-  return `prod-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+const FALLBACK_IMAGE = '/assets/images/flora-asset-01.jpg';
+
+const CATEGORY_KEYS = {
+  'Flowers & Bouquets': 'bouquets',
+  'Handmade Cards': 'cards',
+  'Charms & Vessels': 'charms',
+  'Custom Gifts & Hampers': 'hampers',
+  'Custom Gifts': 'custom',
+  Other: 'other',
+};
+
+function slugify(str) {
+  return String(str || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)+/g, '');
 }
 
-function seedInitialProducts() {
-  setStored(STORAGE_KEY, PRODUCTS);
-  return PRODUCTS;
+function deriveStockStatus(stock, reorder) {
+  if (stock === undefined || stock === null) return undefined;
+  if (stock <= 0) return 'Out of Stock';
+  if (stock <= reorder / 2) return 'Critical';
+  if (stock <= reorder) return 'Low Stock';
+  return 'In Stock';
+}
+
+function inventoryFor(slug) {
+  const inv = store.inventory.find((i) => i.productSlug === slug || i.productId === slug);
+  return inv || null;
+}
+
+/** Map a backend Product document to the storefront/admin product shape. */
+export function fromApiProduct(p) {
+  const inv = inventoryFor(p.slug);
+  const image = Array.isArray(p.image) ? p.image[0] : p.image;
+  return {
+    id: p.slug,
+    slug: p.slug,
+    sku: p.sku || '',
+    name: p.name,
+    shortName: p.name,
+    category: CATEGORY_KEYS[p.category] || slugify(p.category) || 'other',
+    categoryLabel: p.category || 'Other',
+    price: Number(p.price) || 0,
+    originalPrice: null,
+    images: [image || FALLBACK_IMAGE],
+    description: p.description || '',
+    shortDescription: '',
+    badge: '',
+    craftTime: '',
+    materials: '',
+    dimensions: '',
+    rating: 0,
+    reviewCount: 0,
+    palettes: p.palette
+      ? [{ id: slugify(p.palette), name: p.palette, color1: '#964735', color2: '#180f0a' }]
+      : [],
+    ribbons: [],
+    tags: [],
+    isFeatured: false,
+    isBestseller: false,
+    availability: 'Ready to Ship',
+    visibility: p.visibility === 'Hidden' ? 'Hidden' : 'Public',
+    stock: inv ? inv.currentStock : undefined,
+    reorderLevel: inv ? inv.reorderLevel : 10,
+    stockStatus: inv ? deriveStockStatus(inv.currentStock, inv.reorderLevel) : undefined,
+    createdAt: p.createdAt,
+    updatedAt: p.updatedAt,
+  };
 }
 
 export function getProducts() {
-  if (!getStored(STORAGE_KEY, null)) {
-    seedInitialProducts();
-  }
-  return getStored(STORAGE_KEY, PRODUCTS);
+  return store.products.map(fromApiProduct);
 }
 
 export function getProductById(id) {
-  const products = getProducts();
-  return products.find(p => p.id === id) || null;
-}
-
-export function createProduct(data) {
-  const products = getProducts();
-
-  const newProduct = {
-    id: data.id || generateId(),
-    name: data.name,
-    shortName: data.shortName || data.name,
-    category: data.category || 'bouquets',
-    categoryLabel: data.categoryLabel || data.category || 'Other',
-    price: data.price || 0,
-    originalPrice: data.originalPrice || null,
-    images: data.images && data.images.length > 0 ? data.images : ['/assets/images/flora-asset-01.jpg'],
-    description: data.description || '',
-    shortDescription: data.shortDescription || '',
-    badge: data.badge || '',
-    craftTime: data.craftTime || '',
-    materials: data.materials || '',
-    dimensions: data.dimensions || '',
-    rating: data.rating || 4.5,
-    reviewCount: data.reviewCount || 0,
-    palettes: data.palettes || [],
-    ribbons: data.ribbons || [],
-    tags: data.tags || [],
-    isFeatured: data.isFeatured || false,
-    isBestseller: data.isBestseller || false,
-    availability: data.availability || 'Ready to Ship',
-    visibility: 'Public',
-    stock: data.stock !== undefined ? data.stock : 20,
-    reorderLevel: data.reorderLevel || 10,
-  };
-
-  const updated = [newProduct, ...products];
-  setStored(STORAGE_KEY, updated);
-
-  // Initial inventory entry
-  adjustInventory(newProduct.id, newProduct.stock, 'Restock', null, `Product creation — ${newProduct.name}`);
-
-  return newProduct;
-}
-
-export function updateProduct(id, data) {
-  const products = getProducts();
-  const idx = products.findIndex(p => p.id === id);
-  if (idx === -1) return null;
-
-  const updated = [...products];
-  updated[idx] = { ...updated[idx], ...data };
-  setStored(STORAGE_KEY, updated);
-  return updated[idx];
-}
-
-export function deleteProduct(id) {
-  const products = getProducts();
-  const updated = products.filter(p => p.id !== id);
-  setStored(STORAGE_KEY, updated);
-
-  // Remove inventory entry
-  const inventory = getInventory();
-  const invIdx = inventory.findIndex(i => i.productId === id);
-  if (invIdx !== -1) {
-    inventory.splice(invIdx, 1);
-    setStored('flora_alchemy_inventory', inventory);
+  const raw = store.products.find((p) => p.slug === id);
+  if (!raw) {
+    // tolerate legacy id-based lookups on normalized products
+    const product = getProducts().find((p) => p.id === id || p.sku === id);
+    return product || null;
   }
+  return fromApiProduct(raw);
+}
 
-  return updated;
+function toApiPayload(data) {
+  const reverseKeys = {};
+  Object.entries(CATEGORY_KEYS).forEach(([label, key]) => {
+    reverseKeys[key] = label;
+  });
+  return {
+    name: data.name,
+    price: Number(data.price),
+    sku: data.sku || '',
+    category: data.categoryLabel || reverseKeys[data.category] || data.category || 'Other',
+    description: data.description || '',
+    image: Array.isArray(data.images) ? data.images[0] : data.image || FALLBACK_IMAGE,
+    palette: (data.palettes && data.palettes[0] && data.palettes[0].name) || data.palette || '',
+    visibility: data.visibility === 'Hidden' ? 'Hidden' : 'Visible',
+    stockTracked: data.stockTracked !== false,
+  };
+}
+
+export async function createProduct(data) {
+  const res = await api.post('/products', toApiPayload(data), { scope: 'admin' });
+  if (!res.ok) {
+    throw new Error(res.message || 'Product could not be created.');
+  }
+  const p = res.data.product;
+  store.products = [...store.products.filter((x) => x.slug !== p.slug), p];
+  signalDataChanged();
+  return fromApiProduct(p);
+}
+
+export async function updateProduct(id, data) {
+  const res = await api.patch(`/products/${encodeURIComponent(id)}`, toApiPayload(data), {
+    scope: 'admin',
+  });
+  if (!res.ok) {
+    throw new Error(res.message || 'Product could not be updated.');
+  }
+  const p = res.data.product;
+  store.products = [...store.products.filter((x) => x.slug !== p.slug), p];
+  signalDataChanged();
+  return fromApiProduct(p);
+}
+
+export async function deleteProduct(id) {
+  const res = await api.delete(`/products/${encodeURIComponent(id)}`, { scope: 'admin' });
+  if (!res.ok) {
+    throw new Error(res.message || 'Product could not be deleted.');
+  }
+  store.products = store.products.filter((x) => x.slug !== id);
+  signalDataChanged();
+  return store.products;
 }
 
 export function getProductImage(product) {
-  return product.images && product.images.length > 0 ? product.images[0] : '/assets/images/flora-asset-01.jpg';
+  return product.images && product.images.length > 0
+    ? product.images[0]
+    : FALLBACK_IMAGE;
 }
 
 // Made-to-order / custom items (and anything not in the catalogue) have no
 // tracked stock, so they must never block or deduct inventory.
 export function isCatalogueProduct(productId) {
-  return getProducts().some(p => p.id === productId);
+  if (!productId) return false;
+  return store.products.some((p) => p.slug === productId);
 }

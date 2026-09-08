@@ -1,25 +1,15 @@
-import { getStored, setStored } from './storage.js';
-import { getCustomerById, addOrderToCustomer, getActiveCustomerId } from './customerService.js';
-import { getInventoryItem, adjustInventory } from './inventoryService.js';
+import api from './apiClient.js';
+import { store, signalDataChanged } from './dataStore.js';
 import { isCatalogueProduct } from './productService.js';
-import { PRODUCTS } from '../data/products.js';
 
-const STORAGE_KEY = 'flora_alchemy_orders';
-
-function daysAgo(d) {
-  const dt = new Date();
-  dt.setDate(dt.getDate() - d);
-  return dt.toISOString();
-}
-
-function generateOrderId() {
-  return `FA-${Math.floor(1000 + Math.random() * 9000)}`;
-}
-
-function generateTrackingNumber(orderId) {
-  const num = orderId.split('-')[1];
-  return `FA-TRK-${num}`;
-}
+/**
+ * Phase 3C — orderService is fully API-backed.
+ *
+ * Reads come from the server-hydrated store (GET /api/orders or /orders/mine).
+ * createOrder POSTs /api/orders and the SERVER is authoritative for identity,
+ * prices, totals and transactional stock deduction — this module no longer
+ * decrements inventory or writes localStorage.
+ */
 
 // ─── Canonical Status ───
 export const ORDER_STATUSES = [
@@ -74,436 +64,215 @@ export function getCustomerFacingStatus(key) {
   return map[key] || key;
 }
 
-// ─── Migration helpers ───
-function normalizeLegacyOrder(order) {
-  if (order.id || order.orderId) {
-    return {
-      id: order.id || order.orderId,
-      customerId: order.customerId || 'cust-demo-001',
-      items: order.items || [],
-      subtotal: order.subtotal || (order.items || []).reduce((s, i) => s + (i.price || 0) * (i.quantity || 1), 0),
-      shipping: order.shipping || 0,
-      total: order.total || (order.subtotal || 0) + (order.shipping || 0),
-      paymentStatus: mapPaymentStatus(order.paymentStatus || order.paymentMethod || 'Paid'),
-      orderStatus: mapOrderStatus(order.orderStatus || order.status || 'new'),
-      shippingAddress: order.shippingAddress || order.delivery || {},
-      giftMessage: order.giftMessage || order.giftNote?.message || '',
-      trackingNumber: order.trackingNumber || null,
-      createdAt: order.createdAt || order.date || daysAgo(0),
-      updatedAt: order.updatedAt || order.date || daysAgo(0),
-      deliveryTarget: order.deliveryTarget || null,
-      isRush: order.isRush || false,
-    };
-  }
-  return null;
-}
-
-function mapOrderStatus(status) {
-  const statusMap = {
-    'new': 'new',
-    'Order Received': 'new',
-    'confirmed': 'confirmed',
-    'Confirmed': 'confirmed',
-    'in_production': 'in_production',
-    'In Production': 'in_production',
-    'Being Crafted': 'in_production',
-    'Packed': 'quality_check',
-    'Quality Check': 'quality_check',
-    'Ready to Dispatch': 'ready_to_dispatch',
-    'Ready for Dispatch': 'ready_to_dispatch',
-    'shipped': 'shipped',
-    'Shipped': 'shipped',
-    'Out for Delivery': 'shipped',
-    'delivered': 'delivered',
-    'Delivered': 'delivered',
-    'Being Crafted': 'in_production',
-  };
-  const lower = status.toLowerCase();
-  if (statusMap[status]) return statusMap[status];
-  if (statusMap[lower]) return statusMap[lower];
-  return 'new';
-}
-
-function mapPaymentStatus(status) {
-  const map = {
-    'Paid': 'Paid',
-    'paid': 'Paid',
-    'Pending': 'Pending',
-    'pending': 'Pending',
-    'Refunded': 'Refunded',
-    'refunded': 'Refunded',
-    'UPI': 'Paid',
-    'Credit/Debit Card': 'Paid',
-    'COD': 'Pending',
-  };
-  if (map[status]) return map[status];
-  return 'Paid';
-}
-
-// ─── Seed initial data ───
-const SAMPLE_DATA_CUSTOMER_IDS = [
-  'cust-10428', 'cust-10503', 'cust-10352', 'cust-10445', 'cust-10187',
-  'cust-10612', 'cust-10721', 'cust-10834', 'cust-10947', 'cust-11005',
-  'cust-11078', 'cust-10298',
-];
-
-const SAMPLE_DATA_ORDERS = [
-  {
-    id: 'FA-84291',
-    customerId: 'cust-10428',
-    customerName: 'Aarav Sharma',
-    customerEmail: 'aarav.sharma@example.com',
-    items: [
-      { productId: 'dusty-rose-lavender-posy', name: 'Dusty Rose & Lavender Posy', price: 1850, quantity: 1, image: PRODUCTS[0].images[0] },
-      { productId: 'pressed-wildflower-cards', name: 'Pressed Botanical Wildflower Cards', price: 850, quantity: 1, image: PRODUCTS[1].images[0] },
-      { productId: 'gold-foil-pressed-stickers', name: 'Gold Foil Pressed Botanical Stickers', price: 450, quantity: 1, image: PRODUCTS[6].images[0] },
-    ],
-    subtotal: 3150, shipping: 0, total: 3150,
-    paymentStatus: 'Paid', orderStatus: 'in_production',
-    shippingAddress: { name: 'Aarav Sharma', address: '14 Hill Road, Bandra West', city: 'Mumbai', state: 'Maharashtra', pincode: '400050', phone: '+91 98200 12345' },
-    createdAt: daysAgo(0), updatedAt: daysAgo(0), deliveryTarget: daysAgo(-2),
-    isRush: true, trackingNumber: null,
-  },
-  {
-    id: 'FA-84276',
-    customerId: 'cust-10503',
-    customerName: 'Meera Joshi',
-    customerEmail: 'meera.joshi@example.com',
-    items: [
-      { productId: 'heirloom-keepsake-hamper', name: 'Heirloom Keepsake Wooden Hamper Box', price: 3450, quantity: 1, image: PRODUCTS[3].images[0] },
-    ],
-    subtotal: 3450, shipping: 0, total: 3450,
-    paymentStatus: 'Paid', orderStatus: 'ready_to_dispatch',
-    shippingAddress: { name: 'Meera Joshi', address: '89 Malviya Nagar', city: 'Jaipur', state: 'Rajasthan', pincode: '302017', phone: '+91 98555 67890' },
-    createdAt: daysAgo(1), updatedAt: daysAgo(1), deliveryTarget: daysAgo(-1),
-    isRush: false, trackingNumber: null,
-  },
-  {
-    id: 'FA-84254',
-    customerId: 'cust-10352',
-    customerName: 'Riya Patel',
-    customerEmail: 'riya.patel@example.com',
-    items: [
-      { productId: 'vintage-peony-eucalyptus-posy', name: 'Vintage Peony & Eucalyptus Posy', price: 2150, quantity: 1, image: PRODUCTS[4].images[0] },
-      { productId: 'pressed-wildflower-cards', name: 'Pressed Botanical Wildflower Cards', price: 850, quantity: 1, image: PRODUCTS[1].images[0] },
-    ],
-    subtotal: 3000, shipping: 0, total: 3000,
-    paymentStatus: 'Paid', orderStatus: 'confirmed',
-    shippingAddress: { name: 'Riya Patel', address: '78 Lajpat Nagar II', city: 'New Delhi', state: 'Delhi', pincode: '110024', phone: '+91 98111 23456' },
-    createdAt: daysAgo(2), updatedAt: daysAgo(2), deliveryTarget: daysAgo(-3),
-    isRush: false, trackingNumber: null,
-  },
-  {
-    id: 'FA-84231',
-    customerId: 'cust-10445',
-    customerName: 'Kabir Singh',
-    customerEmail: 'kabir.singh@example.com',
-    items: [
-      { productId: 'dusty-rose-lavender-posy', name: 'Dusty Rose & Lavender Posy', price: 1850, quantity: 1, image: PRODUCTS[0].images[0] },
-    ],
-    subtotal: 1850, shipping: 0, total: 1850,
-    paymentStatus: 'Pending', orderStatus: 'new',
-    shippingAddress: { name: 'Kabir Singh', address: '12 Koregaon Park', city: 'Pune', state: 'Maharashtra', pincode: '411001', phone: '+91 98444 56789' },
-    createdAt: daysAgo(2), updatedAt: daysAgo(2), deliveryTarget: daysAgo(-4),
-    isRush: false, trackingNumber: null,
-  },
-  {
-    id: 'FA-84219',
-    customerId: 'cust-10187',
-    customerName: 'Ananya Verma',
-    customerEmail: 'ananya.verma@example.com',
-    items: [
-      { productId: 'pressed-wildflower-cards', name: 'Handmade Botanical Card Set', price: 850, quantity: 1, image: PRODUCTS[1].images[0] },
-    ],
-    subtotal: 850, shipping: 0, total: 850,
-    paymentStatus: 'Paid', orderStatus: 'quality_check',
-    shippingAddress: { name: 'Ananya Verma', address: '45 Koramangala 5th Block', city: 'Bangalore', state: 'Karnataka', pincode: '560095', phone: '+91 98333 45678' },
-    createdAt: daysAgo(3), updatedAt: daysAgo(1), deliveryTarget: daysAgo(-1),
-    isRush: false, trackingNumber: null,
-  },
-  {
-    id: 'FA-84190',
-    customerId: 'cust-10612',
-    customerName: 'Devansh Mehta',
-    customerEmail: 'devansh.mehta@example.com',
-    items: [
-      { productId: 'desk-bloom-ceramic-pot', name: 'Desk Bloom in Ceramic Pot', price: 1250, quantity: 1, image: PRODUCTS[2].images[0] },
-      { productId: 'botanical-wax-seal-kit', name: 'Botanical Wax Seal Ritual Kit', price: 1150, quantity: 1, image: PRODUCTS[9].images[0] },
-    ],
-    subtotal: 2400, shipping: 0, total: 2400,
-    paymentStatus: 'Paid', orderStatus: 'shipped',
-    shippingAddress: { name: 'Devansh Mehta', address: '23 T Nagar', city: 'Chennai', state: 'Tamil Nadu', pincode: '600017', phone: '+91 98666 78901' },
-    createdAt: daysAgo(4), updatedAt: daysAgo(1), deliveryTarget: daysAgo(-1),
-    isRush: false, trackingNumber: 'FA-TRK-84190',
-  },
-  {
-    id: 'FA-84175',
-    customerId: 'cust-10721',
-    customerName: 'Isha Gupta',
-    customerEmail: 'isha.gupta@example.com',
-    items: [
-      { productId: 'dusty-rose-lavender-posy', name: 'Dusty Rose & Lavender Posy (5-Stem)', price: 1850, quantity: 1, image: PRODUCTS[0].images[0] },
-    ],
-    subtotal: 1850, shipping: 0, total: 1850,
-    paymentStatus: 'Paid', orderStatus: 'delivered',
-    shippingAddress: { name: 'Isha Gupta', address: '56 Park Street', city: 'Kolkata', state: 'West Bengal', pincode: '700016', phone: '+91 98777 89012' },
-    createdAt: daysAgo(5), updatedAt: daysAgo(2), deliveryTarget: daysAgo(-2),
-    isRush: false, trackingNumber: 'FA-TRK-84175',
-  },
-  {
-    id: 'FA-84160',
-    customerId: 'cust-10834',
-    customerName: 'Arjun Reddy',
-    customerEmail: 'arjun.reddy@example.com',
-    items: [
-      { productId: 'heirloom-keepsake-hamper', name: 'Heirloom Keepsake Hamper', price: 3450, quantity: 1, image: PRODUCTS[3].images[0] },
-      { productId: 'chenille-garden-mascot-charm', name: 'Chenille Garden Sunflower Charm', price: 650, quantity: 2, image: PRODUCTS[5].images[0] },
-    ],
-    subtotal: 4750, shipping: 0, total: 4750,
-    paymentStatus: 'Paid', orderStatus: 'in_production',
-    shippingAddress: { name: 'Arjun Reddy', address: '67 Banjara Hills', city: 'Hyderabad', state: 'Telangana', pincode: '500034', phone: '+91 98888 90123' },
-    createdAt: daysAgo(1), updatedAt: daysAgo(1), deliveryTarget: daysAgo(-3),
-    isRush: false, trackingNumber: null,
-  },
-  {
-    id: 'FA-84145',
-    customerId: 'cust-10947',
-    customerName: 'Sneha Nair',
-    customerEmail: 'sneha.nair@example.com',
-    items: [
-      { productId: 'rakhi-everlasting-bloom-set', name: 'Rakhi Everlasting Ceremonial Bloom Set', price: 2200, quantity: 1, image: PRODUCTS[7].images[0] },
-    ],
-    subtotal: 2200, shipping: 0, total: 2200,
-    paymentStatus: 'Paid', orderStatus: 'delivered',
-    shippingAddress: { name: 'Sneha Nair', address: '34 MG Road', city: 'Kochi', state: 'Kerala', pincode: '682016', phone: '+91 98999 01234' },
-    createdAt: daysAgo(10), updatedAt: daysAgo(5), deliveryTarget: daysAgo(-5),
-    isRush: false, trackingNumber: 'FA-TRK-84145',
-  },
-  {
-    id: 'FA-84130',
-    customerId: 'cust-11005',
-    customerName: 'Rajesh Kumar',
-    customerEmail: 'rajesh.kumar@example.com',
-    items: [
-      { productId: 'chenille-garden-mascot-charm', name: 'Chenille Garden Sunflower Mascot Charm', price: 650, quantity: 1, image: PRODUCTS[5].images[0] },
-    ],
-    subtotal: 650, shipping: 0, total: 650,
-    paymentStatus: 'Paid', orderStatus: 'shipped',
-    shippingAddress: { name: 'Rajesh Kumar', address: '19 Hazratganj', city: 'Lucknow', state: 'Uttar Pradesh', pincode: '226001', phone: '+91 98000 11223' },
-    createdAt: daysAgo(6), updatedAt: daysAgo(2), deliveryTarget: daysAgo(-2),
-    isRush: false, trackingNumber: 'FA-TRK-84130',
-  },
-  {
-    id: 'FA-84115',
-    customerId: 'cust-11078',
-    customerName: 'Divya Menon',
-    customerEmail: 'divya.menon@example.com',
-    items: [
-      { productId: 'gold-foil-pressed-stickers', name: 'Gold Foil Pressed Botanical Stickers', price: 450, quantity: 2, image: PRODUCTS[6].images[0] },
-      { productId: 'botanical-wax-seal-kit', name: 'Botanical Wax Seal Ritual Kit', price: 1150, quantity: 1, image: PRODUCTS[9].images[0] },
-    ],
-    subtotal: 2050, shipping: 0, total: 2050,
-    paymentStatus: 'Paid', orderStatus: 'confirmed',
-    shippingAddress: { name: 'Divya Menon', address: '42 Adyar', city: 'Chennai', state: 'Tamil Nadu', pincode: '600020', phone: '+91 98111 22334' },
-    createdAt: daysAgo(3), updatedAt: daysAgo(3), deliveryTarget: daysAgo(-5),
-    isRush: false, trackingNumber: null,
-  },
-  {
-    id: 'FA-84100',
-    customerId: 'cust-10298',
-    customerName: 'Rohan Patel',
-    customerEmail: 'rohan.patel@example.com',
-    items: [
-      { productId: 'vintage-peony-eucalyptus-posy', name: 'Vintage Peony & Eucalyptus Posy', price: 2150, quantity: 1, image: PRODUCTS[4].images[0] },
-    ],
-    subtotal: 2150, shipping: 0, total: 2150,
-    paymentStatus: 'Paid', orderStatus: 'delivered',
-    shippingAddress: { name: 'Rohan Patel', address: '32 Satellite Road', city: 'Ahmedabad', state: 'Gujarat', pincode: '380015', phone: '+91 98222 34567' },
-    createdAt: daysAgo(14), updatedAt: daysAgo(8), deliveryTarget: daysAgo(-8),
-    isRush: false, trackingNumber: 'FA-TRK-84100',
-  },
-];
-
-function seedInitialOrders() {
-  const initial = [];
-  // Demo customer orders
-  initial.push({
-    id: 'FA-1024',
-    customerId: 'cust-demo-001',
-    items: [
-      { productId: 'dusty-rose-lavender-posy', name: 'The Dusty Rose & Lavender Dream Posy', price: 1850, quantity: 1, image: PRODUCTS[0].images[0], customizations: ['Rose & Lilac Palette', 'Silk Rose Ribbon'] },
-      { productId: 'pressed-wildflower-cards', name: 'Pressed Botanical Wildflower Cards (Set of 4)', price: 850, quantity: 1, image: PRODUCTS[1].images[0], customizations: ['Copper Wax Seal'] },
-    ],
-    subtotal: 2700,
-    shipping: 0,
-    total: 2700,
-    paymentStatus: 'Paid',
-    orderStatus: 'in_production',
-    shippingAddress: { name: 'Demo Customer', address: 'Bandra West', city: 'Mumbai', state: 'Maharashtra', pincode: '400050', phone: '+91 98000 00000' },
-    giftMessage: 'May these handcrafted botanicals bring lasting beauty and calm to your home. Warmest regards.',
-    trackingNumber: 'FA-TRK-1024',
-    createdAt: daysAgo(3),
-    updatedAt: daysAgo(1),
-    deliveryTarget: daysAgo(-2),
+// ─── Normalization (backend doc → UI shape) ───
+function normalizeOrder(o) {
+  if (!o) return null;
+  const orderId = o.orderId || o.id;
+  const items = (o.items || []).map((it) => ({
+    id: it.productSlug || it.id || it.name,
+    productSlug: it.productSlug || it.id || null,
+    name: it.name,
+    price: Number(it.price) || 0,
+    quantity: Number(it.quantity) || 1,
+    image: it.image || '',
+    palette: it.palette || '',
+    ribbon: it.ribbon || '',
+    giftMessage: it.giftMessage || '',
+    customDetails: it.customDetails || null,
+    isCatalogue: it.isCatalogue !== false,
+  }));
+  const addr = o.shippingAddress || {};
+  return {
+    id: orderId,
+    orderId,
+    customerId: o.customerId ? String(o.customerId) : '',
+    customerName: o.customerName || '',
+    customerEmail: o.customerEmail || '',
+    items,
+    subtotal: Number(o.subtotal) || 0,
+    shipping: Number(o.shipping) || 0,
+    total: Number(o.total) || 0,
+    paymentStatus: o.paymentStatus || 'Pending',
+    paymentMethod: o.paymentMethod || 'Sample',
+    orderStatus: o.orderStatus || 'new',
+    shippingAddress: {
+      name: addr.name || '',
+      address: addr.address || '',
+      city: addr.city || '',
+      state: addr.state || '',
+      pincode: addr.pincode || '',
+      phone: addr.phone || '',
+    },
+    giftMessage: o.giftMessage || '',
+    trackingNumber: o.trackingNumber || '',
+    statusHistory: o.statusHistory || [],
+    isFixture: !!o.isFixture,
+    deliveryTarget: null,
     isRush: false,
-  });
-
-  initial.push({
-    id: 'FA-0912',
-    customerId: 'cust-demo-001',
-    items: [
-      { productId: 'desk-bloom-ceramic-pot', name: 'Desk Bloom in Ceramic Pot', price: 1250, quantity: 1, image: PRODUCTS[2].images[0] },
-    ],
-    subtotal: 1250,
-    shipping: 0,
-    total: 1250,
-    paymentStatus: 'Paid',
-    orderStatus: 'delivered',
-    shippingAddress: { name: 'Demo Customer', address: 'Bandra West', city: 'Mumbai', state: 'Maharashtra', pincode: '400050', phone: '+91 98000 00000' },
-    giftMessage: '',
-    trackingNumber: 'FA-TRK-0912',
-    createdAt: daysAgo(21),
-    updatedAt: daysAgo(18),
-    deliveryTarget: daysAgo(-15),
-    isRush: false,
-  });
-
-  // Add all sample orders from adminData
-  SAMPLE_DATA_ORDERS.forEach(order => {
-    initial.push(order);
-  });
-
-  setStored(STORAGE_KEY, initial);
-  return initial;
+    createdAt: o.createdAt,
+    updatedAt: o.updatedAt,
+  };
 }
 
 export function getOrders() {
-  if (!getStored(STORAGE_KEY, null)) {
-    seedInitialOrders();
-  }
-  const stored = getStored(STORAGE_KEY, []);
-  // Migrate legacy orders if needed
-  const migrated = stored.map(o => {
-    if (o.id && o.orderStatus !== undefined) return o; // already canonical
-    if (o.orderId && o.status) return normalizeLegacyOrder(o);
-    return o;
-  });
-  setStored(STORAGE_KEY, migrated);
-  return migrated;
+  return store.orders.map(normalizeOrder).filter(Boolean);
 }
 
 export function getOrderById(orderId) {
-  const orders = getOrders();
-  return orders.find(o => o.id === orderId || o.trackingNumber === orderId) || null;
+  if (!orderId) return null;
+  const raw = store.orders.find(
+    (o) => (o.orderId || o.id) === orderId || o.trackingNumber === orderId
+  );
+  return normalizeOrder(raw || null);
+}
+
+export function getMyOrders() {
+  return getOrders();
 }
 
 export function getOrdersByCustomer(customerId) {
-  return getOrders().filter(o => o.customerId === customerId);
+  if (!customerId) return [];
+  const id = String(customerId);
+  return getOrders().filter((o) => o.customerId === id);
 }
 
 export function getOrdersByStatus(statusKey) {
-  return getOrders().filter(o => o.orderStatus === statusKey);
+  return getOrders().filter((o) => o.orderStatus === statusKey);
 }
 
-export function createOrder(orderData) {
-  const orders = getOrders();
-  const now = new Date().toISOString();
+function imageForItem(item) {
+  if (item.image) return item.image;
+  if (item.images && item.images.length) return item.images[0];
+  return '/assets/images/flora-asset-01.jpg';
+}
 
-  const customerId = orderData.customerId || getActiveCustomerId();
-  if (!customerId) {
-    // No guest orders: every order must belong to an authenticated customer.
-    throw new Error('Sign in to your account to complete checkout.');
-  }
-  const customer = getCustomerById(customerId);
+/**
+ * Create an order through the backend. Only catalogue items send a slug —
+ * the server re-prices them from MongoDB. Custom made-to-order items send
+ * their bespoke price and are not stock-tracked server-side.
+ */
+export async function createOrder(orderData) {
+  const items = (orderData.items || []).map((item) => {
+    const productId = item.productSlug || item.productId || item.id;
+    if (productId && isCatalogueProduct(productId)) {
+      return {
+        productSlug: productId,
+        name: item.name,
+        quantity: item.quantity || 1,
+        palette: item.palette || '',
+        ribbon: item.ribbon || '',
+        giftMessage: item.giftMessage || '',
+        customDetails: item.customDetails || null,
+      };
+    }
+    return {
+      name: item.name || 'Custom Gift',
+      price: Number(item.price) || 0,
+      quantity: item.quantity || 1,
+      image: imageForItem(item),
+      palette: item.palette || '',
+      ribbon: item.ribbon || '',
+      giftMessage: item.giftMessage || '',
+      customDetails: item.customDetails || null,
+    };
+  });
 
-  const trackingNumber = orderData.trackingNumber || generateTrackingNumber('');
-
-  const newOrder = {
-    id: orderData.id || generateOrderId(),
-    customerId: customerId,
-    customerName: customer?.name || 'Customer',
-    customerEmail: customer?.email || orderData.customerEmail || '',
-    items: orderData.items || [],
-    subtotal: orderData.subtotal || (orderData.items || []).reduce((s, i) => s + (i.price || 0) * (i.quantity || 1), 0),
-    shipping: orderData.shipping || 0,
-    total: orderData.total || (orderData.subtotal || 0) + (orderData.shipping || 0),
-    paymentStatus: orderData.paymentStatus || 'Paid',
-    orderStatus: 'confirmed',
-    shippingAddress: orderData.shippingAddress || {
-      name: customer?.name || 'Customer',
-      address: orderData.address || '',
-      city: orderData.city || '',
-      state: orderData.state || '',
-      pincode: orderData.pincode || '',
-      phone: customer?.phone || orderData.phone || '',
-    },
+  const payload = {
+    items,
+    paymentMethod: orderData.paymentMethod || 'Sample',
+    shippingAddress: orderData.shippingAddress || {},
     giftMessage: orderData.giftMessage || '',
-    trackingNumber: trackingNumber,
-    createdAt: now,
-    updatedAt: now,
-    deliveryTarget: null,
-    isRush: orderData.isRush || false,
+    isRush: !!orderData.isRush,
   };
 
-  // Update tracking number properly
-  newOrder.trackingNumber = generateTrackingNumber(newOrder.id);
-
-  const updatedOrders = [newOrder, ...orders];
-  setStored(STORAGE_KEY, updatedOrders);
-
-  // Update customer stats
-  addOrderToCustomer(customerId, newOrder.total);
-
-  // Decrement inventory (only for real, stock-tracked catalogue products —
-  // made-to-order custom items are not deducted)
-  if (newOrder.items && newOrder.items.length > 0) {
-    newOrder.items.forEach(item => {
-      const productId = item.productId || item.id;
-      const qty = item.quantity || 1;
-      if (isCatalogueProduct(productId)) {
-        adjustInventory(productId, -qty, 'Sale', `Order ${newOrder.id}`);
-      }
-    });
+  const res = await api.post('/orders', payload, { scope: 'customer' });
+  if (!res.ok) {
+    const err = new Error(res.message || 'Your order could not be placed.');
+    err.code = res.code;
+    err.status = res.status;
+    throw err;
   }
 
-  return newOrder;
+  // Server order becomes the source of truth in the store.
+  const serverOrder = res.data.order;
+  store.orders = [...store.orders.filter((o) => (o.orderId || o.id) !== serverOrder.orderId), serverOrder];
+  signalDataChanged();
+  return normalizeOrder(serverOrder);
 }
 
-export function updateOrderStatus(orderId, newStatusKey) {
-  const orders = getOrders();
-  const idx = orders.findIndex(o => o.id === orderId);
-  if (idx === -1) return null;
+/**
+ * Admin/handler creates an order on behalf of a selected customer
+ * (POST /api/orders/admin — staff only; prices still computed server-side).
+ */
+export async function createAdminOrder({ customerId, items, shippingAddress, giftMessage, paymentMethod, isRush }) {
+  const payloadItems = (items || []).map((item) => {
+    const productId = item.productSlug || item.productId || item.id;
+    if (productId && isCatalogueProduct(productId)) {
+      return { productSlug: productId, name: item.name, quantity: item.quantity || 1 };
+    }
+    return { name: item.name || 'Custom Gift', price: Number(item.price) || 0, quantity: item.quantity || 1 };
+  });
 
-  const validStatuses = ORDER_STATUSES.map(s => s.key);
-  if (!validStatuses.includes(newStatusKey)) return null;
+  const res = await api.post('/orders/admin', {
+    customerId,
+    items: payloadItems,
+    shippingAddress: shippingAddress || {},
+    giftMessage: giftMessage || '',
+    paymentMethod: paymentMethod || 'Sample',
+    isRush: !!isRush,
+  }, { scope: 'admin' });
 
-  const updated = [...orders];
-  updated[idx] = {
-    ...updated[idx],
-    orderStatus: newStatusKey,
-    updatedAt: new Date().toISOString(),
-  };
-
-  setStored(STORAGE_KEY, updated);
-  return updated[idx];
+  if (!res.ok) {
+    const err = new Error(res.message || 'Order could not be created.');
+    err.code = res.code;
+    throw err;
+  }
+  const serverOrder = res.data.order;
+  store.orders = [...store.orders.filter((o) => (o.orderId || o.id) !== serverOrder.orderId), serverOrder];
+  signalDataChanged();
+  return normalizeOrder(serverOrder);
 }
 
-export function updateOrder(orderId, updates) {
-  const orders = getOrders();
-  const idx = orders.findIndex(o => o.id === orderId);
-  if (idx === -1) return null;
-
-  const updated = [...orders];
-  updated[idx] = { ...updated[idx], ...updates, updatedAt: new Date().toISOString() };
-  setStored(STORAGE_KEY, updated);
-  return updated[idx];
+/** PATCH the canonical lifecycle — server validates the transition. */
+export async function updateOrderStatus(orderId, newStatusKey) {
+  const res = await api.patch(
+    `/orders/${encodeURIComponent(orderId)}/status`,
+    { status: newStatusKey },
+    { scope: 'admin' }
+  );
+  if (!res.ok) {
+    const err = new Error(res.message || 'Status could not be updated.');
+    err.code = res.code;
+    throw err;
+  }
+  const serverOrder = res.data.order;
+  store.orders = [...store.orders.filter((o) => (o.orderId || o.id) !== orderId), serverOrder];
+  signalDataChanged();
+  return normalizeOrder(serverOrder);
 }
 
-export function deleteOrder(orderId) {
-  const orders = getOrders();
-  const updated = orders.filter(o => o.id !== orderId);
-  setStored(STORAGE_KEY, updated);
-  return updated;
+export async function updateOrder(orderId, updates) {
+  const res = await api.patch(
+    `/orders/${encodeURIComponent(orderId)}/status`,
+    { status: updates.orderStatus, note: updates.note },
+    { scope: 'admin' }
+  );
+  if (!res.ok) {
+    const err = new Error(res.message || 'Order could not be updated.');
+    err.code = res.code;
+    throw err;
+  }
+  const serverOrder = res.data.order;
+  store.orders = [...store.orders.filter((o) => (o.orderId || o.id) !== orderId), serverOrder];
+  signalDataChanged();
+  return normalizeOrder(serverOrder);
+}
+
+export async function deleteOrder(orderId) {
+  // No delete endpoint exists in the API contract; report honestly.
+  const err = new Error('Order deletion is not supported by the backend.');
+  err.code = 'UNSUPPORTED';
+  throw err;
 }
 
 // ─── Format Helpers ───
@@ -527,9 +296,9 @@ export function formatDate(iso) {
 export function getStatusCounts() {
   const orders = getOrders();
   const counts = {};
-  ORDER_STATUSES.forEach(s => { counts[s.key] = 0; });
-  orders.forEach(o => {
-    if (counts[o.orderStatus] !== undefined) counts[o.orderStatus]++;
+  ORDER_STATUSES.forEach((s) => { counts[s.key] = 0; });
+  orders.forEach((o) => {
+    if (counts[o.orderStatus] !== undefined) counts[o.orderStatus] += 1;
   });
   return {
     total: orders.length,

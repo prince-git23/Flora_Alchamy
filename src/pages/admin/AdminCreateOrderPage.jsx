@@ -2,10 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout.jsx';
 import { getCustomers, getCustomerById } from '../../services/customerService.js';
-import { getProducts, getProductById } from '../../services/api.js';
-import { createOrder, getOrdersByCustomer } from '../../services/orderService.js';
-import { adjustInventory, getInventoryItem } from '../../services/inventoryService.js';
-import { formatINR } from '../../services/adminData.js';
+import { getProducts } from '../../services/productService.js';
+import { createAdminOrder, formatINR } from '../../services/orderService.js';
 import { ArrowLeft, ArrowRight, Plus, Minus, Save, AlertCircle, Trash2 } from 'lucide-react';
 
 export default function AdminCreateOrderPage() {
@@ -107,21 +105,16 @@ export default function AdminCreateOrderPage() {
     setSubmitError('');
 
     try {
-      const orderData = {
+      // Server-authoritative: identity from the selected customer, prices and
+      // totals recomputed from the catalogue in MongoDB, stock deducted
+      // transactionally. The client preview total is informational only.
+      const newOrder = await createAdminOrder({
         customerId: selectedCustomerId,
-        customerName: customerName,
-        customerEmail: customerEmail,
         items: orderItems.map(i => ({
           productId: i.productId,
           name: i.name,
-          price: i.price,
           quantity: i.quantity,
-          image: i.image,
         })),
-        subtotal: totalAmount,
-        shipping: 0,
-        total: totalAmount,
-        paymentStatus: paymentStatus,
         shippingAddress: {
           name: customerName || 'Customer',
           address: shippingAddress.address || '',
@@ -131,12 +124,10 @@ export default function AdminCreateOrderPage() {
           phone: shippingAddress.phone || customerPhone || '',
         },
         giftMessage: giftMessage || '',
+        paymentMethod: paymentStatus,
         isRush: isRush,
-      };
+      });
 
-      const newOrder = createOrder(orderData);
-
-      // Re-fetch orders to refresh
       navigate(`/admin/orders/${newOrder.id}`);
     } catch (err) {
       setSubmitError(err.message || 'Failed to create order.');

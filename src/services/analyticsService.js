@@ -2,7 +2,6 @@ import { getOrders } from './orderService.js';
 import { getProducts } from './productService.js';
 import { getCustomers } from './customerService.js';
 import { getInventory, getLowStockItems } from './inventoryService.js';
-import { PRODUCTS } from '../data/products.js';
 
 export function getAnalyticsSummary() {
   const orders = getOrders();
@@ -19,7 +18,7 @@ export function getAnalyticsSummary() {
   const categoryRevenue = {};
   orders.forEach(order => {
     order.items.forEach(item => {
-      const product = products.find(p => p.id === (item.productId || item.id));
+      const product = products.find(p => p.id === (item.productSlug || item.id));
       const cat = product?.categoryLabel || product?.category || 'Other';
       categoryRevenue[cat] = (categoryRevenue[cat] || 0) + ((item.price || 0) * (item.quantity || 1));
     });
@@ -72,7 +71,7 @@ export function getProductPerformance() {
   const perf = {};
   orders.forEach(order => {
     order.items.forEach(item => {
-      const pid = item.productId || item.id;
+      const pid = item.productSlug || item.id;
       if (!perf[pid]) {
         const p = products.find(pr => pr.id === pid);
         perf[pid] = { name: item.name || p?.name || pid, category: p?.categoryLabel || 'Other', revenue: 0, units: 0 };

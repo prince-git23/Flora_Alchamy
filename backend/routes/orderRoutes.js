@@ -4,6 +4,7 @@ import {
   listMyOrders,
   getOrder,
   createCustomerOrder,
+  createStaffOrder,
   updateOrderStatus,
 } from '../controllers/orderController.js';
 import { protect, adminOrHandler } from '../middleware/authMiddleware.js';
@@ -23,6 +24,9 @@ router.patch('/:id/status', adminOrHandler, updateOrderStatus);
 
 // Create order (customer only — controller enforces role).
 router.post('/', createCustomerOrder);
+
+// Staff creates an order for a verified existing customer.
+router.post('/admin', adminOrHandler, createStaffOrder);
 
 // Read: owner (customer) or staff.
 router.get('/:id', getOrder);

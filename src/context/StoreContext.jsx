@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { getCart, updateCart, addToCart as apiAddToCart, removeFromCart as apiRemoveFromCart, getWishlist, addToWishlist as apiAddToWishlist, removeFromWishlist as apiRemoveFromWishlist } from '../services/api.js';
+import { getProducts } from '../services/productService.js';
+import { subscribeStore } from '../services/dataStore.js';
 
 const StoreContext = createContext(null);
 
@@ -9,12 +11,37 @@ export function StoreProvider({ children }) {
   const [toast, setToast] = useState(null);
 
   useEffect(() => {
-    async function loadData() {
-      const [c, w] = await Promise.all([getCart(), getWishlist()]);
-      setCart(c);
-      setWishlist(w);
+    let mounted = true;
+
+    // Resolve stored wishlist IDs against the server catalogue. Products are
+    // never read from a static array — rows come from the API-hydrated store,
+    // and IDs whose product no longer exists are dropped.
+    async function syncWishlistFromCatalogue() {
+      const ids = await getWishlist();
+      if (!mounted) return;
+      const catalog = getProducts();
+      const resolved = ids
+        .map((id) => catalog.find((p) => p.id === id))
+        .filter(Boolean);
+      setWishlist((prev) =>
+        prev.length === resolved.length && prev.every((x, i) => x && x.id === resolved[i].id)
+          ? prev
+          : resolved
+      );
     }
+
+    async function loadData() {
+      const c = await getCart();
+      if (mounted) setCart(c);
+      await syncWishlistFromCatalogue();
+    }
+
     loadData();
+    const unsub = subscribeStore(syncWishlistFromCatalogue);
+    return () => {
+      mounted = false;
+      unsub();
+    };
   }, []);
 
   const showToast = (message, type = 'success') => {
@@ -61,7 +88,9 @@ export function StoreProvider({ children }) {
       showToast(`Removed "${product.name}" from your wishlist`);
     } else {
       await apiAddToWishlist(product.id);
-      setWishlist(prev => [product, ...prev]);
+      // Persist only the ID; the full row is resolved from the catalogue.
+      const resolved = getProducts().find((p) => p.id === product.id) || product;
+      setWishlist(prev => [resolved, ...prev]);
       showToast(`Saved "${product.name}" to your wishlist`);
     }
   };

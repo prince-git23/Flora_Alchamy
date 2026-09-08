@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout.jsx';
 import { createProduct } from '../../services/productService.js';
-import { formatINR } from '../../services/adminData.js';
+import { formatINR } from '../../services/orderService.js';
 import { ArrowLeft, Save, Image, AlertCircle } from 'lucide-react';
 
 export default function AdminCreateProductPage() {

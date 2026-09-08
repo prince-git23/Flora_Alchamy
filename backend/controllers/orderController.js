@@ -1,4 +1,5 @@
 import Order, { NEXT_STATUS } from '../models/Order.js';
+import Customer from '../models/Customer.js';
 import { ApiError } from '../middleware/errorMiddleware.js';
 import { assertValidTransition, createOrder } from '../services/orderService.js';
 
@@ -76,6 +77,37 @@ export async function createCustomerOrder(req, res, next) {
       isRush,
     });
 
+    res.status(201).json({ success: true, order });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * POST /api/orders/admin — handler/admin creates an order for a chosen
+ * existing customer (e.g. phone order). The customer must exist; prices and
+ * totals are still recomputed server-side and inventory is deducted
+ * transactionally. A handler can never impersonate a customer for their own
+ * account operations — this is an explicit staff action on a verified customer.
+ */
+export async function createStaffOrder(req, res, next) {
+  try {
+    const { customerId, items, shippingAddress, giftMessage, paymentMethod, isRush } = req.body || {};
+    if (!customerId) {
+      throw new ApiError(422, 'A customer must be selected for this order.', 'VALIDATION_ERROR');
+    }
+    const customer = await Customer.findById(customerId);
+    if (!customer) {
+      throw new ApiError(404, 'Customer not found.', 'NOT_FOUND');
+    }
+    const order = await createOrder({
+      customer,
+      items,
+      shippingAddress,
+      giftMessage,
+      paymentMethod: paymentMethod === 'UPI' ? 'Sample' : paymentMethod,
+      isRush,
+    });
     res.status(201).json({ success: true, order });
   } catch (err) {
     next(err);

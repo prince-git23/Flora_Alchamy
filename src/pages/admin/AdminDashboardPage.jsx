@@ -68,40 +68,50 @@ export default function AdminDashboardPage() {
     );
   };
 
-  const revenueDataByPeriod = {
-    '7d': {
-      total: '₹84,620',
-      avg: 'Avg order: ₹1,410',
-      bars: [
-        { label: 'Mon', height: '48%', val: '₹8.8k' },
-        { label: 'Tue', height: '64%', val: '₹11.8k' },
-        { label: 'Wed', height: '52%', val: '₹9.6k' },
-        { label: 'Thu', height: '75%', val: '₹13.8k' },
-        { label: 'Fri', height: '85%', val: '₹15.7k' },
-        { label: 'Sat', height: '94%', val: '₹17.3k', isSpecial: true },
-        { label: 'Sun', height: '70%', val: '₹18.4k', isCurrent: true }
-      ]
-    },
-    '30d': {
-      total: '₹3,48,500',
-      avg: 'Avg order: ₹1,460',
-      bars: [
-        { label: 'Wk 1', height: '60%', val: '₹72k' },
-        { label: 'Wk 2', height: '78%', val: '₹94k' },
-        { label: 'Wk 3', height: '82%', val: '₹98k' },
-        { label: 'Wk 4', height: '71%', val: '₹84.5k', isCurrent: true }
-      ]
-    },
-    '3m': {
-      total: '₹9,82,000',
-      avg: 'Avg order: ₹1,490',
-      bars: [
-        { label: 'Month 1', height: '65%', val: '₹2.9L' },
-        { label: 'Month 2', height: '80%', val: '₹3.4L' },
-        { label: 'Month 3', height: '85%', val: '₹3.5L', isCurrent: true }
-      ]
-    }
+  const compactINR = (n) => {
+    if (n >= 100000) return `₹${(n / 100000).toFixed(1)}L`;
+    if (n >= 1000) return `₹${(n / 1000).toFixed(1)}k`;
+    return `₹${Math.round(n)}`;
   };
+
+  // Revenue Overview derives from the server-backed order data (no fake KPIs).
+  const revenueStats = useMemo(() => {
+    const orders = getOrders();
+    const days = revenuePeriod === '7d' ? 7 : revenuePeriod === '3m' ? 90 : 30;
+    const step = days === 90 ? 7 : 1;
+    const colCount = Math.ceil(days / step);
+    const totals = new Array(colCount).fill(0);
+    const now = Date.now();
+    const periodOrders = orders.filter((o) => {
+      const d = new Date(o.createdAt || 0).getTime();
+      return !Number.isNaN(d) && d <= now && now - d < days * 864e5;
+    });
+    periodOrders.forEach((o) => {
+      const diffDays = Math.floor((now - new Date(o.createdAt).getTime()) / 864e5);
+      const col = Math.min(colCount - 1, Math.floor(diffDays / step));
+      totals[col] += Number(o.total) || 0;
+    });
+    const max = Math.max(1, ...totals);
+    const total = totals.reduce((a, b) => a + b, 0);
+    const avg = periodOrders.length ? Math.round(total / periodOrders.length) : 0;
+    const barLabel = (col) => {
+      const date = new Date(now - ((colCount - 1 - col) * step + (step - 1) / 2) * 864e5);
+      return step === 1
+        ? date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+        : `Wk ${colCount - col}`;
+    };
+    return {
+      total: formatINR(total),
+      avg: `Avg order: ${formatINR(avg)}`,
+      bars: totals.map((v, col) => ({
+        label: barLabel(col),
+        height: `${Math.max(4, (v / max) * 100)}%`,
+        val: compactINR(v),
+        isCurrent: col === colCount - 1,
+      })),
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [revenuePeriod, getOrders().length]);
 
   const recentOrders = useMemo(() => {
     const allOrders = getOrders().slice(0, 5);
@@ -117,7 +127,7 @@ export default function AdminDashboardPage() {
     }));
   }, []);
 
-  const currentRevenue = revenueDataByPeriod[revenuePeriod];
+  const currentRevenue = revenueStats;
 
   return (
     <AdminLayout>

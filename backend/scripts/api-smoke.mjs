@@ -192,6 +192,26 @@ async function main() {
   r = await req('GET', `/orders/${ORDER_ID}`, { token: TOKEN_A });
   check('customer tracking reads same updated record', r.status === 200 && r.json.order.orderStatus === 'shipped');
 
+  console.log('\n— ORDERS: STAFF CREATE ON BEHALF OF CUSTOMER —');
+  const custList = await req('GET', '/customers', { token: TOKEN_ADMIN });
+  const staffTarget = custList.json.customers.find((c) => c.email === EMAIL_A) || custList.json.customers[0];
+  r = await req('POST', '/orders/admin', {
+    token: TOKEN_ADMIN,
+    body: {
+      customerId: staffTarget.id,
+      items: [{ productSlug: 'desk-bloom-ceramic-pot', quantity: 1 }],
+      shippingAddress: { name: staffTarget.name, address: 'Staff desk', city: 'Mumbai', pincode: '400001' },
+    },
+  });
+  check('staff creates order for customer → 201', r.status === 201 && !!r.json.order.orderId);
+  check('staff order bound to selected customer', String(r.json.order.customerId) === String(staffTarget.id));
+  // Subtotal comes from the server catalogue; shipping adds the standard rate below the free-shipping threshold.
+  check('staff order subtotal from server (1250)', r.json.order.subtotal === 1250 && r.json.order.total === 1250 + 150);
+  r = await req('POST', '/orders/admin', { token: TOKEN_A, body: { customerId: staffTarget.id, items: [{ productSlug: 'desk-bloom-ceramic-pot', quantity: 1 }] } });
+  check('customer cannot use staff-create endpoint → 403', r.status === 403);
+  r = await req('POST', '/orders/admin', { token: TOKEN_ADMIN, body: { customerId: '000000000000000000000000', items: [{ productSlug: 'desk-bloom-ceramic-pot', quantity: 1 }] } });
+  check('staff-create unknown customer → 404', r.status === 404);
+
   console.log('\n— INVENTORY: DEDUCTION + MOVEMENTS —');
   r = await req('GET', '/inventory', { token: TOKEN_A });
   check('customer cannot view inventory → 403', r.status === 403);

@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Sparkles, BookOpen } from 'lucide-react';
-import { PRODUCTS } from '../data/products.js';
 
 export default function CollectionsPage() {
   const collections = [

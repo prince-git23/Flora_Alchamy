@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Sparkles, Heart, Star, Eye, ShoppingBag, Brush, Gift, ShieldCheck } from 'lucide-react';
 import BotanicalCanvas from '../components/BotanicalCanvas.jsx';
 import ProductCard from '../components/ProductCard.jsx';
-import { PRODUCTS } from '../data/products.js';
+import { getProducts } from '../services/productService.js';
 
 export default function HomePage() {
   const [bestsellerFilter, setBestsellerFilter] = useState('all');
@@ -13,10 +13,30 @@ export default function HomePage() {
   );
   const [sealColor, setSealColor] = useState('#964735');
 
-  const filteredBestsellers = PRODUCTS.filter((p) => {
-    if (bestsellerFilter === 'all') return p.isBestseller || p.isFeatured;
-    return p.category === bestsellerFilter;
-  }).slice(0, 4);
+  // Curated showcase slugs resolve against the live server catalogue — product
+  // rows (name, price, image, stock) always come from MongoDB, never a static
+  // array. Any slot missing from the catalogue is padded from the API list.
+  const catalog = useMemo(() => getProducts(), []);
+  const featuredSlugs = [
+    'dusty-rose-lavender-posy',
+    'pressed-wildflower-cards',
+    'heirloom-keepsake-hamper',
+    'desk-bloom-ceramic-pot',
+  ];
+  const filteredBestsellers = useMemo(() => {
+    const picked = featuredSlugs
+      .map((slug) => catalog.find((p) => p.id === slug))
+      .filter(Boolean);
+    let list = bestsellerFilter === 'all'
+      ? picked
+      : picked.filter((p) => p.category === bestsellerFilter);
+    if (list.length === 0) {
+      list = catalog
+        .filter((p) => bestsellerFilter === 'all' || p.category === bestsellerFilter)
+        .slice(0, 4);
+    }
+    return list;
+  }, [catalog, bestsellerFilter]);
 
   return (
     <div className="w-full">

@@ -41,12 +41,16 @@ export default function AdminOrderDetailPage() {
   const statusObj = ORDER_STATUSES.find(s => s.key === order.orderStatus);
   const currentStage = statusObj?.stageNum || 1;
 
-  const advanceStatus = useCallback((newStatusKey) => {
-    const updated = updateOrderStatus(order.id, newStatusKey);
-    if (updated) {
-      setOrderData(updated);
-      const label = ORDER_STATUSES.find(s => s.key === newStatusKey)?.label || newStatusKey;
-      triggerToast(`Order ${order.id} status updated to "${label}" — Sample environment saved`);
+  const advanceStatus = useCallback(async (newStatusKey) => {
+    try {
+      const updated = await updateOrderStatus(order.id, newStatusKey);
+      if (updated) {
+        setOrderData(updated);
+        const label = ORDER_STATUSES.find(s => s.key === newStatusKey)?.label || newStatusKey;
+        triggerToast(`Order ${order.id} is now ${label}`);
+      }
+    } catch (err) {
+      triggerToast(err.message || 'Status could not be updated.');
     }
     setStatusModalOpen(false);
   }, [order]);

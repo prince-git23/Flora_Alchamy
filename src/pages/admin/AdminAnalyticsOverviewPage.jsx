@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout.jsx';
-import { PRODUCTS } from '../../data/products.js';
 import { getOrders, ORDER_STATUSES, ORDER_STATUS_STYLES, formatINR, formatDate } from '../../services/orderService.js';
 import { getCustomers } from '../../services/customerService.js';
 import { getAnalyticsSummary } from '../../services/analyticsService.js';

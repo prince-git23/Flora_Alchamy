@@ -37,7 +37,9 @@ export function clearToken(scope = 'customer') {
 
 async function request(method, path, { token, body, scope } = {}) {
   const headers = { 'Content-Type': 'application/json' };
-  const activeToken = token || getToken(scope || 'customer');
+  // scope === null → deliberately anonymous request (no auth header).
+  const activeToken =
+    token || (scope === undefined || scope === null ? null : getToken(scope));
   if (activeToken) headers.Authorization = `Bearer ${activeToken}`;
 
   let res;

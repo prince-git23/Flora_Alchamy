@@ -23,9 +23,13 @@ export default function AdminStockManagementPage() {
     return list;
   }, [inventory, searchQuery, sortField]);
 
-  const handleRestock = (item) => {
-    adjustStock(item.productId, 10, 'Restock', 'Manual restock from stock management');
-    setToastMessage(`${item.productName}: +10 units added — Sample environment saved`);
+  const handleRestock = async (item) => {
+    try {
+      await adjustStock(item.productId, 10, 'Restock', 'Manual restock from stock management');
+      setToastMessage(`${item.productName}: +10 units added to the backend`);
+    } catch (err) {
+      setToastMessage(err.message || 'Restock failed.');
+    }
     setTimeout(() => setToastMessage(null), 3000);
   };
 

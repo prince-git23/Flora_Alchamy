@@ -3,15 +3,10 @@ import { useParams, Link } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout.jsx';
 import { getCustomerById, getCustomers } from '../../services/customerService.js';
 import { getOrdersByCustomer, formatINR, formatDate, ORDER_STATUS_STYLES, ORDER_STATUSES } from '../../services/orderService.js';
-import { CUSTOMERS as ADMIN_SAMPLE_CUSTOMERS } from '../../services/adminData.js';
 
 export default function AdminCustomerDetailPage() {
   const { customerId } = useParams();
-  const customer = useMemo(() => {
-    const serviceCustomer = getCustomerById(customerId);
-    if (serviceCustomer) return serviceCustomer;
-    return ADMIN_SAMPLE_CUSTOMERS.find(c => c.id === customerId) || null;
-  }, [customerId]);
+  const customer = useMemo(() => getCustomerById(customerId), [customerId]);
   const customerOrders = useMemo(() => getOrdersByCustomer(customerId), [customerId]);
 
   if (!customer) {

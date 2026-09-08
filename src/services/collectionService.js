@@ -1,52 +1,76 @@
-import { getStored, setStored } from './storage.js';
-import { PRODUCTS } from '../data/products.js';
+import api from './apiClient.js';
+import { store, signalDataChanged } from './dataStore.js';
+import { getProducts } from './productService.js';
 
-const STORAGE_KEY = 'flora_alchemy_collections';
-
-function daysAgo(d) {
-  const dt = new Date();
-  dt.setDate(dt.getDate() - d);
-  return dt.toISOString();
+/**
+ * Phase 3C — collectionService is backed by the API; no local collection DB.
+ */
+function fromApiCollection(c) {
+  return {
+    id: c.slug,
+    slug: c.slug,
+    name: c.name,
+    description: c.description || '',
+    coverImage: c.image || '/assets/images/flora-asset-10.jpg',
+    productIds: c.productSlugs || [],
+    productSlugs: c.productSlugs || [],
+    productCount: (c.productSlugs || []).length,
+    visibility: c.visibility === 'Hidden' ? 'Hidden' : 'Public',
+    createdAt: c.createdAt,
+  };
 }
 
-const INITIAL_COLLECTIONS = [
-  { id: 'col-festival', name: 'Festival Celebrations', description: 'Handcrafted floral keepsakes curated for festive occasions and ceremonial gifting.', coverImage: PRODUCTS[7].images[0], productIds: ['rakhi-everlasting-bloom-set', 'heirloom-keepsake-hamper', 'botanical-wax-seal-kit'], visibility: 'Public', productCount: 3, createdAt: daysAgo(30) },
-  { id: 'col-signature', name: 'Signature Posies', description: 'Our best-selling botanical posy collection featuring the finest chenille floral artistry.', coverImage: PRODUCTS[0].images[0], productIds: ['dusty-rose-lavender-posy', 'vintage-peony-eucalyptus-posy'], visibility: 'Public', productCount: 2, createdAt: daysAgo(60) },
-  { id: 'col-stationery', name: 'Botanical Stationery', description: 'Handmade cards, pressed flower ephemera, and wax-sealed correspondence sets.', coverImage: PRODUCTS[1].images[0], productIds: ['pressed-wildflower-cards', 'gold-foil-pressed-stickers', 'botanical-wax-seal-kit'], visibility: 'Public', productCount: 3, createdAt: daysAgo(45) },
-  { id: 'col-desk', name: 'Desk & Living', description: 'Charming desk blooms, ceramic vessels, and botanical tools for everyday elegance.', coverImage: PRODUCTS[2].images[0], productIds: ['desk-bloom-ceramic-pot', 'heirloom-brass-snipping-shears'], visibility: 'Public', productCount: 2, createdAt: daysAgo(20) },
-];
-
 export function getCollections() {
-  if (!getStored(STORAGE_KEY, null)) {
-    setStored(STORAGE_KEY, INITIAL_COLLECTIONS);
-  }
-  return getStored(STORAGE_KEY, INITIAL_COLLECTIONS);
+  return store.collections.map(fromApiCollection);
 }
 
 export function getCollectionById(id) {
-  return getCollections().find(c => c.id === id) || null;
+  const raw = store.collections.find((c) => c.slug === id);
+  return raw ? fromApiCollection(raw) : null;
 }
 
 export function getCollectionProducts(id) {
   const collection = getCollectionById(id);
   if (!collection) return [];
-  const products = PRODUCTS;
-  return collection.productIds.map(pid => products.find(p => p.id === pid)).filter(Boolean);
+  const catalog = getProducts();
+  return collection.productIds
+    .map((pid) => catalog.find((p) => p.id === pid))
+    .filter(Boolean);
 }
 
-export function createCollection(data) {
-  const collections = getCollections();
-  const newCollection = {
-    id: data.id || `col-${Date.now()}`,
+function toApiPayload(data) {
+  return {
     name: data.name,
     description: data.description || '',
-    coverImage: data.coverImage || '',
-    productIds: data.productIds || [],
-    visibility: data.visibility || 'Public',
-    productCount: data.productIds?.length || 0,
-    createdAt: new Date().toISOString(),
+    image: data.coverImage || data.image || '',
+    productSlugs: data.productIds || data.productSlugs || [],
+    visibility: data.visibility === 'Hidden' ? 'Hidden' : 'Visible',
   };
-  const updated = [newCollection, ...collections];
-  setStored(STORAGE_KEY, updated);
-  return newCollection;
+}
+
+export async function createCollection(data) {
+  const res = await api.post('/collections', toApiPayload(data), { scope: 'admin' });
+  if (!res.ok) throw new Error(res.message || 'Collection could not be created.');
+  store.collections = [...store.collections, res.data.collection];
+  signalDataChanged();
+  return fromApiCollection(res.data.collection);
+}
+
+export async function updateCollection(id, data) {
+  const res = await api.patch(`/collections/${encodeURIComponent(id)}`, toApiPayload(data), {
+    scope: 'admin',
+  });
+  if (!res.ok) throw new Error(res.message || 'Collection could not be updated.');
+  const c = res.data.collection;
+  store.collections = [...store.collections.filter((x) => x.slug !== c.slug), c];
+  signalDataChanged();
+  return fromApiCollection(c);
+}
+
+export async function deleteCollection(id) {
+  const res = await api.delete(`/collections/${encodeURIComponent(id)}`, { scope: 'admin' });
+  if (!res.ok) throw new Error(res.message || 'Collection could not be deleted.');
+  store.collections = store.collections.filter((x) => x.slug !== id);
+  signalDataChanged();
+  return store.collections;
 }
