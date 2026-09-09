@@ -62,6 +62,16 @@ const orderSchema = new mongoose.Schema(
       default: 'Sample',
     },
     paymentMethod: { type: String, default: 'Sample' },
+    // Razorpay (or future provider) payment metadata — the server is the only
+    // writer. paymentStatus stays independent of orderStatus: a paid order can
+    // still be 'new' in the fulfillment lifecycle.
+    paymentProvider: { type: String, default: '' },
+    paymentProviderOrderId: { type: String, default: '' },
+    paymentProviderPaymentId: { type: String, default: '' },
+    paymentReference: { type: String, default: '' },
+    paymentSignatureVerified: { type: Boolean, default: false },
+    paymentVerifiedAt: { type: Date, default: null },
+    paymentFailureReason: { type: String, default: '' },
     // Canonical lifecycle value — customer-facing labels are derived on the
     // frontend via orderService.getCustomerFacingStatus().
     orderStatus: {

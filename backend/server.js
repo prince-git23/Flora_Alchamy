@@ -12,6 +12,7 @@ import inventoryRoutes from './routes/inventoryRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
 import settingsRoutes from './routes/settingsRoutes.js';
 import wishlistRoutes from './routes/wishlistRoutes.js';
+import paymentRoutes from './routes/paymentRoutes.js';
 import { seedIfEmpty } from './seed/seed.js';
 
 const app = express();
@@ -31,7 +32,16 @@ app.use(
     },
   })
 );
-app.use(express.json({ limit: '1mb' }));
+// Capture the raw body for the payment webhook signature check while still
+// parsing JSON normally (verify runs before body parsing).
+app.use(
+  express.json({
+    limit: '1mb',
+    verify: (req, _res, buf) => {
+      req.rawBody = buf;
+    },
+  })
+);
 
 // Health / diagnostics
 app.get('/api/health', (_req, res) => {
@@ -47,6 +57,7 @@ app.use('/api/inventory', inventoryRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/wishlist', wishlistRoutes);
+app.use('/api/payments', paymentRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

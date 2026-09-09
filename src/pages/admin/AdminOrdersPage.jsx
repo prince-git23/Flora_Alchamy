@@ -163,16 +163,16 @@ export default function AdminOrdersPage() {
                 placeholder="Search by order ID, customer name, email..."
                 className="w-full text-[13px] bg-[#f6f3ee] border border-[#d1c4bd] focus:border-[#180f0a] rounded-lg pl-9 pr-3 py-1.5 text-[#1c1c19] placeholder:text-[#80756f] focus:ring-1 focus:ring-[#180f0a] transition" />
             </div>
-            <div className="flex items-center flex-wrap gap-2 text-[12px]">
-              <div className="flex items-center gap-1.5 bg-[#f6f3ee] border border-[#d1c4bd] px-2.5 py-1.5 rounded-lg text-[#1c1c19]">
-                <span className="text-[#80756f]">Payment:</span>
-                <select value={paymentFilter} onChange={e => setPaymentFilter(e.target.value)} className="bg-transparent border-0 p-0 text-[12px] font-semibold text-[#180f0a] focus:ring-0 cursor-pointer">
-                  <option value="all">All</option>
-                  <option value="Paid">Paid</option>
-                  <option value="Pending">Pending</option>
-                  <option value="Refunded">Refunded</option>
-                </select>
-              </div>
+            <div className="flex items-center flex-wrap gap-2 text-[12px]">                <div className="flex items-center gap-1.5 bg-[#f6f3ee] border border-[#d1c4bd] px-2.5 py-1.5 rounded-lg text-[#1c1c19]">
+                  <span className="text-[#80756f]">Payment:</span>
+                  <select value={paymentFilter} onChange={e => setPaymentFilter(e.target.value)} className="bg-transparent border-0 p-0 text-[12px] font-semibold text-[#180f0a] focus:ring-0 cursor-pointer">
+                    <option value="all">All</option>
+                    <option value="Paid">Paid</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Failed">Failed</option>
+                    <option value="Refunded">Refunded</option>
+                  </select>
+                </div>
               <button type="button" onClick={() => { setStatusFilter('all'); setPaymentFilter('all'); setSearchQuery(''); }} className="text-[12px] text-[#80756f] hover:text-[#180f0a] px-2 py-1 underline underline-offset-2 transition-colors">Reset</button>
             </div>
           </div>
@@ -239,8 +239,24 @@ export default function AdminOrdersPage() {
                         </td>
                         <td className="py-3.5 px-4 whitespace-nowrap font-mono font-semibold text-[#180f0a]">{formatINR(order.total)}</td>
                         <td className="py-3.5 px-4 whitespace-nowrap">
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${order.paymentStatus === 'Paid' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-amber-50 text-amber-800 border border-amber-200'}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${order.paymentStatus === 'Paid' ? 'bg-emerald-600' : 'bg-amber-600'}`}></span>
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${
+                            order.paymentStatus === 'Paid'
+                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                              : order.paymentStatus === 'Failed'
+                                ? 'bg-red-50 text-red-700 border border-red-200'
+                                : order.paymentStatus === 'Refunded'
+                                  ? 'bg-stone-100 text-stone-700 border border-stone-200'
+                                  : 'bg-amber-50 text-amber-800 border border-amber-200'
+                          }`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${
+                              order.paymentStatus === 'Paid'
+                                ? 'bg-emerald-600'
+                                : order.paymentStatus === 'Failed'
+                                  ? 'bg-red-500'
+                                  : order.paymentStatus === 'Refunded'
+                                    ? 'bg-stone-500'
+                                    : 'bg-amber-600'
+                            }`}></span>
                             {order.paymentStatus}
                           </span>
                         </td>

@@ -11,7 +11,7 @@ const movementSchema = new mongoose.Schema(
     newStock: { type: Number, required: true },
     type: {
       type: String,
-      enum: ['sale', 'restock', 'adjustment', 'return', 'correction'],
+      enum: ['sale', 'restock', 'adjustment', 'return', 'correction', 'release'],
       default: 'adjustment',
     },
     reason: { type: String, default: '' },

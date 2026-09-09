@@ -1,9 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout.jsx';
-import { getOrders, getOrderById, getStatusCounts, ORDER_STATUS_STYLES, ORDER_STATUSES } from '../../services/orderService.js';
+import { getOrders, getStatusCounts, ORDER_STATUS_STYLES, ORDER_STATUSES, formatINR, formatDate } from '../../services/orderService.js';
 import { getLowStockItems } from '../../services/inventoryService.js';
-import { formatINR } from '../../services/orderService.js';
 
 function getStatusStyle(key) {
   const styles = ORDER_STATUS_STYLES || {};
@@ -12,45 +11,45 @@ function getStatusStyle(key) {
 
 export default function AdminDashboardPage() {
   const [revenuePeriod, setRevenuePeriod] = useState('7d'); // '7d' | '30d' | '3m'
-  const [quickModal, setQuickModal] = useState(null); // for '+ Add Product' / '+ Create Order'
   const [orderFilterStage, setOrderFilterStage] = useState(null);
 
-  // Crafting tasks interactive state
-  const [craftingTasks, setCraftingTasks] = useState([
-    {
-      id: 'FA-1048',
-      title: 'FA-1048 · 5-Stem Rose Bouquet',
-      priority: 'High Priority',
-      priorityColor: 'bg-[#964735]/15 text-[#964735]',
-      palette: 'Dusty Rose · Ivory Wrap',
-      transcript: '“Happy Birthday, dear Aisha!”',
-      due: 'Today · 5:00 PM',
-      actionText: 'Open Order',
-      status: 'pending'
-    },
-    {
-      id: 'FA-1047',
-      title: 'FA-1047 · Custom Gift Posy',
-      priority: 'Normal',
-      priorityColor: 'bg-[#ebe8e3] text-[#4e4540]',
-      palette: 'Lavender · Sage Cotton',
-      transcript: '“With love and gratitude”',
-      due: 'Today · 6:00 PM',
-      actionText: 'Open Order',
-      status: 'pending'
-    },
-    {
-      id: 'FA-1045',
-      title: 'FA-1045 · Sculpted Lily Posy',
-      priority: 'Scheduled',
-      priorityColor: 'bg-[#ebe8e3] text-[#4e4540]',
-      palette: 'Muted Gold · Cream Stems',
-      transcript: null,
-      due: 'Tomorrow · 11:00 AM',
-      actionText: 'Open Order',
-      status: 'pending'
-    }
-  ]);
+  // Today's crafting queue derives from REAL orders currently in the
+  // production pipeline (new → confirmed → in production → quality check).
+  // Every entry is a live commission; the action opens that actual order.
+  // No fake task system — nothing here is invented.
+  const craftingTasks = useMemo(() => {
+    const activeKeys = ['new', 'confirmed', 'in_production', 'quality_check'];
+    return getOrders()
+      .filter((o) => activeKeys.includes(o.orderStatus))
+      .slice(0, 6)
+      .map((o) => {
+        const firstItem = o.items[0] || {};
+        const palette =
+          firstItem.palette ||
+          (o.items.length > 1 ? `${o.items.length} handcrafted items` : 'Handcrafted commission');
+        const transcript = firstItem.giftMessage || o.giftMessage || null;
+        const stage = (ORDER_STATUSES.find((s) => s.key === o.orderStatus) || {}).label || o.orderStatus;
+        const priority =
+          o.orderStatus === 'new'
+            ? 'High Priority'
+            : o.orderStatus === 'confirmed'
+            ? 'Priority'
+            : 'In Queue';
+        const priorityColor =
+          priority === 'High Priority' ? 'bg-[#964735]/15 text-[#964735]' : 'bg-[#ebe8e3] text-[#4e4540]';
+        return {
+          id: o.id,
+          title: `${o.id} · ${firstItem.name || 'Custom Gift'}`,
+          priority,
+          priorityColor,
+          palette,
+          transcript,
+          due: `${stage} · ${formatDate(o.createdAt)}`,
+          actionText: 'Open Order',
+          status: 'pending'
+        };
+      });
+  }, []);
 
   // Each crafting task references a real order — the action opens that order
   // instead of simulating a completed task that has no backend state.
@@ -119,6 +118,8 @@ export default function AdminDashboardPage() {
   }, []);
 
   const currentRevenue = revenueStats;
+  const counts = getStatusCounts();
+  const lowStockItems = useMemo(() => getLowStockItems(), []);
 
   return (
     <AdminLayout>
@@ -254,7 +255,7 @@ export default function AdminDashboardPage() {
                   </p>
                 </div>
                 <span className="text-[11px] font-bold uppercase tracking-wider text-[#80756f]">
-                  39 Active Today
+                  {counts.new + counts.confirmed + counts.inProduction + counts.qualityCheck + counts.readyToDispatch} Active Today
                 </span>
               </div>
 
@@ -285,7 +286,7 @@ export default function AdminDashboardPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold uppercase text-[#80756f]">Stage 01</span>
                     <span className="px-1.5 py-0.5 rounded-full bg-[#e5e2dd] text-[#180f0a] text-[10px] font-bold">
-                      3
+                      {counts.new}
                     </span>
                   </div>
                   <div className="mt-3">
@@ -306,7 +307,7 @@ export default function AdminDashboardPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold uppercase text-[#80756f]">Stage 02</span>
                     <span className="px-1.5 py-0.5 rounded-full bg-[#e5e2dd] text-[#180f0a] text-[10px] font-bold">
-                      5
+                      {counts.confirmed}
                     </span>
                   </div>
                   <div className="mt-3">
@@ -324,7 +325,7 @@ export default function AdminDashboardPage() {
                   <div className="flex items-center justify-between relative z-10">
                     <span className="text-[10px] font-bold uppercase text-[#ffdad3]">Active Work</span>
                     <span className="px-1.5 py-0.5 rounded-full bg-[#964735] text-white text-[10px] font-bold">
-                      5
+                      {counts.inProduction}
                     </span>
                   </div>
                   <div className="mt-3 relative z-10">
@@ -345,7 +346,7 @@ export default function AdminDashboardPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold uppercase text-[#80756f]">Stage 04</span>
                     <span className="px-1.5 py-0.5 rounded-full bg-[#e5e2dd] text-[#180f0a] text-[10px] font-bold">
-                      2
+                      {counts.qualityCheck}
                     </span>
                   </div>
                   <div className="mt-3">
@@ -366,7 +367,7 @@ export default function AdminDashboardPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold uppercase text-[#80756f]">Stage 05</span>
                     <span className="px-1.5 py-0.5 rounded-full bg-[#e5e2dd] text-[#180f0a] text-[10px] font-bold">
-                      4
+                      {counts.readyToDispatch}
                     </span>
                   </div>
                   <div className="mt-3">
@@ -387,7 +388,7 @@ export default function AdminDashboardPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold uppercase text-[#80756f]">Stage 06</span>
                     <span className="px-1.5 py-0.5 rounded-full bg-[#e5e2dd] text-[#180f0a] text-[10px] font-bold">
-                      7
+                      {counts.shipped}
                     </span>
                   </div>
                   <div className="mt-3">
@@ -408,7 +409,7 @@ export default function AdminDashboardPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold uppercase text-[#80756f]">Stage 07</span>
                     <span className="px-1.5 py-0.5 rounded-full bg-[#e5e2dd] text-[#180f0a] text-[10px] font-bold">
-                      18
+                      {counts.delivered}
                     </span>
                   </div>
                   <div className="mt-3">
@@ -471,14 +472,13 @@ export default function AdminDashboardPage() {
                             </td>
                             <td className="py-3 px-2 text-[12px] text-[#80756f]">{order.date}</td>
                             <td className="py-3 px-2 text-center">
-                              <button
-                                type="button"
-                                onClick={() => setQuickModal({ title: `Order ${order.id}`, desc: `Customer: ${order.customer} · Items: ${order.items} · Total: ${order.amount} · Status: ${order.status}` })}
-                                className="p-1 rounded hover:bg-[#ebe8e3] text-[#80756f] group-hover:text-[#180f0a] transition-colors"
-                                title="Manage Order"
+                              <Link
+                                to={`/admin/orders/${order.id}`}
+                                className="p-1 rounded hover:bg-[#ebe8e3] text-[#80756f] group-hover:text-[#180f0a] transition-colors inline-flex"
+                                title="Open Order"
                               >
-                                <span className="material-symbols-outlined text-[18px]">more_horiz</span>
-                              </button>
+                                <span className="material-symbols-outlined text-[18px]">visibility</span>
+                              </Link>
                             </td>
                           </tr>
                         ))}
@@ -662,53 +662,28 @@ export default function AdminDashboardPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <div className="p-2 flex items-center justify-between rounded-lg hover:bg-[#f6f3ee] transition-colors">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="w-2 h-2 rounded-full bg-[#ba1a1a] shrink-0 animate-ping"></span>
-                        <span className="text-[13px] font-medium text-[#1c1c19] truncate">
-                          Satin Velvet Ribbon (Dusty Rose)
-                        </span>
+                    {lowStockItems.length > 0 ? (
+                      lowStockItems.map((item) => {
+                        const isCritical = item.status === 'Critical' || item.status === 'Out of Stock';
+                        return (
+                          <div key={item.productSlug} className="p-2 flex items-center justify-between rounded-lg hover:bg-[#f6f3ee] transition-colors">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className={`w-2 h-2 rounded-full ${isCritical ? 'bg-[#ba1a1a] animate-ping' : 'bg-[#964735]'} shrink-0`}></span>
+                              <span className="text-[13px] font-medium text-[#1c1c19] truncate">
+                                {item.productName}
+                              </span>
+                            </div>
+                            <span className={`text-[10px] font-bold whitespace-nowrap px-2 py-0.5 rounded-full ${isCritical ? 'bg-[#ffdad6] text-[#ba1a1a]' : 'bg-[#ffdad3] text-[#783020]'}`}>
+                              {item.status} · {item.currentStock} {item.unit} left
+                            </span>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="p-4 text-center text-[13px] text-[#80756f]">
+                        No low stock items at the moment.
                       </div>
-                      <span className="text-[10px] text-[#ba1a1a] font-bold whitespace-nowrap bg-[#ffdad6] px-2 py-0.5 rounded-full">
-                        Critical · 2 spools left
-                      </span>
-                    </div>
-
-                    <div className="p-2 flex items-center justify-between rounded-lg hover:bg-[#f6f3ee] transition-colors">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="w-2 h-2 rounded-full bg-[#964735] shrink-0"></span>
-                        <span className="text-[13px] font-medium text-[#1c1c19] truncate">
-                          Ivory Wrapping Paper
-                        </span>
-                      </div>
-                      <span className="text-[10px] text-[#783020] font-bold whitespace-nowrap bg-[#ffdad3] px-2 py-0.5 rounded-full">
-                        Low · 8 rolls left
-                      </span>
-                    </div>
-
-                    <div className="p-2 flex items-center justify-between rounded-lg hover:bg-[#f6f3ee] transition-colors">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="w-2 h-2 rounded-full bg-[#964735] shrink-0"></span>
-                        <span className="text-[13px] font-medium text-[#1c1c19] truncate">
-                          Pink Chenille Wire (Pipe Cleaners)
-                        </span>
-                      </div>
-                      <span className="text-[10px] text-[#783020] font-bold whitespace-nowrap bg-[#ffdad3] px-2 py-0.5 rounded-full">
-                        Low · 14 units left
-                      </span>
-                    </div>
-
-                    <div className="p-2 flex items-center justify-between rounded-lg hover:bg-[#f6f3ee] transition-colors">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="w-2 h-2 rounded-full bg-[#964735] shrink-0"></span>
-                        <span className="text-[13px] font-medium text-[#1c1c19] truncate">
-                          Deckled Botanical Boxes
-                        </span>
-                      </div>
-                      <span className="text-[10px] text-[#783020] font-bold whitespace-nowrap bg-[#ffdad3] px-2 py-0.5 rounded-full">
-                        Low · 5 boxes left
-                      </span>
-                    </div>
+                    )}
                   </div>
                 </div>
 
@@ -773,38 +748,6 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
-        {/* Quick Information / Mock Action Modal */}
-        {quickModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#e5e2dd] animate-fade-in space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-[#180f0a]">
-                  <span className="material-symbols-outlined text-[22px] text-[#964735]">info</span>
-                  <h3 className="font-serif text-xl font-medium">{quickModal.title}</h3>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setQuickModal(null)}
-                  className="p-1 rounded-lg text-[#80756f] hover:bg-[#f0ede9]"
-                >
-                  <span className="material-symbols-outlined text-[20px]">close</span>
-                </button>
-              </div>
-              <p className="text-[14px] text-[#4e4540] leading-relaxed">
-                {quickModal.desc}
-              </p>
-              <div className="pt-2 flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => setQuickModal(null)}
-                  className="px-5 py-2 rounded-full bg-[#180f0a] text-white text-[13px] font-semibold shadow-xs hover:bg-[#2e241e]"
-                >
-                  Understood
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </AdminLayout>
   );

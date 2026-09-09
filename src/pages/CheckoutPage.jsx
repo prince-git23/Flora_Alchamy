@@ -1,13 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ShieldCheck, CreditCard, QrCode, Lock, UserRound, ArrowRight, ArrowLeft, Wallet } from 'lucide-react';
+import { ShieldCheck, CreditCard, QrCode, Lock, UserRound, ArrowRight, ArrowLeft, Wallet, AlertCircle } from 'lucide-react';
 import { useStore } from '../context/StoreContext.jsx';
 import { createOrder } from '../services/orderService.js';
 import { isCatalogueProduct } from '../services/productService.js';
 import { validateStock } from '../services/inventoryService.js';
 import { getActiveCustomer, getActiveCustomerId } from '../services/customerService.js';
 import { getSettings, getShippingCost } from '../services/settingsService.js';
-import { getPaymentMethods, getPaymentMethodById, preparePayment } from '../services/paymentService.js';
+import {
+  getPaymentMethods,
+  getPaymentMethodById,
+  preparePayment,
+  createPaymentOrder,
+  verifyPayment,
+  openRazorpayCheckout,
+  isRazorpayConfigured,
+  isCod,
+} from '../services/paymentService.js';
 
 const STEPS = ['Account', 'Delivery', 'Payment', 'Review'];
 
@@ -54,6 +63,12 @@ export default function CheckoutPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [inventoryWarning, setInventoryWarning] = useState('');
+  // Payment flow state (Phase 3E). paymentPhase: idle | creating | checkout | verifying.
+  const [paymentPhase, setPaymentPhase] = useState('idle');
+  // The Flora order reference once placed — retries reuse the SAME order, so a
+  // failed/cancelled payment never creates a duplicate order or a second
+  // inventory deduction.
+  const [pendingPaymentOrder, setPendingPaymentOrder] = useState(null);
 
   const settings = getSettings();
   const shippingCost = getShippingCost(cartSubtotal);
@@ -135,7 +150,13 @@ export default function CheckoutPage() {
       return;
     }
 
-    // Prototype payment preparation — honest Sample status, no real charge.
+    // Phase 3E payment flow. The Flora order is created FIRST (existing
+    // architecture — inventory reserved transactionally at creation). Then,
+    // when the server has Razorpay TEST MODE configured and the customer
+    // chose an online method, payment runs through Razorpay Checkout and the
+    // server verifies the signature before the order can ever show as paid.
+    // When the server is NOT configured, the frozen prototype path (Sample
+    // status, no charge) is preserved exactly.
     const payment = preparePayment(paymentMethod, totalAmount);
 
     try {
@@ -157,19 +178,122 @@ export default function CheckoutPage() {
         giftMessage: 'Thank you for your order.',
         isRush: shippingMethod === 'express',
       });
+      const orderRef = newOrder.id || newOrder.orderId;
+      setPendingPaymentOrder(orderRef);
 
-      // Persist the empty cart so a reload does not resurrect purchased items.
+      // The order exists now — clear the cart in every path so a reload or
+      // re-submit can never create a duplicate order.
       await clearCart();
+
+      // Pay on Delivery settles at delivery — no provider checkout.
+      if (isCod(paymentMethod)) {
+        setIsSubmitting(false);
+        navigate(`/order-success/${orderRef}`);
+        return;
+      }
+
+      let pay;
+      try {
+        setPaymentPhase('creating');
+        pay = await createPaymentOrder(orderRef);
+      } catch (payErr) {
+        if (payErr.code === 'PAYMENT_NOT_CONFIGURED') {
+          // Frozen prototype fallback — order keeps an honest Sample status.
+          setPaymentPhase('idle');
+          setIsSubmitting(false);
+          navigate(`/order-success/${orderRef}`);
+          return;
+        }
+        throw payErr;
+      }
+
+      setPaymentPhase('checkout');
+      const result = await openRazorpayCheckout({
+        keyId: pay.razorpayKeyId,
+        orderId: pay.razorpayOrderId,
+        amount: pay.amount,
+        currency: pay.currency,
+        name: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        description: `Flora Alchemy order ${orderRef}`,
+      });
+
+      if (result.success) {
+        // The frontend never marks the order paid — the server verifies the
+        // signature and flips paymentStatus to Paid.
+        setPaymentPhase('verifying');
+        await verifyPayment(orderRef, {
+          razorpay_payment_id: result.razorpay_payment_id,
+          razorpay_order_id: result.razorpay_order_id,
+          razorpay_signature: result.razorpay_signature,
+        });
+        setPaymentPhase('idle');
+        setIsSubmitting(false);
+        navigate(`/order-success/${orderRef}`);
+        return;
+      }
+
+      // Failed or cancelled — record the honest state; retry keeps the SAME
+      // Flora order (no duplicate order, no second inventory deduction).
+      await verifyPayment(orderRef, { outcome: 'failed', failureReason: result.reason }).catch(() => {});
+      setPaymentPhase('idle');
       setIsSubmitting(false);
-      navigate(`/order-success/${newOrder.id || newOrder.orderId}`);
+      setSubmitError(result.reason || 'Payment was not completed.');
+      setStep(2);
     } catch (err) {
+      setPaymentPhase('idle');
       setIsSubmitting(false);
       setSubmitError(err.message || 'Order placement encountered an issue. Please try again.');
     }
   };
 
+  // Retry payment for an existing pending order — reuses the same Flora order
+  // and the same server-created Razorpay order id. Never creates a duplicate
+  // order and never deducts inventory a second time.
+  const handleRetryPayment = async () => {
+    if (!pendingPaymentOrder) return;
+    setIsSubmitting(true);
+    setSubmitError('');
+    try {
+      const pay = await createPaymentOrder(pendingPaymentOrder);
+      setPaymentPhase('checkout');
+      const result = await openRazorpayCheckout({
+        keyId: pay.razorpayKeyId,
+        orderId: pay.razorpayOrderId,
+        amount: pay.amount,
+        currency: pay.currency,
+        name: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        description: `Flora Alchemy order ${pendingPaymentOrder}`,
+      });
+      if (result.success) {
+        setPaymentPhase('verifying');
+        await verifyPayment(pendingPaymentOrder, {
+          razorpay_payment_id: result.razorpay_payment_id,
+          razorpay_order_id: result.razorpay_order_id,
+          razorpay_signature: result.razorpay_signature,
+        });
+        setPaymentPhase('idle');
+        setIsSubmitting(false);
+        navigate(`/order-success/${pendingPaymentOrder}`);
+        return;
+      }
+      await verifyPayment(pendingPaymentOrder, { outcome: 'failed', failureReason: result.reason }).catch(() => {});
+      setPaymentPhase('idle');
+      setIsSubmitting(false);
+      setSubmitError(result.reason || 'Payment was not completed.');
+    } catch (err) {
+      setPaymentPhase('idle');
+      setIsSubmitting(false);
+      setSubmitError(err.message || 'Payment could not be retried. Please try again.');
+    }
+  };
+
   const paymentMethods = getPaymentMethods();
   const selectedPayment = getPaymentMethodById(paymentMethod);
+  const razorpayConfigured = isRazorpayConfigured();
   const defaultAddr = (activeCustomer?.addresses || []).find((a) => a.isDefault);
   const shippingLabel = shippingMethod === 'express' ? 'Express Atelier Dispatch (₹250)' : (shippingCost === 0 ? 'Standard Pan-India Dispatch · Complimentary' : 'Standard Pan-India Dispatch (₹150)');
 
@@ -547,14 +671,51 @@ export default function CheckoutPage() {
                 {/* STEP 3 — PAYMENT */}
                 {step === 2 && (
                   <>
+                    {pendingPaymentOrder && submitError && (
+                      <div className="p-5 rounded-3xl bg-[#ffdad6]/40 border border-[#e8b3a6] space-y-3">
+                        <div className="flex items-start gap-3">
+                          <AlertCircle className="w-5 h-5 text-[#ba1a1a] shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-[14px] font-semibold text-[#8a2a18]">Payment was not completed.</p>
+                            <p className="text-[12px] text-[#783020] mt-0.5">{submitError}</p>
+                            <p className="text-[12px] text-[#4e4540] mt-1">
+                              Your order <span className="font-mono font-semibold">{pendingPaymentOrder}</span> is saved
+                              with payment pending — no money has been charged and no duplicate order will be created.
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={handleRetryPayment}
+                            disabled={isSubmitting}
+                            className="px-5 py-2.5 rounded-full bg-[#180f0a] text-white text-[12px] font-semibold hover:bg-[#964735] transition-colors disabled:opacity-50"
+                          >
+                            {isSubmitting ? 'Opening Secure Checkout...' : 'Try Payment Again'}
+                          </button>
+                          <Link
+                            to="/account"
+                            className="px-5 py-2.5 rounded-full bg-white border border-[#d1c4bd] text-[#180f0a] text-[12px] font-semibold hover:bg-[#f6f3ee] transition-colors"
+                          >
+                            View My Orders
+                          </Link>
+                        </div>
+                      </div>
+                    )}
                     <div className="p-4 sm:p-6 rounded-3xl bg-white border border-[#e5e2dd] shadow-xs space-y-4">
                       <div className="flex items-center justify-between">
                         <span className="text-[11px] font-bold uppercase tracking-wider text-[#80756f]">
                           Payment Method
                         </span>
-                        <span className="text-[11px] text-[#5b6d54] font-semibold">
-                          Demo payment · No real charge
-                        </span>
+                        {razorpayConfigured ? (
+                          <span className="text-[11px] text-[#783020] font-semibold bg-[#ffdad3]/60 px-2.5 py-0.5 rounded-full">
+                            TEST MODE · No real money will be charged
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-[#5b6d54] font-semibold">
+                            Demo payment · No real charge
+                          </span>
+                        )}
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         {paymentMethods.map((m) => (
@@ -576,10 +737,18 @@ export default function CheckoutPage() {
                           </button>
                         ))}
                       </div>
-                      <p className="text-[12px] text-[#80756f]">
-                        <span className="font-semibold text-[#5b6d54]">Prototype note:</span> no payment gateway is connected.
-                        Choosing a method records an honest <span className="font-semibold">Sample</span> payment status on your order.
-                      </p>
+                      {razorpayConfigured ? (
+                        <p className="text-[12px] text-[#80756f]">
+                          <span className="font-semibold text-[#783020]">Test Mode:</span> online methods open Razorpay Checkout in
+                          test mode — no real money will be charged. The server verifies every payment signature before your
+                          order is marked <span className="font-semibold">Paid</span>.
+                        </p>
+                      ) : (
+                        <p className="text-[12px] text-[#80756f]">
+                          <span className="font-semibold text-[#5b6d54]">Prototype note:</span> no payment gateway is connected.
+                          Choosing a method records an honest <span className="font-semibold">Sample</span> payment status on your order.
+                        </p>
+                      )}
                     </div>
 
                     <div className="flex items-center justify-between">
@@ -652,7 +821,11 @@ export default function CheckoutPage() {
                         </button>
                       </div>
                       <p className="text-[14px] font-semibold text-[#180f0a]">{selectedPayment.label}</p>
-                      <p className="text-[12px] text-[#80756f]">Sample status — no real charge will be made in this prototype.</p>
+                      <p className="text-[12px] text-[#80756f]">
+                        {razorpayConfigured
+                          ? 'Payment is verified server-side before the order is marked Paid (Test Mode).'
+                          : 'Sample status — no real charge will be made in this prototype.'}
+                      </p>
                     </div>
 
                     {/* Items */}
@@ -698,7 +871,15 @@ export default function CheckoutPage() {
                         className="w-full sm:w-auto px-10 py-4 rounded-full bg-[#180f0a] hover:bg-[#964735] text-white text-[14px] font-semibold tracking-wide flex items-center justify-center gap-2 shadow-md transition-all active:translate-y-0.5 disabled:opacity-50"
                       >
                         <Lock className="w-4 h-4" />
-                        <span>{isSubmitting ? 'Placing Order...' : `Place Order · ₹${totalAmount.toLocaleString('en-IN')}`}</span>
+                        <span>
+                          {isSubmitting
+                            ? paymentPhase === 'checkout'
+                              ? 'Opening Secure Checkout...'
+                              : paymentPhase === 'verifying'
+                                ? 'Verifying Payment...'
+                                : 'Placing Order...'
+                            : `Place Order · ₹${totalAmount.toLocaleString('en-IN')}`}
+                        </span>
                       </button>
                     </div>
                   </div>

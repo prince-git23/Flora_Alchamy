@@ -4,11 +4,23 @@ import Product from '../models/Product.js';
 import Inventory from '../models/Inventory.js';
 
 /**
- * All analytics derive from the canonical collections — no hardcoded KPIs.
+ * Revenue rule (documented, Phase 3E):
+ *   revenue = orders with paymentStatus 'Paid' (verified real capture)
+ *             + legacy 'Sample' orders from the pre-gateway prototype era
+ *             (Sample was the prototype's stand-in for paid).
+ *   Pending / Failed / Refunded are NEVER counted as revenue.
+ * Analytics remain fully server-derived from MongoDB.
  */
+const REVENUE_STATUSES = ['Paid', 'Sample'];
+
+function revenueMatch() {
+  return { paymentStatus: { $in: REVENUE_STATUSES } };
+}
+
 export async function computeOverview() {
   const [orderStats, customerCount, productCount, inventoryDocs] = await Promise.all([
     Order.aggregate([
+      { $match: revenueMatch() },
       {
         $group: {
           _id: null,
@@ -54,7 +66,7 @@ export async function computeSales(days = 30) {
   since.setDate(since.getDate() - days);
 
   const rows = await Order.aggregate([
-    { $match: { createdAt: { $gte: since } } },
+    { $match: { createdAt: { $gte: since }, ...revenueMatch() } },
     {
       $group: {
         _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
@@ -66,7 +78,7 @@ export async function computeSales(days = 30) {
   ]);
 
   const productRows = await Order.aggregate([
-    { $match: { createdAt: { $gte: since } } },
+    { $match: { createdAt: { $gte: since }, ...revenueMatch() } },
     { $unwind: '$items' },
     {
       $group: {
@@ -97,7 +109,11 @@ export async function computePerformance() {
   ]);
 
   const customerRows = customers.map((c) => {
-    const own = orders.filter((o) => String(o.customerId) === String(c._id));
+    const own = orders.filter(
+      (o) =>
+        String(o.customerId) === String(c._id) &&
+        REVENUE_STATUSES.includes(o.paymentStatus)
+    );
     const spend = own.reduce((sum, o) => sum + o.total, 0);
     return {
       name: c.name,

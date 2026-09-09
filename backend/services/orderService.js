@@ -2,6 +2,7 @@ import Order, { ORDER_STATUSES, NEXT_STATUS } from '../models/Order.js';
 import Product from '../models/Product.js';
 import { ApiError } from '../middleware/errorMiddleware.js';
 import { reserveStockForOrder } from './inventoryService.js';
+import { isConfigured as razorpayConfigured, isRazorpayMethod } from './razorpayService.js';
 
 export { ORDER_STATUSES };
 
@@ -46,7 +47,7 @@ export function assertValidTransition(order, newStatus) {
  *  - made-to-order (custom, non-catalogue) items carry bespoke pricing and are
  *    not stock-tracked, preserving the Phase 3A.5 behavior.
  */
-export async function createOrder({ customer, items, paymentMethod = 'Sample', shippingAddress, giftMessage = '', isRush = false }) {
+export async function createOrder({ customer, items, paymentMethod = 'Sample', shippingAddress, giftMessage = '', isRush = false, forceSamplePayment = false }) {
   if (!customer) {
     throw new ApiError(401, 'An authenticated customer is required to place an order.', 'UNAUTHORIZED');
   }
@@ -119,6 +120,20 @@ export async function createOrder({ customer, items, paymentMethod = 'Sample', s
         ? 0
         : settings.shippingConfiguration.standardRate;
 
+    // Initial payment state — honest and environment-aware:
+    //  - Razorpay configured: orders start 'Pending' (payment due before
+    //    fulfillment); provider checkout methods are tagged 'razorpay'.
+    //  - Razorpay NOT configured: the frozen prototype behavior is preserved
+    //    (paymentStatus 'Sample' — clearly labeled, never a real charge).
+    // Order status stays 'new' regardless; payment and fulfillment are
+    // deliberately independent.
+    let paymentStatus = 'Sample';
+    let paymentProvider = '';
+    if (razorpayConfigured() && !forceSamplePayment) {
+      paymentStatus = 'Pending';
+      paymentProvider = isRazorpayMethod(paymentMethod) ? 'razorpay' : '';
+    }
+
     const orderId = nextOrderId();
     order = await Order.create(
       [
@@ -131,8 +146,9 @@ export async function createOrder({ customer, items, paymentMethod = 'Sample', s
           subtotal: Math.round(subtotal),
           shipping,
           total: Math.round(subtotal + shipping),
-          paymentStatus: 'Sample',
+          paymentStatus,
           paymentMethod: paymentMethod || 'Sample',
+          paymentProvider,
           orderStatus: 'new',
           shippingAddress: shippingAddress || {},
           giftMessage: giftMessage || '',
@@ -144,8 +160,18 @@ export async function createOrder({ customer, items, paymentMethod = 'Sample', s
     );
     order = order[0];
 
-    // Reserve catalogue stock inside the same transaction.
-    await reserveStockForOrder({ items: normalized, orderId, createdBy: customer.name || 'customer' });
+    // Hold catalogue stock for the order (compensating-release strategy). For
+    // payment-pending orders the hold is flagged per item so a failed payment
+    // can release it and a later confirmed payment re-deducts only if released.
+    const pending = paymentStatus === 'Pending';
+    await reserveStockForOrder({ items: normalized, orderId, createdBy: customer.name || 'customer', paymentPending: pending });
+    if (pending) {
+      for (const item of order.items) {
+        if (item.isCatalogue) item.stockDeducted = true;
+      }
+      order.markModified('items');
+      await order.save({ session });
+    }
 
     await session.commitTransaction();
   } catch (err) {

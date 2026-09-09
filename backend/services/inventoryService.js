@@ -60,9 +60,12 @@ export async function adjustStock({
 
 /**
  * Reserve stock for an order's catalogue items. Called inside order creation.
+ * The deduction is a HOLD at this point: the order is payment-pending, and
+ * the item is flagged stockDeducted so payment failure can release it and a
+ * later successful payment re-deducts only if it was released (never twice).
  * Returns the inventory docs updated.
  */
-export async function reserveStockForOrder({ items, orderId, createdBy = 'customer' }) {
+export async function reserveStockForOrder({ items, orderId, createdBy = 'customer', paymentPending = false }) {
   const updated = [];
   for (const item of items) {
     if (!item.isCatalogue) continue; // made-to-order custom gifts are not stock-tracked
@@ -70,11 +73,66 @@ export async function reserveStockForOrder({ items, orderId, createdBy = 'custom
       productSlug: item.productSlug,
       delta: -item.quantity,
       type: 'sale',
-      reason: `Order ${orderId}`,
+      reason: paymentPending ? `Order ${orderId} (payment pending — held)` : `Order ${orderId}`,
       orderId,
       createdBy,
     });
     updated.push(inv);
+  }
+  return updated;
+}
+
+/**
+ * Compensating-release strategy (Phase 3E.1).
+ *
+ * The schema has a single currentStock field (no available/reserved split), so
+ * pending-payment stock is HELD at order creation and released back when the
+ * payment is not completed. Both helpers are idempotent — they are driven by
+ * the item.stockDeducted flag, so repeated failure events or repeated webhooks
+ * never mutate stock twice.
+ *
+ *   paid   → every catalogue item with stockDeducted=false is re-deducted
+ *            (only possible when a release happened), then flagged true.
+ *   failed → every catalogue item with stockDeducted=true is released (+qty),
+ *            then flagged false.
+ *
+ * Net guarantee: one paid order = exactly one final deduction.
+ */
+export async function ensureOrderStockForPayment({ order, paid }) {
+  if (!order || !Array.isArray(order.items)) return [];
+  const updated = [];
+  for (const item of order.items) {
+    if (!item.isCatalogue) continue; // made-to-order custom gifts are not stock-tracked
+    if (paid && item.stockDeducted) continue; // already held/sold — never deduct twice
+    if (!paid && !item.stockDeducted) continue; // already released — never release twice
+
+    if (paid) {
+      const inv = await adjustStock({
+        productSlug: item.productSlug,
+        delta: -item.quantity,
+        type: 'sale',
+        reason: `Order ${order.orderId} (payment confirmed)`,
+        orderId: order.orderId,
+        createdBy: 'payment',
+      });
+      item.stockDeducted = true;
+      updated.push(inv);
+    } else {
+      const inv = await adjustStock({
+        productSlug: item.productSlug,
+        delta: item.quantity,
+        type: 'release',
+        reason: `Order ${order.orderId} (payment not completed — released)`,
+        orderId: order.orderId,
+        createdBy: 'payment',
+      });
+      item.stockDeducted = false;
+      updated.push(inv);
+    }
+  }
+  if (updated.length > 0) {
+    order.markModified('items');
+    await order.save();
   }
   return updated;
 }

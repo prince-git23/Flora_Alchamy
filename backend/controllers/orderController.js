@@ -100,6 +100,9 @@ export async function createStaffOrder(req, res, next) {
     if (!customer) {
       throw new ApiError(404, 'Customer not found.', 'NOT_FOUND');
     }
+    // Staff orders are recorded business transactions (e.g. a phone order) with
+    // no customer-facing payment flow — they never enter Razorpay 'Pending'
+    // limbo and always keep the prototype 'Sample' settlement marker.
     const order = await createOrder({
       customer,
       items,
@@ -107,6 +110,7 @@ export async function createStaffOrder(req, res, next) {
       giftMessage,
       paymentMethod: paymentMethod === 'UPI' ? 'Sample' : paymentMethod,
       isRush,
+      forceSamplePayment: true,
     });
     res.status(201).json({ success: true, order });
   } catch (err) {

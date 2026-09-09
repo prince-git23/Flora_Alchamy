@@ -94,6 +94,13 @@ function normalizeOrder(o) {
     total: Number(o.total) || 0,
     paymentStatus: o.paymentStatus || 'Pending',
     paymentMethod: o.paymentMethod || 'Sample',
+    paymentProvider: o.paymentProvider || '',
+    paymentProviderOrderId: o.paymentProviderOrderId || '',
+    paymentProviderPaymentId: o.paymentProviderPaymentId || '',
+    paymentReference: o.paymentReference || '',
+    paymentSignatureVerified: !!o.paymentSignatureVerified,
+    paymentVerifiedAt: o.paymentVerifiedAt || null,
+    paymentFailureReason: o.paymentFailureReason || '',
     orderStatus: o.orderStatus || 'new',
     shippingAddress: {
       name: addr.name || '',

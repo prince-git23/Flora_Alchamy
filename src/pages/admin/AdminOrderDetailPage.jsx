@@ -174,10 +174,73 @@ export default function AdminOrderDetailPage() {
             <div className="bg-white rounded-xl border border-[#e5e2dd] p-6 shadow-xs">
               <h2 className="font-serif text-lg text-[#180f0a] font-medium mb-4">Order Information</h2>
               <div className="space-y-3 text-[13px]">
-                <div className="flex justify-between">
+                <div className="flex items-center justify-between">
                   <span className="text-[#80756f]">Payment Status</span>
-                  <span className={`font-semibold ${order.paymentStatus === 'Paid' ? 'text-[#5b6d54]' : 'text-[#964735]'}`}>{order.paymentStatus}</span>
+                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${
+                    order.paymentStatus === 'Paid'
+                      ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                      : order.paymentStatus === 'Failed'
+                        ? 'bg-red-50 text-red-700 border border-red-200'
+                        : order.paymentStatus === 'Refunded'
+                          ? 'bg-stone-100 text-stone-700 border border-stone-200'
+                          : 'bg-amber-50 text-amber-800 border border-amber-200'
+                  }`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${
+                      order.paymentStatus === 'Paid'
+                        ? 'bg-emerald-600'
+                        : order.paymentStatus === 'Failed'
+                          ? 'bg-red-500'
+                          : order.paymentStatus === 'Refunded'
+                            ? 'bg-stone-500'
+                            : 'bg-amber-600'
+                    }`}></span>
+                    {order.paymentStatus}
+                  </span>
                 </div>
+                {order.paymentProvider && (
+                  <div className="pt-2 border-t border-[#f0ede9] space-y-2 mt-1">
+                    <div className="flex justify-between">
+                      <span className="text-[#80756f]">Provider</span>
+                      <span className="font-medium text-[#180f0a] capitalize">{order.paymentProvider}</span>
+                    </div>
+                    {order.paymentProviderOrderId && (
+                      <div className="flex justify-between">
+                        <span className="text-[#80756f]">Provider Order ID</span>
+                        <span className="font-mono font-medium text-[#180f0a]">{order.paymentProviderOrderId}</span>
+                      </div>
+                    )}
+                    {order.paymentProviderPaymentId && (
+                      <div className="flex justify-between">
+                        <span className="text-[#80756f]">Provider Payment ID</span>
+                        <span className="font-mono font-medium text-[#180f0a]">{order.paymentProviderPaymentId}</span>
+                      </div>
+                    )}
+                    {order.paymentReference && (
+                      <div className="flex justify-between">
+                        <span className="text-[#80756f]">Reference</span>
+                        <span className="font-mono font-medium text-[#180f0a]">{order.paymentReference}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span className="text-[#80756f]">Verification</span>
+                      <span className={`font-semibold ${order.paymentSignatureVerified ? 'text-[#5b6d54]' : 'text-[#80756f]'}`}>
+                        {order.paymentSignatureVerified ? 'Verified' : 'Not verified'}
+                      </span>
+                    </div>
+                    {order.paymentVerifiedAt && (
+                      <div className="flex justify-between">
+                        <span className="text-[#80756f]">Verified At</span>
+                        <span className="font-medium text-[#180f0a]">{formatDate(order.paymentVerifiedAt)}</span>
+                      </div>
+                    )}
+                    {order.paymentFailureReason && (
+                      <div className="flex justify-between">
+                        <span className="text-[#80756f]">Failure Reason</span>
+                        <span className="font-medium text-[#ba1a1a] text-right">{order.paymentFailureReason}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-[#80756f]">Created</span>
                   <span className="font-medium text-[#180f0a]">{formatDate(order.createdAt)}</span>

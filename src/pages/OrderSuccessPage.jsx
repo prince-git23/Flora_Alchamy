@@ -1,8 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { CheckCircle2, ArrowRight, Truck, Package, Heart, Clock } from 'lucide-react';
-import { getOrderById, formatINR, formatDate } from '../services/orderService.js';
-import OrderStatusTracker from '../components/OrderStatusTracker.jsx';
+import { CheckCircle2, ArrowRight, Package, MapPin, Phone, Truck, Feather, MessageSquare, Home } from 'lucide-react';
+import { getOrderById, formatINR, formatDate, getStatusStage, getCustomerFacingStatus } from '../services/orderService.js';
+
+// Description line for an ordered keepsake — assembled from the real
+// customization fields the customer selected (palette, ribbon, extras).
+function itemDescription(item) {
+  const parts = [];
+  if (item.palette) parts.push(item.palette);
+  if (item.ribbon) parts.push(item.ribbon);
+  if (item.customDetails) {
+    const detail = item.customDetails;
+    if (typeof detail === 'string' && detail.trim()) parts.push(detail.trim());
+    else if (detail && detail.summary) parts.push(String(detail.summary));
+  }
+  return parts.length > 0 ? parts.join(' · ') : 'Handcrafted atelier piece';
+}
 
 export default function OrderSuccessPage() {
   const { orderId } = useParams();
@@ -54,132 +67,242 @@ export default function OrderSuccessPage() {
   }
 
   const items = order.items || [];
-  const paymentStatus = order.paymentStatus || 'Paid';
+  const paymentStatus = order.paymentStatus || 'Pending';
   const delivery = order.shippingAddress || {};
+  const firstName = (order.customerName || 'friend').trim().split(' ')[0];
+  const statusStage = getStatusStage(order.orderStatus);
+  const statusLabel = getCustomerFacingStatus(order.orderStatus);
+
+  // Transcript card appears only when a real card message was ordered —
+  // either the order-level gift message or a per-item calligraphy note.
+  const cardMessage = order.giftMessage?.trim()
+    || items.map((it) => it.giftMessage?.trim()).find(Boolean)
+    || '';
+
+  const paidPill = paymentStatus === 'Paid'
+    ? <span className="px-2 py-0.5 rounded-full bg-[#d8e7cd] text-[#2e5a2a] text-[10px] font-bold uppercase tracking-wide">Paid</span>
+    : <span className="px-2 py-0.5 rounded-full bg-[#ebe8e3] text-[#4e4540] text-[10px] font-bold uppercase tracking-wide">{paymentStatus}</span>;
 
   return (
-    <div className="w-full bg-[#fcf9f4] min-h-screen py-10 lg:py-16">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Celebration Header Card */}
-        <div className="bg-white rounded-3xl p-8 sm:p-12 border border-[#e5e2dd] shadow-sm text-center space-y-4 mb-8">
-          <div className="w-16 h-16 rounded-full bg-[#d8e7cd] text-[#081405] mx-auto flex items-center justify-center shadow-inner">
-            <CheckCircle2 className="w-8 h-8 text-[#5b6d54]" />
+    <div className="w-full bg-[#fcf9f4] min-h-screen py-10 lg:py-14">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* ── Order Success Hero Card ── */}
+        <div className="rounded-3xl border border-[#e5e2dd] shadow-[0_16px_40px_-12px_rgba(46,36,30,0.12)] bg-gradient-to-b from-[#fffdf9] via-[#fffaf4] to-[#fdeee8] p-8 sm:p-12 text-center space-y-5 mb-8">
+          {/* Confirmation Badge */}
+          <div className="w-16 h-16 rounded-full bg-[#ffdad3] border border-[#e8b3a6] shadow-inner mx-auto flex items-center justify-center">
+            <CheckCircle2 className="w-8 h-8 text-[#964735]" />
           </div>
 
-          <span className="text-[11px] font-bold uppercase tracking-widest text-[#964735]">
-            Artisan Order Received
-          </span>
+          <div className="space-y-2">
+            <span className="text-[11px] font-bold uppercase tracking-widest text-[#964735]">
+              Order Successfully Established
+            </span>
+            <h1 className="font-serif text-[34px] sm:text-[44px] text-[#180f0a] font-normal leading-tight tracking-tight">
+              Thank you for your commission, {firstName}.
+            </h1>
+            <p className="text-[15px] text-[#4e4540] max-w-xl mx-auto leading-relaxed">
+              Your handcrafted botanical keepsake has been scheduled into creation.
+              {paymentStatus === 'Paid'
+                ? ' A receipt for this order has been recorded in your account.'
+                : ` Payment is recorded as ${paymentStatus.toLowerCase()} — no amount has been captured yet.`}
+            </p>
+          </div>
 
-          <h1 className="font-serif text-[36px] sm:text-[46px] text-[#180f0a] font-normal leading-tight">
-            Thank you for gifting with Flora Alchemy.
-          </h1>
-
-          <p className="text-[15px] text-[#4e4540] max-w-xl mx-auto leading-relaxed">
-            Your handcrafted order <strong>#{order.id}</strong> has entered our studio. Our artisans are carefully preparing each stem and personalized botanical card.
-          </p>
-
-          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-            {order.trackingNumber && (
-              <div className="px-4 py-1.5 rounded-full bg-[#f6f3ee] text-[13px] text-[#180f0a] border border-[#e5e2dd]">
-                Tracking ID: <span className="font-mono font-bold text-[#964735]">{order.trackingNumber}</span>
-              </div>
-            )}
-            <div className="px-4 py-1.5 rounded-full bg-[#f6f3ee] text-[13px] text-[#180f0a] border border-[#e5e2dd]">
-              Order Date: <span className="font-medium">{formatDate(order.createdAt)}</span>
+          {/* Details Bar */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 p-5 sm:p-6 rounded-2xl bg-[#f0eae1] border border-[#e5ddd2] text-left mt-2">
+            <div className="space-y-1">
+              <p className="text-[10px] uppercase font-bold tracking-wider text-[#80756f]">Order Identifier</p>
+              <p className="text-[15px] font-bold text-[#180f0a] font-mono">{order.id}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-[10px] uppercase font-bold tracking-wider text-[#80756f]">Date Established</p>
+              <p className="text-[15px] font-bold text-[#180f0a]">{formatDate(order.createdAt)}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-[10px] uppercase font-bold tracking-wider text-[#80756f]">Settlement Total</p>
+              <p className="text-[15px] font-bold text-[#180f0a] flex items-center gap-2">
+                {formatINR(order.total)} {paidPill}
+              </p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-[10px] uppercase font-bold tracking-wider text-[#80756f]">Current Status</p>
+              <p className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-[#e5e2dd] text-[12px] font-semibold text-[#180f0a]">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#5b6d54]" />
+                {statusStage}. {statusLabel}
+              </p>
             </div>
           </div>
-        </div>
 
-        {/* Status Tracker */}
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#e5e2dd] shadow-xs mb-8">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="font-serif text-[22px] text-[#180f0a]">Craft & Dispatch Journey</h2>
+          {/* Actions */}
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
             <Link
               to={`/order-tracking/${order.id}`}
-              className="text-[12px] font-bold text-[#964735] hover:underline flex items-center gap-1"
+              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-white text-[#180f0a] border-2 border-[#180f0a] hover:bg-[#f6f3ee] transition-all text-[13px] font-semibold shadow-sm"
             >
-              <span>View Full Tracker</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <Truck className="w-4 h-4" />
+              <span>Track Order {order.id}</span>
+            </Link>
+            <Link
+              to="/account"
+              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-[#964735] text-white hover:bg-[#7d3a2b] transition-all text-[13px] font-semibold shadow-md"
+            >
+              <Home className="w-4 h-4" />
+              <span>View Account &amp; Order History</span>
             </Link>
           </div>
-          <OrderStatusTracker order={order} />
+
+          <p className="text-[12px] text-[#80756f] max-w-lg mx-auto leading-relaxed">
+            Need to adjust your handwritten card wording or delivery window? Order support messaging is planned
+            for a future communication module — until then, the tracking page keeps your commission's journey current.
+          </p>
         </div>
 
-        {/* Order Details & Summary */}
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#e5e2dd] shadow-xs mb-8 space-y-6">
-          <h2 className="font-serif text-[22px] text-[#180f0a] border-b border-[#e5e2dd] pb-3">
-            Handcrafted Items in This Order
-          </h2>
-
-          <div className="divide-y divide-[#e5e2dd] space-y-4">
-            {items.map((item, idx) => (
-              <div key={idx} className="pt-4 first:pt-0 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <img src={item.image} alt={item.name} className="w-16 h-16 rounded-2xl object-cover border border-[#e5e2dd]" />
-                  <div>
-                    <h3 className="font-serif text-[16px] text-[#180f0a] font-medium">{item.name}</h3>
-                    <p className="text-[12px] text-[#80756f]">Qty: {item.quantity || 1}</p>
-                    {item.customizations && (
-                      <p className="text-[11px] text-[#964735]">{item.customizations.join(' · ')}</p>
-                    )}
-                  </div>
-                </div>
-                <span className="text-[15px] font-bold text-[#180f0a]">
-                  ₹{(item.price * (item.quantity || 1)).toLocaleString('en-IN')}
+        {/* ── Lower Two-Column Section ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Left Column — Keepsakes + Transcript */}
+          <div className="lg:col-span-7 space-y-6">
+            {/* Ordered Keepsakes */}
+            <div className="bg-white rounded-3xl border border-[#e5e2dd] shadow-sm p-6 sm:p-7">
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="font-serif text-[22px] text-[#180f0a]">Ordered Keepsakes</h2>
+                <span className="text-[13px] text-[#80756f]">
+                  {items.length} {items.length === 1 ? 'Item' : 'Items'}
                 </span>
               </div>
-            ))}
-          </div>
 
-          {delivery.name && (
-            <div className="border-t border-[#e5e2dd] pt-4 flex flex-col sm:flex-row sm:items-start justify-between gap-3 text-[13px]">
-              <div className="text-[#4e4540]">
-                <p className="font-bold text-[#180f0a] flex items-center gap-1.5">
-                  <Package className="w-4 h-4 text-[#964735]" /> Delivering to
-                </p>
-                <p>{delivery.name} · {delivery.address}, {delivery.city} {delivery.pincode}</p>
-              </div>
-              <div className="text-[#4e4540] sm:text-right">
-                <p className="font-bold text-[#180f0a] flex items-center gap-1.5 justify-start sm:justify-end">
-                  <Clock className="w-4 h-4 text-[#964735]" /> Estimated arrival
-                </p>
-                <p>{order.deliveryTarget ? formatDate(order.deliveryTarget) : (order.isRush ? '2–3 business days' : '3–5 business days')}</p>
+              <div className="divide-y divide-[#f0ede9]">
+                {items.map((item, idx) => (
+                  <div key={idx} className="py-4 first:pt-0 last:pb-0 flex items-center gap-4">
+                    {/* Thumbnail — real product image, tinted fallback tile when absent */}
+                    <div className="w-16 h-16 rounded-2xl overflow-hidden bg-[#f6f3ee] border border-[#f0ede9] shrink-0 flex items-center justify-center">
+                      {item.image ? (
+                        <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-2xl">🌸</span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-serif text-[16px] text-[#180f0a] font-medium leading-snug">{item.name}</h3>
+                      <p className="text-[12px] text-[#4e4540] leading-relaxed truncate">{itemDescription(item)}</p>
+                      <p className="text-[11px] text-[#80756f] mt-0.5">Qty: {item.quantity || 1}</p>
+                    </div>
+                    <span className="text-[15px] font-bold text-[#180f0a] whitespace-nowrap">
+                      {formatINR((item.price || 0) * (item.quantity || 1))}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
-          )}
 
-          <div className="border-t border-[#e5e2dd] pt-4 flex justify-between text-[18px] font-bold text-[#180f0a]">
-            <span>Total ({paymentStatus})</span>
-            <span>{formatINR(order.total)}</span>
+            {/* Personalized Deckled Card Transcript — only when a real message was ordered */}
+            {cardMessage && (
+              <div className="bg-white rounded-3xl border border-[#e5e2dd] shadow-sm p-6 sm:p-7">
+                <div className="flex items-center gap-2 mb-4">
+                  <Feather className="w-4 h-4 text-[#964735]" />
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-[#964735]">
+                    Personalized Deckled Card Transcript
+                  </span>
+                </div>
+                <div className="p-5 rounded-2xl bg-[#faf7f2] border border-[#e8e2d8]">
+                  <p className="font-serif text-[17px] text-[#1c1c19] italic leading-relaxed">
+                    &ldquo;{cardMessage}&rdquo;
+                  </p>
+                </div>
+                <p className="text-[12px] text-[#80756f] mt-4 leading-relaxed">
+                  Hand-inscribed on deckled cotton paper and finished with an organic wax seal.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Right Column — Delivery + Conversation */}
+          <div className="lg:col-span-5 space-y-6">
+            {/* Delivery Destination */}
+            <div className="bg-white rounded-3xl border border-[#e5e2dd] shadow-sm p-6 sm:p-7">
+              <h2 className="font-serif text-[22px] text-[#180f0a] mb-4">Delivery Destination</h2>
+              {delivery.name ? (
+                <>
+                  <div className="space-y-0.5 text-[14px] text-[#1c1c19]">
+                    <p className="font-semibold text-[#180f0a]">{delivery.name}</p>
+                    <p>{delivery.address}</p>
+                    <p>{[delivery.city, delivery.state].filter(Boolean).join(', ')} — {delivery.pincode}</p>
+                  </div>
+                  {delivery.phone && (
+                    <p className="mt-2 flex items-center gap-1.5 text-[13px] text-[#4e4540]">
+                      <Phone className="w-3.5 h-3.5 text-[#964735]" />
+                      Contact: {delivery.phone}
+                    </p>
+                  )}
+                  <div className="flex flex-wrap gap-2 pt-4">
+                    <span className="px-3 py-1 rounded-full bg-[#f0eae1] text-[#4e4540] text-[11px] font-semibold">
+                      Standard Courier
+                    </span>
+                    <span className="px-3 py-1 rounded-full bg-[#f0eae1] text-[#4e4540] text-[11px] font-semibold">
+                      Handcrafted Delivery
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <p className="text-[13px] text-[#4e4540]">
+                  Delivery details were not recorded for this order.
+                </p>
+              )}
+            </div>
+
+            {/* Order Conversation — honest future module state */}
+            <div className="rounded-3xl bg-[#2c2622] text-white p-6 sm:p-7 shadow-md">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="w-2 h-2 rounded-full bg-[#7e947b] animate-pulse" />
+                <span className="text-[10px] font-bold uppercase tracking-widest text-[#e8b3a6]">
+                  Order Support — Future Module
+                </span>
+              </div>
+              <h2 className="font-serif text-[22px] text-white mb-2">Order Conversation</h2>
+              <p className="text-[13px] text-[#d4c3ba] leading-relaxed">
+                A direct messaging channel for inquiring about craft status, card wording, or parcel dispatch is
+                planned for a future communication module. No chat thread exists yet — your order status is always
+                available on the tracking page.
+              </p>
+              <Link
+                to={`/order-tracking/${order.id}`}
+                className="mt-5 inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white text-[#180f0a] hover:bg-[#f6f3ee] text-[12px] font-semibold transition-colors"
+              >
+                <MessageSquare className="w-4 h-4" />
+                <span>Check Order {order.id} Status</span>
+              </Link>
+            </div>
+
+            {/* Continue Shopping */}
+            <Link
+              to="/shop"
+              className="flex items-center justify-between gap-3 rounded-3xl bg-white border border-[#e5e2dd] shadow-sm px-6 py-5 hover:border-[#964735] hover:shadow-md transition-all group"
+            >
+              <span className="flex items-center gap-3">
+                <span className="w-10 h-10 rounded-full bg-[#ffdad3] flex items-center justify-center text-[18px]">🎁</span>
+                <span>
+                  <span className="block font-serif text-[16px] text-[#180f0a] group-hover:text-[#964735] transition-colors">
+                    Keep exploring the atelier
+                  </span>
+                  <span className="block text-[12px] text-[#80756f]">Continue shopping in the Botanical Archive</span>
+                </span>
+              </span>
+              <ArrowRight className="w-4 h-4 text-[#964735] shrink-0" />
+            </Link>
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex flex-wrap items-center justify-center gap-4">
-          <Link
-            to={`/order-tracking/${order.id}`}
-            className="px-7 py-3.5 rounded-full bg-[#180f0a] text-white hover:bg-[#964735] transition-colors text-[13px] font-semibold flex items-center gap-2 shadow-sm"
-          >
-            <Truck className="w-4 h-4" />
-            <span>Track Delivery Progress</span>
-          </Link>
-
-          <Link
-            to="/account"
-            className="px-7 py-3.5 rounded-full bg-white text-[#180f0a] border border-[#e5e2dd] hover:bg-[#f6f3ee] transition-colors text-[13px] font-semibold flex items-center gap-2"
-          >
-            <Heart className="w-4 h-4" />
-            <span>View My Account</span>
-          </Link>
-
-          <Link
-            to="/shop"
-            className="px-7 py-3.5 rounded-full bg-white text-[#180f0a] border border-[#e5e2dd] hover:bg-[#f6f3ee] transition-colors text-[13px] font-semibold"
-          >
-            Explore More Botanical Art
-          </Link>
+        {/* Bottom meta line */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-10 pb-2 text-[11px] text-[#80756f]">
+          <span className="flex items-center gap-1.5">
+            <Package className="w-3.5 h-3.5" />
+            All items are handcrafted to order in small batches.
+          </span>
+          <span className="flex items-center gap-1.5">
+            <MapPin className="w-3.5 h-3.5" />
+            Pan-India handcrafted delivery
+          </span>
         </div>
       </div>
     </div>
   );
-}
+}
