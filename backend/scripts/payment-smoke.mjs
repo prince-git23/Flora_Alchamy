@@ -161,6 +161,12 @@ try {
     });
   }
 
+  // Capture the ACTUAL stock before ORDER_A so the paid-direct path can be
+  // asserted against real values: initial N → paid → N-1, never N-2.
+  const invBeforeA = await req('GET', '/inventory', { token: ADMIN_EARLY });
+  const stockBeforeA = (invBeforeA.json?.inventory || []).find((i) => i.productSlug === slug)?.currentStock;
+  check('stock captured before ORDER_A', Number.isFinite(stockBeforeA), String(stockBeforeA));
+
   // Place an order for A (Razorpay configured → starts Pending).
   r = await req('POST', '/orders', {
     token: TOKEN_A,
@@ -203,6 +209,14 @@ try {
   });
   check('repeat verify → 200 (no conflict)', r.status === 200, String(r.status));
   check('still Paid', r.json?.order?.paymentStatus === 'Paid');
+
+  // REQUIRED SEMANTICS — paid-direct order: final stock = N - 1 exactly.
+  // The hold at creation is the single physical deduction; verification must
+  // NOT deduct again (flag-guarded).
+  const invAfterA = await req('GET', '/inventory', { token: ADMIN_EARLY });
+  const stockAfterA = (invAfterA.json?.inventory || []).find((i) => i.productSlug === slug)?.currentStock;
+  check('paid order A: final stock = initial - 1 (NO double deduction)', stockAfterA === stockBeforeA - 1, `${stockAfterA} vs ${stockBeforeA - 1}`);
+  check('paid order A: stock is NOT initial - 2', stockAfterA !== stockBeforeA - 2, `${stockAfterA} vs ${stockBeforeA - 2}`);
 
   console.log('\n— TEST 4: invalid signature — rejected —');
   r = await req('POST', '/payments/verify', {
