@@ -28,7 +28,7 @@ export default function WishlistPage() {
               Saved Treasures
             </span>
             <h1 className="font-serif text-[36px] sm:text-[44px] text-[#180f0a] font-normal tracking-tight">
-              Your Keepsake Wishlist
+              Your Saved Gifts
             </h1>
             <p className="text-[14px] text-[#4e4540]">
               Pieces saved for upcoming birthdays, quiet anniversaries, or gentle everyday surprises.
@@ -55,7 +55,7 @@ export default function WishlistPage() {
               </div>
               <h2 className="font-serif text-[26px] text-[#180f0a]">Sign in to save your favorite creations.</h2>
               <p className="text-[14px] text-[#4e4540]">
-                Your wishlist is saved to your account, so your favorite blooms follow you
+                Your saved gifts live with your account, so your favorite blooms follow you
                 across devices. Browsing and adding to your bag never require an account.
               </p>
               <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -82,7 +82,7 @@ export default function WishlistPage() {
               </div>
               <h2 className="font-serif text-[26px] text-[#180f0a]">No keepsakes saved yet</h2>
               <p className="text-[14px] text-[#4e4540]">
-                Tap the heart on any bloom, card, or hamper in our catalog to save it to your personal wishlist.
+                Tap the heart on any bloom, card, or hamper in our catalog to save it to your Saved Gifts.
               </p>
               <div className="pt-2">
                 <Link
@@ -114,7 +114,7 @@ export default function WishlistPage() {
                     type="button"
                     onClick={() => toggleWishlist(item)}
                     className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 shadow-sm flex items-center justify-center text-[#964735] hover:scale-110 transition-transform"
-                    title="Remove from wishlist"
+                    title="Remove from Saved Gifts"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>

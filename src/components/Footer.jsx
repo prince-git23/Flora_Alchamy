@@ -1,6 +1,49 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Gift, ArrowRight } from 'lucide-react';
 import { useStore } from '../context/StoreContext.jsx';
+
+// Every footer link points at a real, existing route (Phase 3G-A rule:
+// no decorative href="#" links, no fake destinations).
+const FOOTER_COLUMNS = [
+  {
+    title: 'Shop',
+    links: [
+      { label: 'All Gifts', to: '/shop' },
+      { label: 'Flowers & Bouquets', to: '/shop?category=bouquets' },
+      { label: 'Handmade Cards', to: '/shop?category=cards' },
+      { label: 'Charms & Keepsakes', to: '/shop?category=charms' },
+      { label: 'Hampers', to: '/shop?category=hampers' },
+    ],
+  },
+  {
+    title: 'Gifting',
+    links: [
+      { label: 'Gift Finder', to: '/gift-finder' },
+      { label: 'Custom Gift Studio', to: '/custom-gifts' },
+      { label: 'Birthday Gifts', to: '/shop?occasion=birthday' },
+      { label: 'Anniversary Gifts', to: '/shop?occasion=anniversary' },
+      { label: 'Festival Gifts', to: '/shop?occasion=festival' },
+    ],
+  },
+  {
+    title: 'About',
+    links: [
+      { label: 'Our Creations', to: '/our-creations' },
+      { label: 'Curated Collections', to: '/collections' },
+      { label: 'The Botanical Archive', to: '/shop' },
+    ],
+  },
+  {
+    title: 'Help',
+    links: [
+      { label: 'Order Tracking', to: '/order-tracking' },
+      { label: 'Shopping Bag', to: '/cart' },
+      { label: 'Saved Gifts', to: '/wishlist' },
+      { label: 'My Account', to: '/account' },
+    ],
+  },
+];
 
 export default function Footer() {
   const [email, setEmail] = useState('');
@@ -22,10 +65,10 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-10 pb-12 border-b border-[#e5e2dd]">
           {/* Brand Col */}
           <div className="md:col-span-4 space-y-4">
-            <Link to="/" className="flex items-center gap-3">
+            <Link to="/" className="flex items-center gap-3" aria-label="Flora Alchemy home">
               <img
                 src="/assets/images/flora-asset-27.jpg"
-                alt="Flora Alchemy Emblem"
+                alt=""
                 className="h-7 w-auto object-contain"
               />
               <span className="font-serif text-[22px] tracking-tight font-medium text-[#180f0a]">
@@ -35,6 +78,16 @@ export default function Footer() {
             <p className="text-[14px] leading-relaxed text-[#4e4540] max-w-sm">
               Handcrafted pipe-cleaner floral art, deckled botanical cards, and personalized gift keepsakes made to endure through quiet seasons.
             </p>
+
+            <Link
+              to="/gift-finder"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-white border border-[#e5e2dd] hover:border-[#964735] transition-colors group"
+            >
+              <Gift className="w-4 h-4 text-[#964735]" aria-hidden="true" />
+              <span className="text-[12px] font-semibold text-[#180f0a]">Not sure what to gift? Use the Gift Finder</span>
+              <ArrowRight className="w-3.5 h-3.5 text-[#80756f] group-hover:text-[#964735] transition-colors" aria-hidden="true" />
+            </Link>
+
             <div className="pt-2">
               <p className="text-[11px] uppercase tracking-wider font-bold text-[#4e4540]/80 mb-2">
                 Join Our Studio Newsletter
@@ -45,6 +98,7 @@ export default function Footer() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Your email address"
+                  aria-label="Your email address"
                   className="w-full px-4 py-2 rounded-full bg-white text-[13px] text-[#1c1c19] placeholder:text-[#80756f] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a]"
                   required
                 />
@@ -55,60 +109,32 @@ export default function Footer() {
                   Subscribe
                 </button>
               </form>
+              <p className="text-[11px] text-[#80756f] pt-2">Preview only — no emails are sent yet.</p>
             </div>
           </div>
 
-          {/* Col: Shop */}
-          <div className="md:col-span-2 space-y-3">
-            <h3 className="text-[11px] uppercase font-bold tracking-widest text-[#1c1c19]">Shop</h3>
-            <ul className="space-y-2 text-[13px] text-[#4e4540]">
-              <li><Link to="/shop" className="hover:text-[#180f0a] transition-colors">All Posies & Stems</Link></li>
-              <li><Link to="/custom-gifts" className="hover:text-[#180f0a] transition-colors">Custom Gift Studio</Link></li>
-              <li><Link to="/shop" className="hover:text-[#180f0a] transition-colors">Desk Blooms in Pots</Link></li>
-              <li><Link to="/shop" className="hover:text-[#180f0a] transition-colors">Botanical Cards</Link></li>
-              <li><Link to="/collections" className="hover:text-[#180f0a] transition-colors">Curated Archives</Link></li>
-            </ul>
-          </div>
-
-          {/* Col: Customer Care */}
-          <div className="md:col-span-2 space-y-3">
-            <h3 className="text-[11px] uppercase font-bold tracking-widest text-[#1c1c19]">Customer Care</h3>
-            <ul className="space-y-2 text-[13px] text-[#4e4540]">
-              <li><Link to="/order-tracking" className="hover:text-[#180f0a] transition-colors">Order Tracking</Link></li>
-              <li><Link to="/cart" className="hover:text-[#180f0a] transition-colors">Shopping Bag</Link></li>
-              <li><Link to="/wishlist" className="hover:text-[#180f0a] transition-colors">Saved Keepsakes</Link></li>
-              <li><Link to="/account" className="hover:text-[#180f0a] transition-colors">Customer Account</Link></li>
-              <li>
-                <Link to="/admin/login" className="text-[12px] text-[#a89f99] hover:text-[#180f0a] transition-colors">
-                  Staff / Admin Login
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Col: Atelier Craft */}
-          <div className="md:col-span-2 space-y-3">
-            <h3 className="text-[11px] uppercase font-bold tracking-widest text-[#1c1c19]">Craft & Story</h3>
-            <ul className="space-y-2 text-[13px] text-[#4e4540]">
-              <li><Link to="/our-creations" className="hover:text-[#180f0a] transition-colors">Our Portfolio</Link></li>
-              <li><Link to="/collections" className="hover:text-[#180f0a] transition-colors">Milestones & Occasions</Link></li>
-              <li><Link to="/custom-gifts" className="hover:text-[#180f0a] transition-colors">Bespoke Inquiries</Link></li>
-              <li><Link to="/shop" className="hover:text-[#180f0a] transition-colors">Studio Packaging</Link></li>
-            </ul>
-          </div>
-
-          {/* Col: Thoughtful Gifting */}
-          <div className="md:col-span-2 space-y-3">
-            <h3 className="text-[11px] uppercase font-bold tracking-widest text-[#1c1c19]">Handcrafted</h3>
-            <p className="text-[13px] leading-relaxed text-[#4e4540]">
-              Each flower petal and stem is hand-twisted with soft cotton chenille and tied with raw silk or cotton ribbons.
-            </p>
-            <div className="pt-1">
-              <span className="inline-block px-3 py-1 rounded-full bg-[#f0ede9] text-[#180f0a] text-[11px] font-semibold">
-                Pan-India Delivery
-              </span>
-            </div>
-          </div>
+          {/* Link Columns */}
+          {FOOTER_COLUMNS.map((col) => (
+            <nav key={col.title} className="md:col-span-2 space-y-3" aria-label={col.title}>
+              <h3 className="text-[11px] uppercase font-bold tracking-widest text-[#1c1c19]">{col.title}</h3>
+              <ul className="space-y-2 text-[13px] text-[#4e4540]">
+                {col.links.map((link) => (
+                  <li key={link.label}>
+                    <Link to={link.to} className="hover:text-[#180f0a] transition-colors">
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+                {col.title === 'Help' && (
+                  <li>
+                    <Link to="/admin/login" className="text-[12px] text-[#a89f99] hover:text-[#180f0a] transition-colors">
+                      Staff / Admin Login
+                    </Link>
+                  </li>
+                )}
+              </ul>
+            </nav>
+          ))}
         </div>
 
         {/* Bottom copyright */}

@@ -45,7 +45,8 @@ export default function ProductCard({ product }) {
         <button
           onClick={handleToggleWishlist}
           className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center text-[#4e4540] hover:text-[#964735] shadow-sm transition-all"
-          title={wishlisted ? 'Remove from wishlist' : 'Save to wishlist'}
+          title={wishlisted ? 'Remove from Saved Gifts' : 'Save to Saved Gifts'}
+          aria-label={wishlisted ? 'Remove from Saved Gifts' : 'Save to Saved Gifts'}
           type="button"
         >
           <Heart className={`w-4 h-4 ${wishlisted ? 'fill-[#964735] text-[#964735]' : ''}`} />

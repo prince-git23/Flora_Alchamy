@@ -3,10 +3,21 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { Filter, SlidersHorizontal, ArrowUpDown, X, Search, RotateCcw } from 'lucide-react';
 import ProductCard from '../components/ProductCard.jsx';
 import { getProducts as getCatalogProducts } from '../services/productService.js';
+import {
+  productMatchesOccasion,
+  productMatchesRecipient,
+  optionLabel,
+  OCCASION_OPTIONS,
+  RECIPIENT_OPTIONS,
+} from '../services/giftFinderService.js';
 
 export default function ShopPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialCategory = searchParams.get('category') || 'all';
+  // Phase 3G-A discovery filters — occasion / recipient are derived from real
+  // product attributes, never a fake hand-curated list.
+  const initialOccasion = searchParams.get('occasion') || '';
+  const initialRecipient = searchParams.get('recipient') || '';
 
   // Canonical catalogue — same persisted product set the Handler Portal manages,
   // so admin product edits/creations immediately reach the storefront.
@@ -15,6 +26,11 @@ export default function ShopPage() {
     4000,
     Math.ceil(Math.max(0, ...catalog.map(p => Number(p.price) || 0)) / 500) * 500
   );
+  const maxPriceParam = Number(searchParams.get('maxPrice'));
+  const initialMaxPrice =
+    Number.isFinite(maxPriceParam) && maxPriceParam > 0
+      ? Math.min(maxPriceCap, Math.max(400, maxPriceParam))
+      : maxPriceCap;
 
   // Derive real category chips from the catalogue (no ghost/empty categories).
   const categoryMap = catalog.reduce((acc, p) => {
@@ -27,7 +43,9 @@ export default function ShopPage() {
 
   const [products, setProducts] = useState(() => getCatalogProducts());
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
-  const [maxPrice, setMaxPrice] = useState(maxPriceCap);
+  const [selectedOccasion, setSelectedOccasion] = useState(initialOccasion);
+  const [selectedRecipient, setSelectedRecipient] = useState(initialRecipient);
+  const [maxPrice, setMaxPrice] = useState(initialMaxPrice);
   const [sortBy, setSortBy] = useState('featured');
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
@@ -38,6 +56,8 @@ export default function ShopPage() {
     let filtered = base.filter(p =>
       p.visibility !== 'Hidden' &&
       (selectedCategory === 'all' || p.category === selectedCategory) &&
+      productMatchesOccasion(p, selectedOccasion) &&
+      productMatchesRecipient(p, selectedRecipient) &&
       Number(p.price || 0) <= Number(maxPrice) &&
       (!q || [p.name, p.shortDescription, p.description, p.categoryLabel, ...(p.tags || [])]
         .filter(Boolean).join(' ').toLowerCase().includes(q))
@@ -46,7 +66,7 @@ export default function ShopPage() {
     if (sortBy === 'price-desc') filtered = [...filtered].sort((a, b) => (b.price || 0) - (a.price || 0));
     if (sortBy === 'rating') filtered = [...filtered].sort((a, b) => (b.rating || 0) - (a.rating || 0));
     setProducts(filtered);
-  }, [selectedCategory, maxPrice, sortBy, searchQuery]);
+  }, [selectedCategory, selectedOccasion, selectedRecipient, maxPrice, sortBy, searchQuery]);
 
   const handleCategoryChange = (catId) => {
     setSelectedCategory(catId);
@@ -60,10 +80,21 @@ export default function ShopPage() {
 
   const handleResetFilters = () => {
     setSelectedCategory('all');
+    setSelectedOccasion('');
+    setSelectedRecipient('');
     setMaxPrice(maxPriceCap);
     setSortBy('featured');
     setSearchQuery('');
     setSearchParams({});
+  };
+
+  const clearDiscoveryFilter = (key) => {
+    const next = new URLSearchParams(searchParams);
+    next.delete(key);
+    setSearchParams(next);
+    if (key === 'occasion') setSelectedOccasion('');
+    if (key === 'recipient') setSelectedRecipient('');
+    if (key === 'maxPrice') setMaxPrice(maxPriceCap);
   };
 
   return (
@@ -142,6 +173,40 @@ export default function ShopPage() {
           </div>
         </div>
 
+        {/* Active discovery filters (occasion / recipient / price from navigation) */}
+        {(selectedOccasion || selectedRecipient || Number(maxPrice) < maxPriceCap) && (
+          <div className="flex flex-wrap items-center gap-2 pb-6 mb-2">
+            <span className="text-[11px] uppercase font-bold tracking-wider text-[#80756f]">Filtering:</span>
+            {selectedOccasion && (
+              <button
+                type="button"
+                onClick={() => clearDiscoveryFilter('occasion')}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#180f0a] text-white text-[11px] font-semibold"
+              >
+                Occasion: {optionLabel('occasion', selectedOccasion)} <X className="w-3 h-3" aria-hidden="true" />
+              </button>
+            )}
+            {selectedRecipient && (
+              <button
+                type="button"
+                onClick={() => clearDiscoveryFilter('recipient')}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#180f0a] text-white text-[11px] font-semibold"
+              >
+                For: {optionLabel('recipient', selectedRecipient)} <X className="w-3 h-3" aria-hidden="true" />
+              </button>
+            )}
+            {Number(maxPrice) < maxPriceCap && (
+              <button
+                type="button"
+                onClick={() => clearDiscoveryFilter('maxPrice')}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#ebe8e3] text-[#180f0a] text-[11px] font-semibold"
+              >
+                Under ₹{Number(maxPrice).toLocaleString('en-IN')} <X className="w-3 h-3" aria-hidden="true" />
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Layout Grid with Sidebar Filters */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Desktop Filters Sidebar (3 cols) */}
@@ -181,6 +246,56 @@ export default function ShopPage() {
                 </div>
               </div>
 
+              {/* Occasion & Recipient discovery filters */}
+              <div className="pt-2 border-t border-[#e5e2dd] space-y-3">
+                <span className="text-[11px] uppercase font-bold tracking-wider text-[#80756f]">Shop by Occasion</span>
+                <select
+                  value={selectedOccasion}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setSelectedOccasion(value);
+                    const next = new URLSearchParams(searchParams);
+                    if (value) next.set('occasion', value);
+                    else next.delete('occasion');
+                    setSearchParams(next);
+                  }}
+                  aria-label="Filter by occasion"
+                  className="w-full px-4 py-2 rounded-full bg-[#fcf9f4] text-[13px] text-[#1c1c19] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a] cursor-pointer"
+                >
+                  <option value="">Any occasion</option>
+                  {OCCASION_OPTIONS.map((o) => (
+                    <option key={o.id} value={o.id}>{o.label}</option>
+                  ))}
+                </select>
+
+                <span className="text-[11px] uppercase font-bold tracking-wider text-[#80756f] block pt-1">Shop for Someone</span>
+                <select
+                  value={selectedRecipient}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setSelectedRecipient(value);
+                    const next = new URLSearchParams(searchParams);
+                    if (value) next.set('recipient', value);
+                    else next.delete('recipient');
+                    setSearchParams(next);
+                  }}
+                  aria-label="Filter by recipient"
+                  className="w-full px-4 py-2 rounded-full bg-[#fcf9f4] text-[13px] text-[#1c1c19] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a] cursor-pointer"
+                >
+                  <option value="">Anyone</option>
+                  {RECIPIENT_OPTIONS.map((r) => (
+                    <option key={r.id} value={r.id}>{r.label}</option>
+                  ))}
+                </select>
+
+                <Link
+                  to="/gift-finder"
+                  className="inline-flex items-center gap-1 text-[12px] font-bold text-[#964735] hover:underline pt-1"
+                >
+                  Not sure? Use the Gift Finder →
+                </Link>
+              </div>
+
               {/* Atelier Qualities */}
               <div className="pt-2 border-t border-[#e5e2dd] space-y-2">
                 <span className="text-[11px] uppercase font-bold tracking-wider text-[#80756f]">Atelier Highlights</span>
@@ -206,12 +321,12 @@ export default function ShopPage() {
                 <p className="text-[12px] text-[#4e4540] leading-relaxed">
                   We create tailored bridal bouquets, anniversary posies, and corporate gift hampers.
                 </p>
-                <a
-                  href="/custom-gifts"
+                <Link
+                  to="/custom-gifts"
                   className="inline-block text-[12px] font-bold text-[#964735] hover:underline"
                 >
                   Enter Bespoke Studio →
-                </a>
+                </Link>
               </div>
             </div>
           </aside>

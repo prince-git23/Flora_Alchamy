@@ -19,6 +19,7 @@ import WishlistPage from './pages/WishlistPage.jsx';
 import SearchPage from './pages/SearchPage.jsx';
 import CollectionsPage from './pages/CollectionsPage.jsx';
 import OurCreationsPage from './pages/OurCreationsPage.jsx';
+import GiftFinderPage from './pages/GiftFinderPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import NotFoundPage from './pages/NotFoundPage.jsx';
 import ConversationPage from './pages/ConversationPage.jsx';
@@ -102,6 +103,7 @@ export default function App() {
           <Route path="/shop" element={<ShopPage />} />
           <Route path="/product/:id" element={<ProductPage />} />
           <Route path="/custom-gifts" element={<CustomGiftsPage />} />
+          <Route path="/gift-finder" element={<GiftFinderPage />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/order-success/:orderId" element={<OrderSuccessPage />} />

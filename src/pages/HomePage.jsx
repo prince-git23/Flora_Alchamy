@@ -4,6 +4,17 @@ import { ArrowRight, Sparkles, Heart, Star, Eye, ShoppingBag, Brush, Gift, Shiel
 import BotanicalCanvas from '../components/BotanicalCanvas.jsx';
 import ProductCard from '../components/ProductCard.jsx';
 import { getProducts } from '../services/productService.js';
+import { OCCASION_OPTIONS, RECIPIENT_OPTIONS } from '../services/giftFinderService.js';
+
+// Phase 3G-A discovery entry points — each one is a real shop filter backed by
+// derived product attributes, never a decorative card.
+const FEATURED_OCCASIONS = ['birthday', 'anniversary', 'thank_you', 'festival', 'just_because', 'congratulations']
+  .map((id) => OCCASION_OPTIONS.find((o) => o.id === id))
+  .filter(Boolean);
+
+const FEATURED_RECIPIENTS = ['partner', 'mom', 'best_friend', 'someone_special', 'colleague', 'myself']
+  .map((id) => RECIPIENT_OPTIONS.find((r) => r.id === id))
+  .filter(Boolean);
 
 export default function HomePage() {
   const [bestsellerFilter, setBestsellerFilter] = useState('all');
@@ -81,6 +92,13 @@ export default function HomePage() {
                 >
                   <Sparkles className="w-4 h-4 text-[#964735]" />
                   <span>Create a Custom Gift</span>
+                </Link>
+                <Link
+                  to="/gift-finder"
+                  className="inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-full text-[13px] font-semibold text-[#180f0a] hover:text-[#964735] transition-colors"
+                >
+                  <Gift className="w-4 h-4 text-[#964735]" />
+                  <span>Find a Gift</span>
                 </Link>
               </div>
 
@@ -296,6 +314,78 @@ export default function HomePage() {
                 </div>
               </div>
             </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* 2b. SHOP BY OCCASION & RECIPIENT (Phase 3G-A discovery) */}
+      <section className="w-full py-16 lg:py-20 bg-[#fcf9f4] border-t border-[#e5e2dd]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-14">
+          {/* Occasions */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+            <div className="lg:col-span-4 space-y-3 lg:sticky lg:top-28">
+              <span className="text-[11px] font-bold uppercase tracking-widest text-[#964735]">Gift with intention</span>
+              <h2 className="font-serif text-[32px] sm:text-[38px] text-[#180f0a] tracking-tight font-normal leading-tight">
+                Shop by occasion.
+              </h2>
+              <p className="text-[15px] text-[#4e4540] leading-relaxed">
+                Start from the moment you&apos;re celebrating. Each occasion opens the handcrafted pieces that suit it.
+              </p>
+              <Link
+                to="/gift-finder"
+                className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#180f0a] hover:text-[#964735] transition-colors pt-1"
+              >
+                <span>Not sure? Use the Gift Finder</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+            <div className="lg:col-span-8 grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {FEATURED_OCCASIONS.map((occasion) => (
+                <Link
+                  key={occasion.id}
+                  to={`/shop?occasion=${occasion.id}`}
+                  className="group flex flex-col justify-between gap-3 p-5 rounded-3xl bg-[#f6f3ee] border border-[#e5e2dd] hover:bg-[#f0ede9] hover:shadow-lg transition-all duration-300 min-h-[108px]"
+                >
+                  <span className="text-2xl" aria-hidden="true">{occasion.icon}</span>
+                  <span className="flex items-center justify-between gap-2">
+                    <span className="font-serif text-[18px] text-[#180f0a] group-hover:text-[#964735] transition-colors">
+                      {occasion.label}
+                    </span>
+                    <ArrowRight className="w-4 h-4 text-[#80756f] group-hover:text-[#964735] transition-colors" aria-hidden="true" />
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* Recipients */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start pt-10 border-t border-[#e5e2dd]">
+            <div className="lg:col-span-4 space-y-3 lg:sticky lg:top-28">
+              <span className="text-[11px] font-bold uppercase tracking-widest text-[#964735]">For the people you love</span>
+              <h2 className="font-serif text-[32px] sm:text-[38px] text-[#180f0a] tracking-tight font-normal leading-tight">
+                Shop by recipient.
+              </h2>
+              <p className="text-[15px] text-[#4e4540] leading-relaxed">
+                Choose who the gift is for and browse pieces our studio most often crafts for them.
+              </p>
+            </div>
+            <div className="lg:col-span-8 grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {FEATURED_RECIPIENTS.map((recipient) => (
+                <Link
+                  key={recipient.id}
+                  to={`/shop?recipient=${recipient.id}`}
+                  className="group flex flex-col justify-between gap-3 p-5 rounded-3xl bg-white border border-[#e5e2dd] hover:border-[#964735] hover:shadow-lg transition-all duration-300 min-h-[108px]"
+                >
+                  <span className="text-2xl" aria-hidden="true">{recipient.icon}</span>
+                  <span className="flex items-center justify-between gap-2">
+                    <span className="font-serif text-[18px] text-[#180f0a] group-hover:text-[#964735] transition-colors">
+                      {recipient.label}
+                    </span>
+                    <ArrowRight className="w-4 h-4 text-[#80756f] group-hover:text-[#964735] transition-colors" aria-hidden="true" />
+                  </span>
+                </Link>
+              ))}
+            </div>
           </div>
         </div>
       </section>

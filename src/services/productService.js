@@ -63,6 +63,14 @@ export function fromApiProduct(p) {
     dimensions: '',
     rating: 0,
     reviewCount: 0,
+    // Phase 3G-A: expose the raw backend palette/occasion labels and the
+    // public stockTracked flag so gift discovery (Gift Finder, occasion /
+    // recipient shop filters) derives its taxonomy from real product data
+    // instead of a duplicate catalogue. Inventory itself stays admin-scoped
+    // (customers get 403 on /api/inventory), so `stock` is only advisory here.
+    palette: p.palette || '',
+    occasion: p.occasion || '',
+    stockTracked: p.stockTracked !== false,
     palettes: p.palette
       ? [{ id: slugify(p.palette), name: p.palette, color1: '#964735', color2: '#180f0a' }]
       : [],

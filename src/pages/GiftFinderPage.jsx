@@ -1,0 +1,446 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ArrowLeft, ArrowRight, RotateCcw, ShoppingBag, Heart, Sparkles, Check } from 'lucide-react';
+import { useStore } from '../context/StoreContext.jsx';
+import { getProducts } from '../services/productService.js';
+import { subscribeStore } from '../services/dataStore.js';
+import {
+  RECIPIENT_OPTIONS,
+  OCCASION_OPTIONS,
+  BUDGET_OPTIONS,
+  STYLE_OPTIONS,
+  PERSONALIZATION_OPTIONS,
+  STEP_LABELS,
+  optionLabel,
+  recommendGifts,
+} from '../services/giftFinderService.js';
+
+const STEPS = [
+  { key: 'recipient', title: 'Who are you gifting?', hint: 'We shape the shortlist around them.', options: RECIPIENT_OPTIONS },
+  { key: 'occasion', title: "What's the occasion?", hint: 'Helps us set the tone of the gift.', options: OCCASION_OPTIONS },
+  { key: 'budget', title: "What's your budget?", hint: 'Every recommendation will fit inside it.', options: BUDGET_OPTIONS },
+  { key: 'style', title: "What's their style?", hint: 'Palette and mood, not a price bracket.', options: STYLE_OPTIONS },
+  { key: 'personalization', title: 'How personal should it be?', hint: 'From ready-to-gift to fully bespoke.', options: PERSONALIZATION_OPTIONS },
+];
+
+const EMPTY_ANSWERS = { recipient: '', occasion: '', budget: '', style: '', personalization: '' };
+
+function GiftResultCard({ result, index }) {
+  const { addItemToCart, toggleWishlist, isWishlisted } = useStore();
+  const { product, reasons, attributes } = result;
+  const saved = isWishlisted(product.id);
+
+  return (
+    <article
+      className="fa-fade-in group flex flex-col bg-white rounded-3xl border border-[#f0ede9] shadow-[0_4px_20px_-2px_rgba(46,36,30,0.04)] hover:shadow-[0_12px_32px_-4px_rgba(46,36,30,0.09)] transition-all duration-300 overflow-hidden"
+      style={{ animationDelay: `${index * 60}ms` }}
+    >
+      <div className="relative aspect-[4/3] bg-[#f6f3ee] overflow-hidden">
+        <Link to={`/product/${product.id}`} className="block w-full h-full">
+          <img
+            src={product.images ? product.images[0] : product.image}
+            alt={product.name}
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            loading="lazy"
+          />
+        </Link>
+        <span className="absolute top-3 left-3 px-2.5 py-0.5 rounded-full bg-white/90 backdrop-blur-sm text-[10px] font-bold uppercase tracking-wider text-[#180f0a]">
+          {product.categoryLabel || product.category}
+        </span>
+        <button
+          type="button"
+          onClick={() => toggleWishlist(product)}
+          title={saved ? 'Remove from Saved Gifts' : 'Save to Saved Gifts'}
+          aria-label={saved ? 'Remove from Saved Gifts' : 'Save to Saved Gifts'}
+          className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center text-[#4e4540] hover:text-[#964735] shadow-sm transition-all"
+        >
+          <Heart className={`w-4 h-4 ${saved ? 'fill-[#964735] text-[#964735]' : ''}`} aria-hidden="true" />
+        </button>
+      </div>
+
+      <div className="flex-1 flex flex-col justify-between p-5 space-y-4">
+        <div className="space-y-2">
+          <Link to={`/product/${product.id}`}>
+            <h3 className="font-serif text-[19px] text-[#180f0a] leading-snug font-medium hover:text-[#964735] transition-colors">
+              {product.name}
+            </h3>
+          </Link>
+          <p className="text-[17px] font-bold text-[#180f0a]">₹{Number(product.price).toLocaleString('en-IN')}</p>
+          {reasons.length > 0 && (
+            <ul className="space-y-1 pt-1">
+              {reasons.slice(0, 2).map((reason) => (
+                <li key={reason} className="flex items-start gap-1.5 text-[12.5px] text-[#4e4540] leading-relaxed">
+                  <Check className="w-3.5 h-3.5 text-[#5b6d54] mt-0.5 shrink-0" aria-hidden="true" />
+                  <span>{reason}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="pt-3 border-t border-[#f0ede9] flex items-center justify-between gap-2">
+          <Link
+            to={`/product/${product.id}`}
+            className="text-[12px] font-semibold text-[#180f0a] hover:text-[#964735] transition-colors"
+          >
+            View Gift →
+          </Link>
+          <div className="flex items-center gap-2">
+            {attributes.personalization !== 'simple' && (
+              <Link
+                to="/custom-gifts"
+                className="px-3 py-1.5 rounded-full bg-[#f6f3ee] text-[11px] font-semibold text-[#4e4540] hover:text-[#180f0a] transition-colors"
+              >
+                Customize
+              </Link>
+            )}
+            <button
+              type="button"
+              onClick={() => addItemToCart(product)}
+              className="px-3.5 py-1.5 rounded-full bg-[#180f0a] text-white hover:bg-[#964735] transition-all text-[12px] font-semibold flex items-center gap-1.5 shadow-sm active:translate-y-0.5"
+            >
+              <ShoppingBag className="w-3.5 h-3.5" aria-hidden="true" />
+              Add to Bag
+            </button>
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+export default function GiftFinderPage() {
+  const [step, setStep] = useState(0);
+  const [answers, setAnswers] = useState(EMPTY_ANSWERS);
+  const [showResults, setShowResults] = useState(false);
+  const [relaxed, setRelaxed] = useState(false);
+  const [tick, setTick] = useState(0);
+
+  // The catalogue hydrates asynchronously at boot; re-render when it lands.
+  useEffect(() => subscribeStore(() => setTick((n) => n + 1)), []);
+
+  const catalogue = useMemo(() => getProducts(), [tick]);
+
+  const current = STEPS[step];
+  const heroRef = React.useRef(null);
+
+  const scrollTop = () => {
+    if (heroRef.current) heroRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const select = (key, value) => setAnswers((a) => ({ ...a, [key]: value }));
+
+  const goNext = () => {
+    if (!answers[current.key]) return;
+    if (step < STEPS.length - 1) {
+      setStep((s) => s + 1);
+      scrollTop();
+    } else {
+      setShowResults(true);
+      setRelaxed(false);
+      scrollTop();
+    }
+  };
+
+  const goBack = () => {
+    if (showResults) {
+      setShowResults(false);
+      scrollTop();
+      return;
+    }
+    if (step > 0) {
+      setStep((s) => s - 1);
+      scrollTop();
+    }
+  };
+
+  const restart = () => {
+    setAnswers(EMPTY_ANSWERS);
+    setStep(0);
+    setShowResults(false);
+    setRelaxed(false);
+    scrollTop();
+  };
+
+  const jumpToStep = (i) => {
+    if (i <= step || showResults) {
+      setStep(i);
+      setShowResults(false);
+      scrollTop();
+    }
+  };
+
+  const { results, relaxed: isRelaxed, hadBudgetMatch } = recommendGifts(answers, catalogue, {
+    limit: 6,
+    relaxBudget: relaxed,
+  });
+
+  const summary = [
+    optionLabel('recipient', answers.recipient),
+    optionLabel('occasion', answers.occasion),
+    optionLabel('budget', answers.budget),
+    optionLabel('style', answers.style),
+    optionLabel('personalization', answers.personalization),
+  ].filter(Boolean);
+
+  return (
+    <div className="w-full bg-[#fcf9f4] min-h-screen py-10 lg:py-16">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8" ref={heroRef}>
+        {/* Header */}
+        <div className="text-center max-w-2xl mx-auto space-y-3 mb-10">
+          <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#ffdad3]/50 text-[#964735] text-[11px] font-bold uppercase tracking-wider">
+            <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
+            <span>The Gift Finder</span>
+          </div>
+          <h1 className="font-serif text-[36px] sm:text-[46px] text-[#180f0a] tracking-tight font-normal">
+            Let&apos;s find the right gift.
+          </h1>
+          <p className="text-[15px] text-[#4e4540] leading-relaxed">
+            Five quick questions. We&apos;ll shortlist handcrafted pieces from our live atelier catalogue — with a reason for each pick.
+          </p>
+        </div>
+
+        {/* Progress */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between gap-2 max-w-3xl mx-auto">
+            {STEP_LABELS.map((label, i) => {
+              const done = showResults || i < step;
+              const active = !showResults && i === step;
+              const reachable = showResults || i <= step;
+              return (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => reachable && jumpToStep(i)}
+                  aria-current={active ? 'step' : undefined}
+                  disabled={!reachable}
+                  className={`flex-1 flex flex-col items-center gap-1.5 group ${reachable ? 'cursor-pointer' : 'cursor-default'}`}
+                >
+                  <span
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold border transition-colors ${
+                      active
+                        ? 'bg-[#180f0a] text-white border-[#180f0a]'
+                        : done
+                        ? 'bg-[#d8e7cd] text-[#3c4a36] border-[#d8e7cd]'
+                        : 'bg-white text-[#80756f] border-[#e5e2dd]'
+                    }`}
+                  >
+                    {done ? <Check className="w-3.5 h-3.5" aria-hidden="true" /> : i + 1}
+                  </span>
+                  <span className={`text-[10px] uppercase tracking-wider font-bold ${active ? 'text-[#180f0a]' : 'text-[#80756f]'}`}>
+                    {label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="max-w-3xl mx-auto mt-4 h-1 rounded-full bg-[#e5e2dd] overflow-hidden">
+            <div
+              className="h-full bg-[#964735] transition-all duration-500"
+              style={{ width: `${((showResults ? 5 : step) / 5) * 100}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Wizard */}
+        {!showResults && (
+          <div className="fa-fade-in bg-white rounded-3xl border border-[#e5e2dd] shadow-sm p-6 sm:p-10">
+            <div className="flex items-start justify-between gap-4 mb-6">
+              <div>
+                <p className="text-[11px] uppercase font-bold tracking-widest text-[#964735]">
+                  Step {step + 1} of 5
+                </p>
+                <h2 className="font-serif text-[26px] sm:text-[30px] text-[#180f0a] font-normal mt-1">{current.title}</h2>
+                <p className="text-[13.5px] text-[#4e4540]">{current.hint}</p>
+              </div>
+              {summary.length > 0 && (
+                <button
+                  type="button"
+                  onClick={restart}
+                  className="flex items-center gap-1.5 text-[12px] font-semibold text-[#80756f] hover:text-[#964735] transition-colors shrink-0"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />
+                  Restart
+                </button>
+              )}
+            </div>
+
+            <div
+              role="group"
+              aria-label={current.title}
+              className={`grid gap-3 ${current.options.length > 6 ? 'grid-cols-2 sm:grid-cols-3' : 'grid-cols-2 sm:grid-cols-3'}`}
+            >
+              {current.options.map((option) => {
+                const selected = answers[current.key] === option.id;
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => select(current.key, option.id)}
+                    className={`flex flex-col items-start gap-1 p-4 rounded-2xl border text-left transition-all ${
+                      selected
+                        ? 'border-[#180f0a] bg-[#f6f3ee] shadow-sm'
+                        : 'border-[#e5e2dd] bg-white hover:border-[#964735] hover:shadow-sm'
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      {option.icon && <span className="text-[18px]" aria-hidden="true">{option.icon}</span>}
+                      <span className={`text-[13.5px] font-semibold ${selected ? 'text-[#180f0a]' : 'text-[#4e4540]'}`}>
+                        {option.label}
+                      </span>
+                      {selected && <Check className="w-3.5 h-3.5 text-[#964735] ml-auto" aria-hidden="true" />}
+                    </span>
+                    {option.description && (
+                      <span className="text-[12px] text-[#80756f]">{option.description}</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="flex items-center justify-between gap-3 pt-8">
+              <button
+                type="button"
+                onClick={goBack}
+                disabled={step === 0}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-[#e5e2dd] text-[13px] font-semibold text-[#180f0a] hover:bg-[#f6f3ee] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+                Back
+              </button>
+
+              <button
+                type="button"
+                onClick={goNext}
+                disabled={!answers[current.key]}
+                className="inline-flex items-center gap-2 px-7 py-3 rounded-full bg-[#180f0a] text-white text-[13px] font-semibold hover:bg-[#964735] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {step < STEPS.length - 1 ? 'Continue' : 'See My Gifts'}
+                <ArrowRight className="w-4 h-4" aria-hidden="true" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Results */}
+        {showResults && (
+          <div className="space-y-8">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+              <div className="space-y-1">
+                <p className="text-[11px] uppercase font-bold tracking-widest text-[#964735]">Your shortlist</p>
+                <h2 className="font-serif text-[28px] sm:text-[34px] text-[#180f0a] font-normal">
+                  Here are a few gifts we&apos;d choose.
+                </h2>
+                {summary.length > 0 && (
+                  <p className="text-[13px] text-[#4e4540]">
+                    For a <strong className="text-[#180f0a]">{summary.join(' · ')}</strong>
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                <button
+                  type="button"
+                  onClick={goBack}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-[#e5e2dd] text-[13px] font-semibold text-[#180f0a] hover:bg-[#f6f3ee] transition-colors bg-white"
+                >
+                  <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+                  Refine Answers
+                </button>
+                <button
+                  type="button"
+                  onClick={restart}
+                  className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#80756f] hover:text-[#964735] transition-colors"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />
+                  Start Again
+                </button>
+              </div>
+            </div>
+
+            {results.length > 0 ? (
+              <>
+                {isRelaxed && (
+                  <div className="rounded-2xl bg-[#f6f3ee] border border-[#e5e2dd] p-4 text-[13px] text-[#4e4540]">
+                    Nothing in the catalogue fits <strong className="text-[#180f0a]">{optionLabel('budget', answers.budget)}</strong> exactly. These handcrafted pieces sit just outside it — shown so you can decide whether to stretch the budget.
+                  </div>
+                )}
+                {!isRelaxed && answers.occasion && !results.some((r) => r.attributes.occasions.includes(answers.occasion)) && (
+                  <div className="rounded-2xl bg-[#f6f3ee] border border-[#e5e2dd] p-4 text-[13px] text-[#4e4540]">
+                    Nothing inside <strong className="text-[#180f0a]">{optionLabel('budget', answers.budget)}</strong> matches{' '}
+                    <strong className="text-[#180f0a]">{optionLabel('occasion', answers.occasion)}</strong> exactly — these are the handcrafted pieces that fit your budget, so you can decide if the occasion or the price is the one to flex.
+                  </div>
+                )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {results.map((result, i) => (
+                    <GiftResultCard key={result.product.id} result={result} index={i} />
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="bg-white rounded-3xl p-10 sm:p-14 text-center border border-[#e5e2dd] max-w-xl mx-auto space-y-4">
+                <div className="w-16 h-16 rounded-full bg-[#f6f3ee] mx-auto flex items-center justify-center text-3xl" aria-hidden="true">
+                  🌱
+                </div>
+                <h3 className="font-serif text-[24px] text-[#180f0a]">We couldn&apos;t find an exact match yet.</h3>
+                <p className="text-[14px] text-[#4e4540] leading-relaxed">
+                  {!hadBudgetMatch
+                    ? `No handcrafted piece currently sits inside ${optionLabel('budget', answers.budget)}. You can widen the budget or browse the full catalogue.`
+                    : 'Try a different combination of answers, or browse the full catalogue.'}
+                </p>
+                <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                  {!hadBudgetMatch && (
+                    <button
+                      type="button"
+                      onClick={() => setRelaxed(true)}
+                      className="px-6 py-2.5 rounded-full bg-[#180f0a] text-white text-[13px] font-semibold hover:bg-[#964735] transition-colors"
+                    >
+                      Show closest gifts above budget
+                    </button>
+                  )}
+                  <Link
+                    to="/shop"
+                    className="px-6 py-2.5 rounded-full bg-white border border-[#e5e2dd] text-[#180f0a] text-[13px] font-semibold hover:bg-[#f6f3ee] transition-colors"
+                  >
+                    Browse All Gifts
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => { setShowResults(false); setStep(2); scrollTop(); }}
+                    className="px-6 py-2.5 rounded-full bg-white border border-[#e5e2dd] text-[#180f0a] text-[13px] font-semibold hover:bg-[#f6f3ee] transition-colors"
+                  >
+                    Adjust Budget
+                  </button>
+                  <button
+                    type="button"
+                    onClick={restart}
+                    className="px-6 py-2.5 rounded-full text-[13px] font-semibold text-[#80756f] hover:text-[#964735] transition-colors"
+                  >
+                    Start Over
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Custom studio prompt */}
+            <div className="rounded-3xl bg-[#180f0a] text-white p-8 sm:p-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+              <div className="space-y-2 max-w-xl">
+                <span className="text-[11px] uppercase font-bold tracking-widest text-[#ffdad3]">Nothing quite right?</span>
+                <h3 className="font-serif text-[26px] sm:text-[30px] font-normal">Build it from scratch in the Custom Gift Studio.</h3>
+                <p className="text-[14px] text-[#d4c3ba] leading-relaxed">
+                  Choose the base, palette, ribbon and handwritten note — our artisans handcraft it to order.
+                </p>
+              </div>
+              <Link
+                to="/custom-gifts"
+                className="px-8 py-3.5 rounded-full bg-[#ffdad3] text-[#180f0a] hover:bg-white text-[13px] font-semibold transition-all shrink-0 shadow-md"
+              >
+                Create a Custom Gift
+              </Link>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
