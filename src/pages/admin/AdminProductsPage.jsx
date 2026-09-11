@@ -141,8 +141,8 @@ export default function AdminProductsPage() {
                     <span className="text-[10px] text-[#80756f] font-mono">{product.sku}</span>
                   </div>
                   <div className="flex items-center gap-2 pt-1">
-                    <span className={`w-1.5 h-1.5 rounded-full ${product.visibility === 'hidden' ? 'bg-[#ba1a1a]' : 'bg-[#5b6d54]'}`}></span>
-                    <span className="text-[11px] text-[#80756f]">Visible</span>
+                    <span className={`w-1.5 h-1.5 rounded-full ${product.visibility === 'Hidden' ? 'bg-[#ba1a1a]' : 'bg-[#5b6d54]'}`}></span>
+                    <span className="text-[11px] text-[#80756f]">{product.visibility === 'Hidden' ? 'Hidden' : 'Visible'}</span>
                   </div>
                 </div>
               </Link>

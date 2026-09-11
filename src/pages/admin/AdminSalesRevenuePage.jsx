@@ -8,7 +8,14 @@ export default function AdminSalesRevenuePage() {
   const summary = useMemo(() => getAnalyticsSummary(), []);
   const orders = useMemo(() => getOrders(), []);
 
-  // Build revenue bars from order data
+  // Revenue only counts Paid (verified) + legacy Sample orders — mirrors the
+  // backend revenue rule. Pending / Failed / Refunded are never revenue.
+  const revenueOrders = useMemo(
+    () => orders.filter(o => ['Paid', 'Sample'].includes(o.paymentStatus)),
+    [orders]
+  );
+
+  // Build revenue bars from real revenue orders (no synthetic filler values).
   const revenueBars = useMemo(() => {
     const now = new Date();
     const bars = [];
@@ -17,22 +24,34 @@ export default function AdminSalesRevenuePage() {
       const d = new Date(now);
       d.setDate(d.getDate() - i);
       const dayStr = d.toISOString().split('T')[0];
-      const dayRevenue = orders.filter(o => o.createdAt.split('T')[0] === dayStr).reduce((s, o) => s + o.total, 0);
-      bars.push({ label: dayLabels[d.getDay() === 0 ? 6 : d.getDay() - 1], value: dayRevenue || Math.floor(Math.random() * 5000 + 2000) });
+      const dayRevenue = revenueOrders
+        .filter(o => String(o.createdAt || '').split('T')[0] === dayStr)
+        .reduce((s, o) => s + (o.total || 0), 0);
+      bars.push({ label: dayLabels[d.getDay() === 0 ? 6 : d.getDay() - 1], value: dayRevenue });
     }
     return bars;
-  }, [orders]);
+  }, [revenueOrders]);
 
-  const maxBar = Math.max(...revenueBars.map(b => b.value));
+  const maxBar = Math.max(1, ...revenueBars.map(b => b.value));
 
-  // Monthly revenue
+  // Monthly revenue derived from real revenue orders (last 3 months).
   const monthlyData = useMemo(() => {
-    return [
-      { month: 'Aug 2025', revenue: 348500, orders: 45, aov: 7744 },
-      { month: 'Jul 2025', revenue: 298000, orders: 38, aov: 7842 },
-      { month: 'Jun 2025', revenue: 335500, orders: 42, aov: 7988 },
-    ];
-  }, []);
+    const now = new Date();
+    const months = [];
+    for (let i = 2; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const monthOrders = revenueOrders.filter(o => String(o.createdAt || '').startsWith(monthKey));
+      const revenue = monthOrders.reduce((s, o) => s + (o.total || 0), 0);
+      months.push({
+        month: d.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }),
+        revenue,
+        orders: monthOrders.length,
+        aov: monthOrders.length ? Math.round(revenue / monthOrders.length) : 0,
+      });
+    }
+    return months;
+  }, [revenueOrders]);
 
   return (
     <AdminLayout>

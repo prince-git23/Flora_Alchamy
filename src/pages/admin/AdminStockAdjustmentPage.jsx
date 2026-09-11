@@ -20,7 +20,7 @@ export default function AdminStockAdjustmentPage() {
     if (!selectedProduct || !quantity || !reason) return;
     const qty = adjustmentType === 'add' ? Math.abs(parseInt(quantity)) : -Math.abs(parseInt(quantity));
     try {
-      await adjustStock(selectedProduct, qty, adjustmentType === 'add' ? 'Addition' : 'Subtraction', reason);
+      await adjustStock(selectedProduct, qty, adjustmentType === 'add' ? 'restock' : 'remove', reason);
       setRecentAdjustments(getInventoryHistory());
       triggerToast(`Stock adjustment saved to the backend: ${adjustmentType === 'add' ? '+' : ''}${qty} units`);
       setSelectedProduct(''); setQuantity(''); setReason('');

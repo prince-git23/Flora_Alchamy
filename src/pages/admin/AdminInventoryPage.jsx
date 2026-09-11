@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout.jsx';
 import { getInventory, getLowStockItems, getInventoryHistory } from '../../services/inventoryService.js';
+import { getProducts } from '../../services/productService.js';
 import { formatINR, formatDate } from '../../services/orderService.js';
 
 export default function AdminInventoryPage() {
@@ -10,6 +11,11 @@ export default function AdminInventoryPage() {
 
   const inventory = useMemo(() => getInventory(), []);
   const history = useMemo(() => getInventoryHistory(), []);
+  const productCategories = useMemo(() => {
+    const map = {};
+    getProducts().forEach((p) => { map[p.id] = p.categoryLabel || p.category || ''; });
+    return map;
+  }, []);
 
   const totalProducts = inventory.length;
   const inStock = inventory.filter(i => i.status === 'In Stock').length;
@@ -128,7 +134,7 @@ export default function AdminInventoryPage() {
                     <tr key={item.productId} className="hover:bg-[#f6f3ee]/50 transition-colors">
                       <td className="py-3 px-4 font-medium text-[#180f0a] max-w-[220px] truncate">{item.productName}</td>
                       <td className="py-3 px-4 text-[12px] font-mono text-[#80756f]">{item.sku}</td>
-                      <td className="py-3 px-4 text-[12px] text-[#4e4540]">{item.category}</td>
+                      <td className="py-3 px-4 text-[12px] text-[#4e4540]">{productCategories[item.productSlug] || '—'}</td>
                       <td className="py-3 px-4 text-center">
                         <span className={`font-bold ${item.currentStock <= item.reorderLevel / 2 ? 'text-[#ba1a1a]' : item.currentStock <= item.reorderLevel ? 'text-[#964735]' : 'text-[#180f0a]'}`}>{item.currentStock}</span>
                       </td>

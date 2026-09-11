@@ -21,6 +21,7 @@ import CollectionsPage from './pages/CollectionsPage.jsx';
 import OurCreationsPage from './pages/OurCreationsPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import NotFoundPage from './pages/NotFoundPage.jsx';
+import ConversationPage from './pages/ConversationPage.jsx';
 
 // Admin / Handler Pages
 import AdminDashboardPage from './pages/admin/AdminDashboardPage.jsx';
@@ -113,6 +114,7 @@ export default function App() {
           <Route path="/collections" element={<CollectionsPage />} />
           <Route path="/our-creations" element={<OurCreationsPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/order/:orderId/conversation" element={<ConversationPage />} />
 
           {/* Admin / Handler Portal Routes */}
           <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
@@ -121,6 +123,7 @@ export default function App() {
           {/* Commerce */}
           <Route path="/admin/orders" element={<AdminRoute><AdminOrdersPage /></AdminRoute>} />
           <Route path="/admin/orders/:orderId" element={<AdminRoute><AdminOrderDetailPage /></AdminRoute>} />
+          <Route path="/admin/orders/:orderId/conversation" element={<AdminRoute><ConversationPage /></AdminRoute>} />
           <Route path="/admin/orders/new" element={<AdminRoute><AdminCreateOrderPage /></AdminRoute>} />
           <Route path="/admin/products" element={<AdminRoute><AdminProductsPage /></AdminRoute>} />
           <Route path="/admin/products/:productId" element={<AdminRoute><AdminProductDetailPage /></AdminRoute>} />

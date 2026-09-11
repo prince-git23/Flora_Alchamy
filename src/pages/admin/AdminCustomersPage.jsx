@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout.jsx';
 import { getCustomers, getCustomerById } from '../../services/customerService.js';
 import { getOrders, formatINR, formatDate } from '../../services/orderService.js';
+import { isRevenue } from '../../services/analyticsService.js';
 
 export default function AdminCustomersPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -14,8 +15,9 @@ export default function AdminCustomersPage() {
   const orders = useMemo(() => getOrders(), []);
 
   const customersWithMetrics = useMemo(() => {
+    const revenueOrders = orders.filter(isRevenue);
     return allCustomers.map(c => {
-      const customerOrders = orders.filter(o => o.customerId === c.id);
+      const customerOrders = revenueOrders.filter(o => o.customerId === c.id);
       return { ...c, orderCount: customerOrders.length, totalSpend: customerOrders.reduce((s, o) => s + o.total, 0) };
     });
   }, [allCustomers, orders]);

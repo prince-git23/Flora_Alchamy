@@ -1,46 +1,28 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Sparkles, BookOpen } from 'lucide-react';
+import { getCollections, getCollectionProducts } from '../services/collectionService.js';
 
 export default function CollectionsPage() {
-  const collections = [
-    {
-      id: 'spring-archive',
-      title: 'The Spring & Mother\'s Day Archive',
-      subtitle: 'Soft blush peonies, wild lavender spires, and deckled cotton cards.',
-      image: '/assets/images/flora-asset-14.jpg',
-      category: 'bouquets',
-      pieceCount: '6 Handcrafted Editions',
-      badge: 'Current Archive'
-    },
-    {
-      id: 'keepsake-hampers',
-      title: 'Heirloom Casket & Hamper Suites',
-      subtitle: 'Solid pine sliding boxes, brass florist shears, and organic wax seals.',
-      image: '/assets/images/flora-asset-11.jpg',
-      category: 'hampers',
-      pieceCount: '4 Bespoke Suites',
-      badge: 'Bespoke Craft'
-    },
-    {
-      id: 'desk-sanctuary',
-      title: 'Desk & Vessel Sanctuary',
-      subtitle: 'Speckled stoneware ceramics, single flower stems, and pocket mascots.',
-      image: '/assets/images/flora-asset-09.jpg',
-      category: 'charms',
-      pieceCount: '8 Minimalist Pieces',
-      badge: 'Evergreen'
-    },
-    {
-      id: 'botanical-stationery',
-      title: 'Deckled Botanical Papercraft & Seals',
-      subtitle: 'Archival 350 GSM cotton rag cards with pressed larkspur and beeswax seals.',
-      image: '/assets/images/flora-asset-06.jpg',
-      category: 'cards',
-      pieceCount: '5 Stationery Suites',
-      badge: 'Archival Press'
-    }
-  ];
+  // Collections are backend-authoritative (Admin Collections CRUD writes the
+  // same records). The storefront renders that live catalogue instead of a
+  // hardcoded duplicate list.
+  const collections = useMemo(
+    () =>
+      getCollections().map((c) => {
+        const products = getCollectionProducts(c.id);
+        return {
+          id: c.id,
+          title: c.name,
+          subtitle: c.description,
+          image: c.coverImage,
+          category: products[0]?.category || 'all',
+          pieceCount: `${c.productCount} Handcrafted Edition${c.productCount === 1 ? '' : 's'}`,
+          badge: c.visibility === 'Hidden' ? 'Hidden' : 'Curated',
+        };
+      }),
+    []
+  );
 
   return (
     <div className="w-full bg-[#fcf9f4] min-h-screen py-10 lg:py-16">

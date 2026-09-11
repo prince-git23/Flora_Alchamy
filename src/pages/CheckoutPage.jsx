@@ -619,7 +619,7 @@ export default function CheckoutPage() {
                             </div>
                           </div>
                           <span className="text-[13px] font-bold text-[#180f0a]">
-                            {cartSubtotal >= freeShippingThreshold ? 'Complimentary' : `₹${settings.standardShippingFee || 150}`}
+                            {cartSubtotal >= freeShippingThreshold ? 'Complimentary' : `₹${settings.standardShippingRate ?? 150}`}
                           </span>
                         </label>
 
@@ -641,7 +641,7 @@ export default function CheckoutPage() {
                               <p className="text-[12px] text-[#80756f]">Priority creation in atelier + expedited dispatch (2 days).</p>
                             </div>
                           </div>
-                          <span className="text-[13px] font-bold text-[#180f0a]">₹{settings.expressShippingFee || 250}</span>
+                          <span className="text-[13px] font-bold text-[#180f0a]">₹{settings.expressShippingRate ?? 250}</span>
                         </label>
                       </div>
                     </div>

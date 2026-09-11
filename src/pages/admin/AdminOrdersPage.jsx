@@ -99,7 +99,7 @@ export default function AdminOrdersPage() {
               <span className="material-symbols-outlined text-[16px]">shopping_bag</span>
             </div>
             <div className="text-3xl font-serif font-medium text-[#180f0a] leading-none">{counts.total}</div>
-            <p className="text-[11px] text-emerald-700 mt-2 flex items-center gap-1"><span className="font-medium">↗ +14%</span> vs last week</p>
+            <p className="text-[11px] text-[#80756f] mt-2">All customer orders</p>
           </div>
           <div className="bg-white p-4 rounded-xl border border-[#e5e2dd] shadow-xs hover:border-[#d1c4bd] transition">
             <div className="flex items-center justify-between text-[#80756f] mb-1.5">

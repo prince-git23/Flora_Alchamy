@@ -3,11 +3,13 @@ import { useParams, Link } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout.jsx';
 import { getCustomerById, getCustomers } from '../../services/customerService.js';
 import { getOrdersByCustomer, formatINR, formatDate, ORDER_STATUS_STYLES, ORDER_STATUSES } from '../../services/orderService.js';
+import { isRevenue } from '../../services/analyticsService.js';
 
 export default function AdminCustomerDetailPage() {
   const { customerId } = useParams();
   const customer = useMemo(() => getCustomerById(customerId), [customerId]);
   const customerOrders = useMemo(() => getOrdersByCustomer(customerId), [customerId]);
+  const revenueOrders = useMemo(() => customerOrders.filter(isRevenue), [customerOrders]);
 
   if (!customer) {
     return (
@@ -28,7 +30,7 @@ export default function AdminCustomerDetailPage() {
     );
   }
 
-  const totalSpend = customerOrders.reduce((s, o) => s + o.total, 0);
+  const totalSpend = revenueOrders.reduce((s, o) => s + o.total, 0);
 
   return (
     <AdminLayout>
@@ -50,7 +52,7 @@ export default function AdminCustomerDetailPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
           <div className="bg-white p-4 rounded-xl border border-[#e5e2dd] shadow-xs">
             <div className="flex items-center justify-between text-[#80756f] mb-1.5"><span className="text-[11px] uppercase tracking-wider font-semibold">Total Orders</span><span className="material-symbols-outlined text-[16px]">shopping_bag</span></div>
-            <div className="text-3xl font-serif font-medium text-[#180f0a] leading-none">{customerOrders.length}</div>
+            <div className="text-3xl font-serif font-medium text-[#180f0a] leading-none">{revenueOrders.length}</div>
           </div>
           <div className="bg-white p-4 rounded-xl border border-[#e5e2dd] shadow-xs">
             <div className="flex items-center justify-between text-[#80756f] mb-1.5"><span className="text-[11px] uppercase tracking-wider font-semibold">Total Spend</span><span className="material-symbols-outlined text-[16px] text-[#180f0a]">payments</span></div>
@@ -58,7 +60,7 @@ export default function AdminCustomerDetailPage() {
           </div>
           <div className="bg-white p-4 rounded-xl border border-[#e5e2dd] shadow-xs">
             <div className="flex items-center justify-between text-[#80756f] mb-1.5"><span className="text-[11px] uppercase tracking-wider font-semibold">Avg. Order</span><span className="material-symbols-outlined text-[16px] text-[#964735]">trending_up</span></div>
-            <div className="text-3xl font-serif font-medium text-[#180f0a] leading-none">{customerOrders.length > 0 ? formatINR(Math.round(totalSpend / customerOrders.length)) : '₹0'}</div>
+            <div className="text-3xl font-serif font-medium text-[#180f0a] leading-none">{revenueOrders.length > 0 ? formatINR(Math.round(totalSpend / revenueOrders.length)) : '₹0'}</div>
           </div>
           <div className="bg-white p-4 rounded-xl border border-[#e5e2dd] shadow-xs">
             <div className="flex items-center justify-between text-[#80756f] mb-1.5"><span className="text-[11px] uppercase tracking-wider font-semibold">Status</span></div>

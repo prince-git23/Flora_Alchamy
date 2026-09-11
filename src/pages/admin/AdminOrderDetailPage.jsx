@@ -76,6 +76,9 @@ export default function AdminOrderDetailPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Link to={`/admin/orders/${order.id}/conversation`} className="px-4 py-2 text-[12px] font-semibold text-[#964735] bg-[#fdf6f4] border border-[#e5c9c5] hover:bg-[#f9ebe8] rounded-full transition shadow-sm">
+              Conversation
+            </Link>
             <button type="button" onClick={() => setStatusModalOpen(true)} className="px-4 py-2 text-[12px] font-semibold text-white bg-[#180f0a] hover:bg-[#2e241e] rounded-full transition shadow-sm">
               Update Status
             </button>

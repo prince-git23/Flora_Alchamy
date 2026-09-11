@@ -142,9 +142,9 @@ export default function AdminAccessPage() {
               <span className="text-[11px] font-bold text-[#80756f]">PROFILES</span>
             </div>
             <p className="mt-1 text-[13px] text-[#4e4540]">Full system governance & security</p>
-            <div className="mt-3 pt-2 border-t border-[#f6f3ee] flex items-center gap-1.5 text-[#1d2918] text-[11px] font-bold">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#1d2918]"></span>
-              Both 2FA Enforcement Active
+            <div className="mt-3 pt-2 border-t border-[#f6f3ee] flex items-center gap-1.5 text-[#80756f] text-[11px] font-bold">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#80756f]"></span>
+              Sample roster — no live auth provider
             </div>
           </div>
 
@@ -161,7 +161,7 @@ export default function AdminAccessPage() {
             <p className="mt-1 text-[13px] text-[#4e4540]">Orders, inventory & catalog management</p>
             <div className="mt-3 pt-2 border-t border-[#f6f3ee] flex items-center gap-1.5 text-[#4e4540] text-[11px] font-bold">
               <span className="material-symbols-outlined text-[14px]">cloud_download</span>
-              Average session length 4.2 hrs
+              Demonstration metrics
             </div>
           </div>
 
@@ -177,8 +177,8 @@ export default function AdminAccessPage() {
             </div>
             <p className="mt-1 text-[13px] text-[#4e4540]">Awaiting credential activation</p>
             <div className="mt-3 pt-2 border-t border-[#f6f3ee] flex items-center gap-1.5 text-[#964735] text-[11px] font-bold">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#964735] animate-pulse"></span>
-              Expiring in 48 hours
+              <span className="h-1.5 w-1.5 rounded-full bg-[#964735]"></span>
+              Local roster entry (no email sent)
             </div>
           </div>
 
@@ -195,7 +195,7 @@ export default function AdminAccessPage() {
             <p className="mt-1 text-[13px] text-[#4e4540]">Authenticated browser windows</p>
             <div className="mt-3 pt-2 border-t border-[#f6f3ee] flex items-center gap-1.5 text-[#4e4540] text-[11px] font-bold">
               <span className="material-symbols-outlined text-[14px]">lock_reset</span>
-              Sample Session Management • Standard Protocol
+              Session tracking not implemented
             </div>
           </div>
         </div>
@@ -710,8 +710,8 @@ export default function AdminAccessPage() {
                 Enforced globally across all Administrator and Handler roles in this sample suite.
               </p>
             </div>
-            <span className="mt-4 text-[11px] font-bold text-[#1d2918] inline-flex items-center gap-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#1d2918]"></span> 100% Policy Compliance
+            <span className="mt-4 text-[11px] font-bold text-[#80756f] inline-flex items-center gap-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#80756f]"></span> Not enforced in this prototype
             </span>
           </div>
 
@@ -722,11 +722,11 @@ export default function AdminAccessPage() {
                 <h3 className="font-serif text-lg font-medium">Idle Session Timeout</h3>
               </div>
               <p className="text-[13px] text-[#4e4540]">
-                Inactive sessions automatically sign out after 30 minutes to protect workstation integrity.
+                Not implemented in this prototype. Sessions are not tracked server-side.
               </p>
             </div>
             <span className="mt-4 text-[11px] font-bold text-[#80756f]">
-              Sample policy: 30 minutes
+              Not implemented — display only
             </span>
           </div>
 
@@ -737,7 +737,7 @@ export default function AdminAccessPage() {
                 <h3 className="font-serif text-lg font-medium">Audit Log Retention</h3>
               </div>
               <p className="text-[13px] text-[#4e4540]">
-                All access mutations, credential updates, and privilege elevations persist for 90 days.
+                No server-side audit log exists in this prototype. The operator roster is stored in your browser only.
               </p>
             </div>
             <button
@@ -745,7 +745,7 @@ export default function AdminAccessPage() {
               onClick={handleExportCSV}
               className="mt-4 text-[12px] font-semibold text-[#964735] hover:underline inline-flex items-center gap-1 text-left"
             >
-              Review Audit Log Stream <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+              No audit stream available <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
             </button>
           </div>
         </div>

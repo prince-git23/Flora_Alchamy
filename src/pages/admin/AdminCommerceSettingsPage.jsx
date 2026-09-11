@@ -25,7 +25,7 @@ export default function AdminCommerceSettingsPage() {
     try {
       const updated = await updateSettings({
         shippingEnabled: settings.shippingEnabled,
-        freeShippingAbove: settings.shippingFreeAbove,
+        freeShippingAbove: settings.freeShippingAbove,
         standardShippingRate: settings.standardShippingRate,
         expressShippingRate: settings.expressShippingRate,
         paymentMethods: settings.paymentMethods,
@@ -108,7 +108,7 @@ export default function AdminCommerceSettingsPage() {
               </label>
               <div>
                 <label className="block text-[12px] font-semibold text-[#4e4540] mb-1">Free Shipping Above (₹)</label>
-                <input type="number" value={settings.shippingFreeAbove} onChange={set('shippingFreeAbove')}
+                <input type="number" value={settings.freeShippingAbove} onChange={set('freeShippingAbove')}
                   className="w-full text-[13px] bg-[#f6f3ee] border border-[#d1c4bd] focus:border-[#180f0a] rounded-lg px-3 py-2 focus:ring-1 focus:ring-[#180f0a] transition" />
               </div>
               <div>

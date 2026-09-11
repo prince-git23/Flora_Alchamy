@@ -1,0 +1,82 @@
+import api from './apiClient.js';
+
+/**
+ * conversationService — order-linked customer ↔ handler text chat.
+ *
+ * All requests go through the existing apiClient with proper
+ * customer or admin token scope.
+ *
+ * IMPORTANT: scope must be passed explicitly so the apiClient knows
+ * which localStorage token key to use (customer vs admin).
+ */
+
+/**
+ * Get or create a conversation for an order.
+ */
+export async function getOrCreateConversation(orderId, { scope = 'customer' } = {}) {
+  const res = await api.get(`/conversations/order/${orderId}`, { scope });
+  if (!res.ok) throw new Error(res.message);
+  return res.data.conversation;
+}
+
+/**
+ * List messages for a conversation.
+ */
+export async function getMessages(conversationId, { before, limit = 50, scope = 'customer' } = {}) {
+  const params = new URLSearchParams();
+  if (before) params.set('before', before);
+  if (limit) params.set('limit', String(limit));
+  const qs = params.toString();
+  const res = await api.get(`/conversations/${conversationId}/messages${qs ? `?${qs}` : ''}`, { scope });
+  if (!res.ok) throw new Error(res.message);
+  return res.data.messages;
+}
+
+/**
+ * Send a message in a conversation.
+ */
+export async function sendMessage(conversationId, body, { scope = 'customer' } = {}) {
+  const res = await api.post(`/conversations/${conversationId}/messages`, { body }, { scope });
+  if (!res.ok) throw new Error(res.message);
+  return res.data.message;
+}
+
+/**
+ * Mark a conversation as read.
+ */
+export async function markAsRead(conversationId, { scope = 'customer' } = {}) {
+  const res = await api.patch(`/conversations/${conversationId}/read`, {}, { scope });
+  if (!res.ok) throw new Error(res.message);
+  return true;
+}
+
+/**
+ * Get unread conversation count.
+ */
+export async function getUnreadCount({ scope = 'customer' } = {}) {
+  const res = await api.get('/conversations/unread', { scope });
+  if (!res.ok) return { count: 0 };
+  return res.data;
+}
+
+/**
+ * List all conversations (admin/handler only).
+ */
+export async function listConversations({ status, limit = 50, scope = 'admin' } = {}) {
+  const params = new URLSearchParams();
+  if (status) params.set('status', status);
+  if (limit) params.set('limit', String(limit));
+  const qs = params.toString();
+  const res = await api.get(`/conversations${qs ? `?${qs}` : ''}`, { scope });
+  if (!res.ok) throw new Error(res.message);
+  return res.data.conversations;
+}
+
+/**
+ * Update conversation status (admin/handler only).
+ */
+export async function updateConversationStatus(conversationId, status, { scope = 'admin' } = {}) {
+  const res = await api.patch(`/conversations/${conversationId}/status`, { status }, { scope });
+  if (!res.ok) throw new Error(res.message);
+  return res.data;
+}

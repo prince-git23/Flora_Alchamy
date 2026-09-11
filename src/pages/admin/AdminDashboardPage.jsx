@@ -1,8 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout.jsx';
 import { getOrders, getStatusCounts, ORDER_STATUS_STYLES, ORDER_STATUSES, formatINR, formatDate } from '../../services/orderService.js';
 import { getLowStockItems } from '../../services/inventoryService.js';
+import { getUnreadCount } from '../../services/conversationService.js';
+import { isRevenue } from '../../services/analyticsService.js';
 
 function getStatusStyle(key) {
   const styles = ORDER_STATUS_STYLES || {};
@@ -12,6 +14,11 @@ function getStatusStyle(key) {
 export default function AdminDashboardPage() {
   const [revenuePeriod, setRevenuePeriod] = useState('7d'); // '7d' | '30d' | '3m'
   const [orderFilterStage, setOrderFilterStage] = useState(null);
+  const [unreadConversations, setUnreadConversations] = useState(0);
+
+  useEffect(() => {
+    getUnreadCount().then((r) => setUnreadConversations(r.count || 0)).catch(() => {});
+  }, []);
 
   // Today's crafting queue derives from REAL orders currently in the
   // production pipeline (new → confirmed → in production → quality check).
@@ -65,8 +72,10 @@ export default function AdminDashboardPage() {
   };
 
   // Revenue Overview derives from the server-backed order data (no fake KPIs).
+  // Only Paid + legacy Sample orders count as revenue (backend revenue rule).
   const revenueStats = useMemo(() => {
-    const orders = getOrders();
+    const allOrders = getOrders();
+    const orders = allOrders.filter(isRevenue);
     const days = revenuePeriod === '7d' ? 7 : revenuePeriod === '3m' ? 90 : 30;
     const step = days === 90 ? 7 : 1;
     const colCount = Math.ceil(days / step);
@@ -145,10 +154,21 @@ export default function AdminDashboardPage() {
             </Link>
 
             <Link to="/admin/orders"
-              className="px-5 py-2 rounded-full bg-[#180f0a] text-white hover:bg-[#964735] text-[13px] font-semibold shadow-xs transition-all flex items-center gap-1.5"
+              className="relative px-5 py-2 rounded-full bg-[#180f0a] text-white hover:bg-[#964735] text-[13px] font-semibold shadow-xs transition-all flex items-center gap-1.5"
             >
               <span className="material-symbols-outlined text-[17px]">add_circle</span>
               <span>+ Create Order</span>
+            </Link>
+            <Link to="/admin/orders"
+              className="relative px-4 py-2 rounded-full border border-[#d1c4bd] bg-white text-[#180f0a] hover:bg-[#f6f3ee] text-[13px] font-semibold shadow-xs transition-all flex items-center gap-1.5"
+            >
+              <span className="material-symbols-outlined text-[17px]">chat</span>
+              <span>Conversations</span>
+              {unreadConversations > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-[#964735] text-white text-[10px] font-bold flex items-center justify-center">
+                  {unreadConversations}
+                </span>
+              )}
             </Link>
           </div>
         </div>
@@ -233,7 +253,7 @@ export default function AdminDashboardPage() {
                 </div>
                 <div className="my-2">
                   <span className="font-serif text-3xl sm:text-4xl font-medium text-[#180f0a] leading-none">
-                    {formatINR(getOrders().reduce((s, o) => s + (o.total || 0), 0))}
+                    {formatINR(getOrders().filter(isRevenue).reduce((s, o) => s + (o.total || 0), 0))}
                   </span>
                 </div>
                 <div className="flex items-center gap-1 text-[12px] text-[#1d2918] font-medium">

@@ -11,6 +11,7 @@
     "seed": "node seed/seed.js",
     "test:api": "node scripts/api-smoke.mjs",
     "test:payment": "node scripts/payment-smoke.mjs",
+    "test:conversation": "node scripts/conversation-smoke.mjs",
     "test:razorpay-real": "node scripts/razorpay-real-smoke.mjs"
   },
   "engines": {

@@ -12,7 +12,7 @@ export default function AdminInventoryHistoryPage() {
 
   const filtered = useMemo(() => {
     let list = [...history];
-    if (typeFilter !== 'all') list = list.filter(h => h.type === typeFilter);
+    if (typeFilter !== 'all') list = list.filter(h => String(h.type || '').toLowerCase() === typeFilter);
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       list = list.filter(h => h.product.toLowerCase().includes(q) || h.sku.toLowerCase().includes(q) || h.notes.toLowerCase().includes(q));
@@ -42,10 +42,10 @@ export default function AdminInventoryHistoryPage() {
                 className="w-full text-[13px] bg-[#f6f3ee] border border-[#d1c4bd] focus:border-[#180f0a] rounded-lg pl-9 pr-3 py-1.5 text-[#1c1c19] placeholder:text-[#80756f] focus:ring-1 focus:ring-[#180f0a] transition" />
             </div>
             <div className="flex items-center gap-1.5">
-              {['all', 'Sale', 'Restock', 'Adjustment'].map(t => (
-                <button key={t} type="button" onClick={() => setTypeFilter(t)}
-                  className={`px-3 py-1.5 rounded-full text-[12px] font-medium transition-all ${typeFilter === t ? 'bg-[#180f0a] text-white shadow-xs' : 'bg-[#f6f3ee] text-[#4e4540] hover:bg-[#ebe8e3]'}`}>
-                  {t === 'all' ? 'All Types' : t}
+              {[['all', 'All Types'], ['sale', 'Sale'], ['release', 'Release'], ['restock', 'Restock'], ['adjustment', 'Adjustment'], ['return', 'Return'], ['correction', 'Correction']].map(([value, label]) => (
+                <button key={value} type="button" onClick={() => setTypeFilter(value)}
+                  className={`px-3 py-1.5 rounded-full text-[12px] font-medium transition-all ${typeFilter === value ? 'bg-[#180f0a] text-white shadow-xs' : 'bg-[#f6f3ee] text-[#4e4540] hover:bg-[#ebe8e3]'}`}>
+                  {label}
                 </button>
               ))}
             </div>
@@ -73,7 +73,7 @@ export default function AdminInventoryHistoryPage() {
                   <tr key={h.id} className="hover:bg-[#f6f3ee]/50 transition-colors">
                     <td className="py-3 px-4 text-[11px] text-[#80756f] whitespace-nowrap">{formatDate(h.date)}</td>
                     <td className="py-3 px-4">
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${h.type === 'Restock' ? 'bg-emerald-50 text-emerald-700' : h.type === 'Adjustment' ? 'bg-amber-50 text-amber-800' : 'bg-blue-50 text-blue-700'}`}>{h.type}</span>
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold capitalize ${h.type === 'restock' ? 'bg-emerald-50 text-emerald-700' : h.type === 'adjustment' ? 'bg-amber-50 text-amber-800' : h.type === 'release' || h.type === 'return' ? 'bg-purple-50 text-purple-700' : 'bg-blue-50 text-blue-700'}`}>{h.type}</span>
                     </td>
                     <td className="py-3 px-4 font-medium text-[#180f0a] max-w-[200px] truncate">{h.product}</td>
                     <td className="py-3 px-4 text-[12px] font-mono text-[#80756f]">{h.sku}</td>

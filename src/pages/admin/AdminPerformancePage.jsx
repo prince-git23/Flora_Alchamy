@@ -3,6 +3,7 @@ import AdminLayout from '../../components/admin/AdminLayout.jsx';
 import { getOrders, formatINR } from '../../services/orderService.js';
 import { getCustomers } from '../../services/customerService.js';
 import { getProducts } from '../../services/productService.js';
+import { isRevenue } from '../../services/analyticsService.js';
 
 export default function AdminPerformancePage() {
   const orders = useMemo(() => getOrders(), []);
@@ -10,24 +11,27 @@ export default function AdminPerformancePage() {
   const products = useMemo(() => getProducts(), []);
 
   const productPerformance = useMemo(() => {
+    const revenueOrders = orders.filter(isRevenue);
     const perf = {};
-    orders.forEach(order => {
+    revenueOrders.forEach(order => {
       order.items.forEach(item => {
-        if (!perf[item.productId]) {
-          const p = products.find(pr => pr.id === item.productId);
-          perf[item.productId] = { name: item.name, category: p?.categoryLabel || p?.category || 'Other', revenue: 0, units: 0, orders: 0 };
+        const pid = item.productSlug || item.id;
+        if (!perf[pid]) {
+          const p = products.find(pr => pr.id === pid);
+          perf[pid] = { name: item.name, category: p?.categoryLabel || p?.category || 'Other', revenue: 0, units: 0, orders: 0 };
         }
-        perf[item.productId].revenue += item.price * item.quantity;
-        perf[item.productId].units += item.quantity;
-        perf[item.productId].orders++;
+        perf[pid].revenue += item.price * item.quantity;
+        perf[pid].units += item.quantity;
+        perf[pid].orders++;
       });
     });
     return Object.values(perf).sort((a, b) => b.revenue - a.revenue);
   }, [orders, products]);
 
   const customerPerformance = useMemo(() => {
+    const revenueOrders = orders.filter(isRevenue);
     return customers.map(c => {
-      const co = orders.filter(o => o.customerId === c.id);
+      const co = revenueOrders.filter(o => o.customerId === c.id);
       return { ...c, orderCount: co.length, totalSpend: co.reduce((s, o) => s + o.total, 0) };
     }).sort((a, b) => b.totalSpend - a.totalSpend);
   }, [customers, orders]);

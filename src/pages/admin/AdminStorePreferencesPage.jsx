@@ -35,14 +35,14 @@ export default function AdminStorePreferencesPage() {
 
   const handleSave = () => {
     setSaveStatus('saving');
-    setSyncStatus('Syncing preferences with portal server...');
+    setSyncStatus('Saving preferences to this browser...');
 
     setTimeout(() => {
       saveStorePreferences(preferences);
       setSaveStatus('saved');
       const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      setSyncStatus(`Preferences synced successfully at ${now}`);
-      setToastMessage('Preferences saved and synced to current session');
+      setSyncStatus(`Preferences saved to this browser at ${now}`);
+      setToastMessage('Preferences saved to this browser (device-local)');
 
       setTimeout(() => {
         setSaveStatus('idle');
@@ -58,7 +58,7 @@ export default function AdminStorePreferencesPage() {
     setToastMessage('Preferences reverted to system benchmark defaults');
 
     setTimeout(() => {
-      setSyncStatus('Preferences synced to current browser session');
+      setSyncStatus('Preferences saved to this browser');
     }, 2500);
   };
 

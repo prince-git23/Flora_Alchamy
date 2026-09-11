@@ -21,9 +21,10 @@ export default function AdminAnalyticsOverviewPage() {
     const productSales = {};
     orders.forEach(order => {
       order.items.forEach(item => {
-        if (!productSales[item.productId]) productSales[item.productId] = { name: item.name, revenue: 0, units: 0 };
-        productSales[item.productId].revenue += item.price * item.quantity;
-        productSales[item.productId].units += item.quantity;
+        const pid = item.productSlug || item.id;
+        if (!productSales[pid]) productSales[pid] = { name: item.name, revenue: 0, units: 0 };
+        productSales[pid].revenue += item.price * item.quantity;
+        productSales[pid].units += item.quantity;
       });
     });
     return Object.values(productSales).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
@@ -54,12 +55,12 @@ export default function AdminAnalyticsOverviewPage() {
           <div className="bg-white p-4 rounded-xl border border-[#e5e2dd] shadow-xs">
             <div className="flex items-center justify-between text-[#80756f] mb-1.5"><span className="text-[11px] uppercase tracking-wider font-semibold">Total Revenue</span><span className="material-symbols-outlined text-[16px]">payments</span></div>
             <div className="text-3xl font-serif font-medium text-[#180f0a] leading-none">{formatINR(summary.totalRevenue)}</div>
-            <p className="text-[11px] text-emerald-700 mt-2 font-medium">↗ +14% vs last period</p>
+            <p className="text-[11px] text-[#80756f] mt-2">Paid + legacy Sample orders only</p>
           </div>
           <div className="bg-white p-4 rounded-xl border border-[#e5e2dd] shadow-xs">
             <div className="flex items-center justify-between text-[#80756f] mb-1.5"><span className="text-[11px] uppercase tracking-wider font-semibold">Total Orders</span><span className="material-symbols-outlined text-[16px]">shopping_bag</span></div>
             <div className="text-3xl font-serif font-medium text-[#180f0a] leading-none">{summary.totalOrders}</div>
-            <p className="text-[11px] text-emerald-700 mt-2 font-medium">↗ +8% vs last period</p>
+            <p className="text-[11px] text-[#80756f] mt-2">Revenue-eligible orders</p>
           </div>
           <div className="bg-white p-4 rounded-xl border border-[#e5e2dd] shadow-xs">
             <div className="flex items-center justify-between text-[#80756f] mb-1.5"><span className="text-[11px] uppercase tracking-wider font-semibold">Avg. Order Value</span><span className="material-symbols-outlined text-[16px] text-[#964735]">trending_up</span></div>

@@ -149,11 +149,19 @@ export default function OrderSuccessPage() {
               <Home className="w-4 h-4" />
               <span>View Account &amp; Order History</span>
             </Link>
+            {order?.id && (
+              <Link
+                to={`/order/${order.id}/conversation`}
+                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-white text-[#180f0a] border-2 border-[#c17c74] hover:bg-[#fdf6f4] transition-all text-[13px] font-semibold shadow-sm"
+              >
+                <MessageSquare className="w-4 h-4" />
+                <span>Message Flora Alchemy</span>
+              </Link>
+            )}
           </div>
 
           <p className="text-[12px] text-[#80756f] max-w-lg mx-auto leading-relaxed">
-            Need to adjust your handwritten card wording or delivery window? Order support messaging is planned
-            for a future communication module — until then, the tracking page keeps your commission's journey current.
+            Need to adjust your handwritten card wording or delivery window? Use the message button above to reach the Flora Alchemy team directly about this order.
           </p>
         </div>
 
@@ -249,26 +257,25 @@ export default function OrderSuccessPage() {
               )}
             </div>
 
-            {/* Order Conversation — honest future module state */}
+            {/* Order Conversation — live order-linked chat */}
             <div className="rounded-3xl bg-[#2c2622] text-white p-6 sm:p-7 shadow-md">
               <div className="flex items-center gap-2 mb-3">
                 <span className="w-2 h-2 rounded-full bg-[#7e947b] animate-pulse" />
                 <span className="text-[10px] font-bold uppercase tracking-widest text-[#e8b3a6]">
-                  Order Support — Future Module
+                  Order Support — Live
                 </span>
               </div>
               <h2 className="font-serif text-[22px] text-white mb-2">Order Conversation</h2>
               <p className="text-[13px] text-[#d4c3ba] leading-relaxed">
-                A direct messaging channel for inquiring about craft status, card wording, or parcel dispatch is
-                planned for a future communication module. No chat thread exists yet — your order status is always
-                available on the tracking page.
+                A direct messaging channel for inquiring about craft status, card wording, or parcel dispatch.
+                Your order status is always available on the tracking page as well.
               </p>
               <Link
-                to={`/order-tracking/${order.id}`}
+                to={`/order/${order.id}/conversation`}
                 className="mt-5 inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white text-[#180f0a] hover:bg-[#f6f3ee] text-[12px] font-semibold transition-colors"
               >
                 <MessageSquare className="w-4 h-4" />
-                <span>Check Order {order.id} Status</span>
+                <span>Message About Order {order.id}</span>
               </Link>
             </div>
 

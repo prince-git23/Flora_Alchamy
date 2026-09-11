@@ -3,20 +3,27 @@ import { getProducts } from './productService.js';
 import { getCustomers } from './customerService.js';
 import { getInventory, getLowStockItems } from './inventoryService.js';
 
+// Mirrors the backend revenue rule (backend/services/analyticsService.js):
+// only Paid (verified capture) and legacy Sample orders count as revenue.
+// Pending / Failed / Refunded are never revenue.
+const REVENUE_STATUSES = ['Paid', 'Sample'];
+export const isRevenue = (o) => REVENUE_STATUSES.includes(o.paymentStatus);
+
 export function getAnalyticsSummary() {
   const orders = getOrders();
   const products = getProducts();
   const customers = getCustomers();
 
-  const totalRevenue = orders.reduce((sum, o) => sum + (o.total || 0), 0);
-  const totalOrders = orders.length;
+  const revenueOrders = orders.filter(isRevenue);
+  const totalRevenue = revenueOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+  const totalOrders = revenueOrders.length;
   const aov = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0;
-  const deliveredOrders = orders.filter(o => o.orderStatus === 'delivered').length;
+  const deliveredOrders = revenueOrders.filter(o => o.orderStatus === 'delivered').length;
   const totalCustomers = customers.length;
   const totalProducts = products.length;
 
   const categoryRevenue = {};
-  orders.forEach(order => {
+  revenueOrders.forEach(order => {
     order.items.forEach(item => {
       const product = products.find(p => p.id === (item.productSlug || item.id));
       const cat = product?.categoryLabel || product?.category || 'Other';

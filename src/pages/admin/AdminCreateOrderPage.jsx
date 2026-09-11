@@ -124,7 +124,7 @@ export default function AdminCreateOrderPage() {
           phone: shippingAddress.phone || customerPhone || '',
         },
         giftMessage: giftMessage || '',
-        paymentMethod: paymentStatus,
+        paymentMethod: 'Sample',
         isRush: isRush,
       });
 
@@ -167,13 +167,10 @@ export default function AdminCreateOrderPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[12px] font-semibold text-[#4e4540] mb-1.5">Payment Status</label>
-                  <select value={paymentStatus} onChange={e => setPaymentStatus(e.target.value)}
-                    className="w-full text-[13px] bg-[#f6f3ee] border border-[#d1c4bd] focus:border-[#180f0a] rounded-lg px-3 py-2 text-[#1c1c19] focus:ring-1 focus:ring-[#180f0a] transition">
-                    <option value="Paid">Paid</option>
-                    <option value="Pending">Pending</option>
-                    <option value="Refunded">Refunded</option>
-                  </select>
+                  <label className="block text-[12px] font-semibold text-[#4e4540] mb-1.5">Payment Settlement</label>
+                  <div className="w-full text-[13px] bg-[#f0ede9] border border-[#e5e2dd] rounded-lg px-3 py-2 text-[#80756f]">
+                    Sample — staff-recorded order (no online charge)
+                  </div>
                 </div>
               </div>
               {selectedCustomerId && (

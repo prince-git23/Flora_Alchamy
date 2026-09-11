@@ -9,7 +9,7 @@ import { useAdminSession } from '../../context/AdminSessionContext.jsx';
 export default function AdminHeader({ onOpenMobileMenu }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { logout } = useAdminSession();
+  const { session, logout } = useAdminSession();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -308,11 +308,11 @@ export default function AdminHeader({ onOpenMobileMenu }) {
             className="flex items-center gap-2 p-1 rounded-full hover:bg-[#f0ede9] transition-colors cursor-pointer"
           >
             <div className="w-8 h-8 rounded-full bg-[#180f0a] text-white flex items-center justify-center font-semibold text-[13px] shadow-sm">
-              HA
+              {(session?.name || 'HA').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
             </div>
             <div className="hidden lg:flex flex-col text-left leading-tight pr-1">
-              <span className="text-[13px] font-semibold text-[#180f0a]">Handler Admin</span>
-              <span className="text-[10px] text-[#80756f]">Administrator</span>
+              <span className="text-[13px] font-semibold text-[#180f0a]">{session?.name || 'Handler'}</span>
+              <span className="text-[10px] text-[#80756f] capitalize">{session?.role || 'handler'}</span>
             </div>
             <span className="material-symbols-outlined text-[18px] text-[#80756f]">
               {showProfileMenu ? 'expand_less' : 'expand_more'}
@@ -322,8 +322,8 @@ export default function AdminHeader({ onOpenMobileMenu }) {
           {showProfileMenu && (
             <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-[#e5e2dd] p-2 z-50 animate-fade-in text-[13px]">
               <div className="px-3 py-2 border-b border-[#f0ede9]">
-                <p className="font-semibold text-[#180f0a]">Handler Admin</p>
-                <p className="text-[11px] text-[#80756f] font-mono">handler.admin@flora-alchemy.demo</p>
+                <p className="font-semibold text-[#180f0a]">{session?.name || 'Handler'}</p>
+                <p className="text-[11px] text-[#80756f] font-mono">{session?.email || ''}</p>
               </div>
               <div className="py-1">
                 <Link

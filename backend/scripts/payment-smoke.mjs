@@ -33,6 +33,20 @@ const API_PORT = 4097;
 const MOCK_PORT = 4098;
 const API = `http://127.0.0.1:${API_PORT}/api`;
 
+// Test isolation: point the spawned server at its OWN database so concurrent
+// suites (or a running dev server) can never mutate the same inventory rows.
+function testMongoUri(baseUri, dbName) {
+  if (!baseUri) return baseUri;
+  try {
+    const u = new URL(baseUri);
+    u.pathname = `/${dbName}`;
+    return u.toString();
+  } catch {
+    return baseUri;
+  }
+}
+const TEST_MONGO_URI = testMongoUri(process.env.MONGO_URI, 'Flora-Alchemy-Test-Payment');
+
 let passed = 0;
 let failed = 0;
 const failures = [];
@@ -102,7 +116,24 @@ async function waitForServer(url, tries = 40) {
   return false;
 }
 
+// Preflight: refuse to run if the API port is already served by another
+// process. Sharing a port makes two suites mutate the same Atlas inventory
+// concurrently, which corrupts stock assertions (a false double-deduction).
+async function portInUse(port) {
+  try {
+    await fetch(`http://127.0.0.1:${port}/api/health`);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // ── Main ────────────────────────────────────────────────────────────────
+if (await portInUse(API_PORT)) {
+  console.error(`\nPAYMENT SMOKE ABORTED: port ${API_PORT} is already in use.`);
+  console.error('Stop the other server/suite first — concurrent runs share MongoDB state and produce false failures.');
+  process.exit(1);
+}
 const mockServer = await startMockRazorpay();
 const child = spawn(process.execPath, ['server.js'], {
   cwd: fileURLToPath(new URL('..', import.meta.url)),
@@ -113,7 +144,8 @@ const child = spawn(process.execPath, ['server.js'], {
     RAZORPAY_KEY_SECRET: KEY_SECRET,
     RAZORPAY_WEBHOOK_SECRET: WEBHOOK_SECRET,
     RAZORPAY_BASE_URL: `http://127.0.0.1:${MOCK_PORT}`,
-    SEED_ON_START: 'false',
+    MONGO_URI: TEST_MONGO_URI || process.env.MONGO_URI,
+    SEED_ON_START: 'true',
   },
   stdio: ['ignore', 'pipe', 'pipe'],
 });
