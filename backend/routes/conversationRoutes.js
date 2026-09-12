@@ -7,6 +7,7 @@ import {
   updateStatus,
   unreadCount,
   listAll,
+  listMine,
 } from '../controllers/conversationController.js';
 import { protect, adminOrHandler } from '../middleware/authMiddleware.js';
 
@@ -20,6 +21,9 @@ router.get('/unread', unreadCount);
 
 // Get or create conversation for an order (customer or staff)
 router.get('/order/:orderId', getOrCreateByOrder);
+
+// List customer's own conversations
+router.get('/mine', listMine);
 
 // List all conversations (admin/handler only)
 router.get('/', adminOrHandler, listAll);

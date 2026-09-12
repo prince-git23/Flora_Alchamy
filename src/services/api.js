@@ -16,6 +16,27 @@ const STORAGE_KEYS = {
   CART: 'flora_alchemy_cart',
 };
 
+/**
+ * Studio packaging add-on.
+ *
+ * The storefront has always offered this upgrade in the bag, but the selection
+ * used to live in local component state and vanished at checkout. It is now a
+ * real cart carriage so it survives Bag → Checkout → Order → Admin Order
+ * Detail through the existing (non-catalogue) order-item path.
+ *
+ * NOTE: there is no backend add-on catalogue, so this price is a storefront
+ * constant — reported, not silently presented as backend data.
+ */
+export const PACKAGING_ADD_ON = {
+  id: 'studio-pine-casket',
+  name: 'Studio Pine Keepsake Casket Upgrade',
+  price: 450,
+  category: 'Gift Packaging',
+  description: 'Solid sliding pine casket with a brass wax seal.',
+  image: '',
+  isAddOn: true,
+};
+
 function getStored(key, fallback) {
   try {
     const raw = localStorage.getItem(key);
@@ -46,31 +67,42 @@ export async function updateCart(items) {
 export async function addToCart(product, options = {}) {
   const cart = await getCart();
   const quantity = options.quantity || 1;
-  const existingIdx = cart.findIndex(
-    (item) =>
-      item.id === product.id &&
-      item.palette === options.palette &&
-      item.ribbon === options.ribbon
+  const isAddOn = !!options.isAddOn;
+  // A product line and a single-selection add-on dedupe differently: products
+  // merge only when their customization matches, add-ons merge by id alone.
+  const existingIdx = cart.findIndex((item) =>
+    isAddOn
+      ? item.isAddOn && item.id === product.id
+      : item.id === product.id &&
+        item.palette === options.palette &&
+        item.ribbon === options.ribbon
   );
 
   let updated;
   if (existingIdx > -1) {
     updated = [...cart];
-    updated[existingIdx].quantity += quantity;
+    // An add-on is a single selection; it is never multiplied by line quantity.
+    if (!isAddOn) updated[existingIdx].quantity += quantity;
   } else {
     const newItem = {
       id: product.id,
       name: product.name,
       price: options.customPrice || product.price,
-      quantity,
+      quantity: isAddOn ? 1 : quantity,
       image: product.images
         ? product.images[0]
         : product.image || '',
       category: product.categoryLabel || product.category || 'Handcrafted Flora',
+      // Catalogue identity the server re-prices from. Add-ons and bespoke
+      // items deliberately carry no slug so they resolve through the
+      // non-catalogue order path.
+      productSlug: isAddOn ? null : (product.slug || options.productSlug || null),
+      description: options.description || product.description || null,
       palette: options.palette || null,
       ribbon: options.ribbon || null,
       giftMessage: options.giftMessage || null,
       customDetails: options.customDetails || null,
+      isAddOn,
     };
     updated = [newItem, ...cart];
   }
@@ -81,6 +113,14 @@ export async function addToCart(product, options = {}) {
 export async function removeFromCart(itemIndex) {
   const cart = await getCart();
   const updated = cart.filter((_, idx) => idx !== itemIndex);
+  setStored(STORAGE_KEYS.CART, updated);
+  return updated;
+}
+
+/** Remove a cart add-on (e.g. the packaging upgrade) by its id. */
+export async function removeAddOnFromCart(addOnId) {
+  const cart = await getCart();
+  const updated = cart.filter((item) => !(item.isAddOn && item.id === addOnId));
   setStored(STORAGE_KEYS.CART, updated);
   return updated;
 }

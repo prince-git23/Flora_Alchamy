@@ -73,7 +73,7 @@ export default function CheckoutPage() {
   const settings = getSettings();
   const shippingCost = getShippingCost(cartSubtotal);
   const totalAmount = cartSubtotal + shippingCost;
-  const freeShippingThreshold = settings.freeShippingAbove || 1999;
+  const freeShippingThreshold = settings?.freeShippingAbove ?? null;
 
   const validateDelivery = () => {
     const errs = {};
@@ -295,19 +295,11 @@ export default function CheckoutPage() {
   const selectedPayment = getPaymentMethodById(paymentMethod);
   const razorpayConfigured = isRazorpayConfigured();
   const defaultAddr = (activeCustomer?.addresses || []).find((a) => a.isDefault);
-  const shippingLabel = shippingMethod === 'express' ? 'Express Atelier Dispatch (₹250)' : (shippingCost === 0 ? 'Standard Pan-India Dispatch · Complimentary' : 'Standard Pan-India Dispatch (₹150)');
-
-  const itemOptionSummary = (item) => {
-    const parts = [];
-    if (item.options && typeof item.options === 'object') {
-      Object.entries(item.options).forEach(([k, v]) => {
-        if (v) parts.push(`${k}: ${v}`);
-      });
-    }
-    if (item.palette) parts.push(`Palette: ${item.palette}`);
-    if (item.ribbon) parts.push(`Ribbon: ${item.ribbon}`);
-    return parts;
-  };
+  const shippingLabel = shippingMethod === 'express'
+    ? `Express Atelier Dispatch (₹${settings?.expressShippingRate ?? 250})`
+    : (shippingCost === 0
+      ? 'Standard Pan-India Dispatch · Complimentary'
+      : `Standard Pan-India Dispatch (₹${settings?.standardShippingRate ?? 150})`);
 
   return (
     <div className="w-full bg-[#fcf9f4] min-h-screen py-10 lg:py-16">
@@ -619,7 +611,7 @@ export default function CheckoutPage() {
                             </div>
                           </div>
                           <span className="text-[13px] font-bold text-[#180f0a]">
-                            {cartSubtotal >= freeShippingThreshold ? 'Complimentary' : `₹${settings.standardShippingRate ?? 150}`}
+                            {(freeShippingThreshold !== null && cartSubtotal >= freeShippingThreshold) ? 'Complimentary' : `₹${settings?.standardShippingRate ?? 150}`}
                           </span>
                         </label>
 
@@ -641,7 +633,7 @@ export default function CheckoutPage() {
                               <p className="text-[12px] text-[#80756f]">Priority creation in atelier + expedited dispatch (2 days).</p>
                             </div>
                           </div>
-                          <span className="text-[13px] font-bold text-[#180f0a]">₹{settings.expressShippingRate ?? 250}</span>
+                          <span className="text-[13px] font-bold text-[#180f0a]">₹{settings?.expressShippingRate ?? 250}</span>
                         </label>
                       </div>
                     </div>
@@ -702,6 +694,31 @@ export default function CheckoutPage() {
                         </div>
                       </div>
                     )}
+                    {/* Selected gift add-ons — real cart lines carried into the order */}
+                    {cart.some((i) => i.isAddOn) && (
+                      <div className="p-4 sm:p-6 rounded-3xl bg-white border border-[#e5e2dd] shadow-xs space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-[#80756f]">
+                            Gift Add-ons
+                          </span>
+                          <span className="text-[11px] text-[#783020] font-semibold bg-[#ffdad3]/60 px-2.5 py-0.5 rounded-full">
+                            {cart.filter((i) => i.isAddOn).length} selected
+                          </span>
+                        </div>
+                        {cart.filter((i) => i.isAddOn).map((item) => (
+                          <div key={item.id} className="p-3 rounded-xl bg-[#ffdad3]/40 border border-[#ffdad3]/50 space-y-1">
+                            <div className="flex items-center justify-between">
+                              <p className="text-[13px] font-semibold text-[#783020]">{item.name}</p>
+                              <p className="text-[12px] font-semibold text-[#783020]">₹{item.price.toLocaleString('en-IN')}</p>
+                            </div>
+                            {item.description && (
+                              <p className="text-[11px] text-[#783020]">{item.description}</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
                     <div className="p-4 sm:p-6 rounded-3xl bg-white border border-[#e5e2dd] shadow-xs space-y-4">
                       <div className="flex items-center justify-between">
                         <span className="text-[11px] font-bold uppercase tracking-wider text-[#80756f]">
@@ -828,27 +845,36 @@ export default function CheckoutPage() {
                       </p>
                     </div>
 
-                    {/* Items */}
+                    {/* Items — includes any persisted add-on so the customer/A29 flow
+                      can verify it survived Bag → Checkout → Review → Order → Admin:
+                      preserve across all rewrite/reload/re-login paths. */}
                     <div className="p-6 sm:p-8">
                       <h3 className="text-[11px] font-bold uppercase tracking-wider text-[#80756f] mb-3">Items ({cart.length})</h3>
                       <div className="space-y-4">
                         {cart.map((item, idx) => {
-                          const options = itemOptionSummary(item);
+                          const lbl = item.isAddOn ? item.name : `${item.name} ×${item.quantity || 1}`;
+                          const price = item.isAddOn ? item.price : (item.price * (item.quantity || 1));
                           return (
                             <div key={idx} className="flex items-start gap-3">
-                              <img src={item.image} alt={item.name} className="w-14 h-14 rounded-xl object-cover border border-[#e5e2dd]" />
+                              {item.image ? (
+                                <img src={item.image} alt={item.name} className="w-14 h-14 rounded-xl object-cover border border-[#e5e2dd]" />
+                              ) : (
+                                <span className="w-14 h-14 rounded-xl bg-[#f6f3ee] border border-[#e5e2dd] flex items-center justify-center text-xl" aria-hidden="true">
+                                  {item.isAddOn ? '🎁' : '🌸'}
+                                </span>
+                              )}
                               <div className="flex-1 min-w-0">
-                                <p className="text-[13px] font-medium text-[#180f0a]">{item.name}</p>
-                                <p className="text-[11px] text-[#80756f]">Qty: {item.quantity || 1}</p>
-                                {options.length > 0 && (
-                                  <p className="text-[11px] text-[#964735]">{options.join(' · ')}</p>
+                                <p className="text-[13px] font-medium text-[#180f0a]">{lbl}</p>
+                                <p className="text-[11px] text-[#80756f]">{item.isAddOn ? 'Upgrade selected' : `Qty: ${item.quantity || 1}`}</p>
+                                {(item.palette || item.ribbon || item.giftMessage) && !item.isAddOn && (
+                                  <p className="text-[11px] text-[#964735]">{item.palette ? `Palette: ${item.palette}` : ''}{(item.palette && item.ribbon ? ' · ' : '')}{item.ribbon ? `Ribbon: ${item.ribbon}` : ''}{(item.palette || item.ribbon) && item.giftMessage ? ' · ' : ''}{item.giftMessage ? `Gift note: “${item.giftMessage}”` : ''}</p>
                                 )}
-                                {item.giftMessage && (
-                                  <p className="text-[11px] text-[#80756f] italic">Gift note: “{item.giftMessage}”</p>
+                                {item.isAddOn && (
+                                  <p className="text-[11px] text-[#964735]">{item.description ? item.description : 'Studio upgrade'}</p>
                                 )}
                               </div>
                               <span className="text-[13px] font-bold text-[#180f0a] shrink-0">
-                                ₹{(item.price * (item.quantity || 1)).toLocaleString('en-IN')}
+                                ₹{price.toLocaleString('en-IN')}
                               </span>
                             </div>
                           );
@@ -863,7 +889,7 @@ export default function CheckoutPage() {
                         className="inline-flex items-center gap-2 px-5 py-3 rounded-full border border-[#e5e2dd] bg-white text-[#180f0a] hover:bg-[#f6f3ee] text-[13px] font-semibold transition-colors"
                       >
                         <ArrowLeft className="w-4 h-4" />
-                        Back to Payment
+                        Back to Payment / Add-ons
                       </button>
                       <button
                         type="submit"
@@ -901,10 +927,16 @@ export default function CheckoutPage() {
                   <div className="max-h-60 overflow-y-auto space-y-3 pr-2 scrollbar-thin">
                     {cart.map((item, idx) => (
                       <div key={idx} className="flex items-center gap-3">
-                        <img src={item.image} alt={item.name} className="w-12 h-12 rounded-xl object-cover border border-[#e5e2dd]" />
+                        {item.image ? (
+                          <img src={item.image} alt={item.name} className="w-12 h-12 rounded-xl object-cover border border-[#e5e2dd]" />
+                        ) : (
+                          <span className="w-12 h-12 rounded-xl bg-[#f6f3ee] border border-[#e5e2dd] flex items-center justify-center text-lg" aria-hidden="true">🎁</span>
+                        )}
                         <div className="flex-1 min-w-0">
                           <p className="text-[13px] font-medium text-[#180f0a] truncate">{item.name}</p>
-                          <p className="text-[11px] text-[#80756f]">Qty: {item.quantity || 1}</p>
+                          <p className="text-[11px] text-[#80756f]">
+                            {item.isAddOn ? 'Gift add-on' : `Qty: ${item.quantity || 1}`}
+                          </p>
                         </div>
                         <span className="text-[13px] font-bold text-[#180f0a] shrink-0">
                           ₹{(item.price * (item.quantity || 1)).toLocaleString('en-IN')}
@@ -922,7 +954,7 @@ export default function CheckoutPage() {
                     <div className="flex justify-between">
                       <span>Shipping</span>
                       <span className="font-semibold text-[#180f0a]">
-                        {shippingCost === 0 ? 'Complimentary' : `₹${shippingCost}`}
+                        {shippingCost === 0 ? 'Complimentary' : `₹${shippingCost.toLocaleString('en-IN')}`}
                       </span>
                     </div>
                     <div className="flex justify-between border-t border-[#e5e2dd] pt-3 text-[18px] font-bold text-[#180f0a]">

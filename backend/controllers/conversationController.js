@@ -7,6 +7,7 @@ import {
   updateConversationStatus,
   getUnreadCount,
   listConversations,
+  listMyConversations,
 } from '../services/conversationService.js';
 
 /**
@@ -102,6 +103,19 @@ export async function unreadCount(req, res, next) {
   try {
     const result = await getUnreadCount({ user: req.user });
     res.json({ success: true, ...result });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * GET /api/conversations/mine
+ * List customer's own conversations.
+ */
+export async function listMine(req, res, next) {
+  try {
+    const conversations = await listMyConversations({ user: req.user });
+    res.json({ success: true, conversations });
   } catch (err) {
     next(err);
   }

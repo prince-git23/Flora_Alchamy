@@ -19,6 +19,10 @@ import WishlistPage from './pages/WishlistPage.jsx';
 import SearchPage from './pages/SearchPage.jsx';
 import CollectionsPage from './pages/CollectionsPage.jsx';
 import OurCreationsPage from './pages/OurCreationsPage.jsx';
+import OurStoryPage from './pages/OurStoryPage.jsx';
+import HowItsMadePage from './pages/HowItsMadePage.jsx';
+import CustomRequestPage from './pages/CustomRequestPage.jsx';
+import FloraJournalPage from './pages/FloraJournalPage.jsx';
 import GiftFinderPage from './pages/GiftFinderPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import NotFoundPage from './pages/NotFoundPage.jsx';
@@ -114,7 +118,10 @@ export default function App() {
           <Route path="/wishlist" element={<WishlistPage />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/collections" element={<CollectionsPage />} />
-          <Route path="/our-creations" element={<OurCreationsPage />} />
+          <Route path="/our-creations" element={<FloraJournalPage />} />
+          <Route path="/our-story" element={<OurStoryPage />} />
+          <Route path="/how-its-made" element={<HowItsMadePage />} />
+          <Route path="/custom-request" element={<CustomRequestPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/order/:orderId/conversation" element={<ConversationPage />} />
 

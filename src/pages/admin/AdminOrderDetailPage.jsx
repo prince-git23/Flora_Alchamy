@@ -110,13 +110,47 @@ export default function AdminOrderDetailPage() {
               <h2 className="font-serif text-lg text-[#180f0a] font-medium mb-4">Order Items</h2>
               <div className="divide-y divide-[#f0ede9]">
                 {order.items.map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
-                    <div className="w-14 h-14 rounded-xl bg-[#f6f3ee] overflow-hidden shrink-0">
-                      <img src={item.image} alt={item.name} className="w-full h-full object-cover" loading="lazy" />
+                  <div key={idx} className="flex items-start gap-4 py-3 first:pt-0 last:pb-0">
+                    <div className="w-14 h-14 rounded-xl bg-[#f6f3ee] overflow-hidden shrink-0 flex items-center justify-center">
+                      {item.image ? (
+                        <img src={item.image} alt={item.name} className="w-full h-full object-cover" loading="lazy" />
+                      ) : (
+                        <span className="text-xl" aria-hidden="true">{item.isAddOn ? '🎁' : '🌸'}</span>
+                      )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-semibold text-[#180f0a] truncate">{item.name}</p>
-                      <p className="text-[12px] text-[#80756f]">Qty: {item.quantity} · SKU: {(item.sku || item.productId || item.id || 'FA').toString().slice(0, 12).toUpperCase()}</p>
+                    <div className="flex-1 min-w-0 space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <p className="text-[13px] font-semibold text-[#180f0a] truncate">{item.name}</p>
+                        {item.isAddOn && (
+                          <span className="px-2 py-0.5 rounded-full bg-[#ffdad3]/60 text-[#783020] text-[10px] font-bold uppercase tracking-wider shrink-0">
+                            Add-on
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[12px] text-[#80756f]">
+                        Qty: {item.quantity} · SKU: {(item.productSlug || 'FA').toString().slice(0, 12).toUpperCase()}
+                      </p>
+                      {/* Customization captured at purchase — must remain visible to fulfillment */}
+                      {(item.palette || item.ribbon) && (
+                        <p className="text-[12px] text-[#4e4540]">
+                          {item.palette ? `Palette: ${item.palette}` : ''}
+                          {item.palette && item.ribbon ? ' · ' : ''}
+                          {item.ribbon ? `Ribbon: ${item.ribbon}` : ''}
+                        </p>
+                      )}
+                      {item.giftMessage && (
+                        <p className="text-[12px] text-[#964735] italic break-words">
+                          Gift note: &ldquo;{item.giftMessage}&rdquo;
+                        </p>
+                      )}
+                      {!item.giftMessage && item.customDetails && (
+                        <p className="text-[12px] text-[#4e4540]">
+                          {typeof item.customDetails === 'string' ? item.customDetails : (item.customDetails.summary || 'Custom details recorded')}
+                        </p>
+                      )}
+                      {item.isAddOn && item.description && (
+                        <p className="text-[12px] text-[#80756f]">{item.description}</p>
+                      )}
                     </div>
                     <span className="text-[13px] font-mono font-semibold text-[#180f0a] whitespace-nowrap">{formatINR(item.price * item.quantity)}</span>
                   </div>

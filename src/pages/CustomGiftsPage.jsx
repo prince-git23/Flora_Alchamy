@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import {
   Sparkles,
   Check,
@@ -12,7 +12,9 @@ import {
   Palette,
   Ribbon,
   MessageSquareHeart,
-  PackageCheck
+  PackageCheck,
+  RotateCcw,
+  Star
 } from 'lucide-react';
 import { useStore } from '../context/StoreContext.jsx';
 
@@ -433,10 +435,14 @@ export default function CustomGiftsPage() {
                       onEdit={() => jumpTo(5)}
                     />
                   </div>
-                  <div
-                    style={{ backgroundColor: selectedSeal.hex }}
-                    className="absolute top-3 right-3 w-7 h-7 rounded-full text-white text-[9px] font-serif flex items-center justify-center font-bold"
-                  />
+                  {/* Trust badges */}
+                  <div className="flex flex-wrap gap-2 pt-3">
+                    {['Handcrafted', 'Personalized', 'Gift-ready'].map((tag) => (
+                      <span key={tag} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#d8e7cd]/50 text-[10px] font-bold text-[#5b6d54] uppercase tracking-wider">
+                        <Star className="w-2.5 h-2.5" /> {tag}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -492,13 +498,30 @@ export default function CustomGiftsPage() {
                 </span>
               </div>
 
-              <div className="relative rounded-2xl bg-[#faf7f2] border border-[#e5e2dd] overflow-hidden">
-                <img src={selectedBase.image} alt={selectedBase.title} className="w-full h-40 object-cover" />
+              {/* Live Preview Visual */}
+              <div className="relative rounded-2xl bg-gradient-to-br from-[#faf7f2] to-[#f0ede9] border border-[#e5e2dd] overflow-hidden aspect-[4/3]">
+                <img src={selectedBase.image} alt={selectedBase.title} className="w-full h-full object-cover opacity-90" />
+                {/* Palette overlay */}
+                <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/50 to-transparent">
+                  <div className="flex items-center gap-2">
+                    <div className="flex -space-x-1">
+                      <span style={{ backgroundColor: selectedPalette.c1 }} className="w-4 h-4 rounded-full border-2 border-white" />
+                      <span style={{ backgroundColor: selectedPalette.c2 }} className="w-4 h-4 rounded-full border-2 border-white" />
+                    </div>
+                    <span className="text-white text-[10px] font-medium drop-shadow">{selectedPalette.name}</span>
+                  </div>
+                </div>
+                {/* Seal stamp */}
                 <div
                   style={{ backgroundColor: selectedSeal.hex }}
-                  className="absolute top-3 right-3 w-8 h-8 rounded-full text-white text-[10px] font-serif flex items-center justify-center font-bold shadow"
+                  className="absolute top-3 right-3 w-8 h-8 rounded-full text-white text-[10px] font-serif flex items-center justify-center font-bold shadow-lg"
                 >
                   FA
+                </div>
+                {/* Flowers count badge */}
+                <div className="absolute top-3 left-3 flex items-center gap-1 px-2 py-1 rounded-full bg-white/90 backdrop-blur-sm">
+                  <Flower2 className="w-3 h-3 text-[#964735]" />
+                  <span className="text-[10px] font-bold text-[#180f0a]">{selectedFlowers.length} stems</span>
                 </div>
               </div>
 
@@ -518,6 +541,18 @@ export default function CustomGiftsPage() {
                 >
                   <PackageCheck className="w-4 h-4" />
                   Review Gift · ₹{totalPrice.toLocaleString('en-IN')}
+                </button>
+              )}
+
+              {/* Quick restart */}
+              {step > 0 && (
+                <button
+                  type="button"
+                  onClick={() => { setStep(0); setSelectedOccasion(OCCASIONS[0]); setSelectedBase(BASES[0]); setSelectedFlowers(['rose', 'lavender', 'eucalyptus']); setSelectedPalette(COLOR_PALETTES[0]); setSelectedRibbon(RIBBONS[0]); setSelectedSeal(WAX_SEALS[0]); setRecipientName(''); setCardMessage(''); }}
+                  className="w-full py-2.5 rounded-full border border-[#e5e2dd] text-[#80756f] text-[12px] font-semibold hover:bg-[#f6f3ee] transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  Start Over
                 </button>
               )}
 

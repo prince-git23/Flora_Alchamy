@@ -29,9 +29,10 @@ const FOOTER_COLUMNS = [
   {
     title: 'About',
     links: [
+      { label: 'Our Story', to: '/our-story' },
+      { label: "How It's Made", to: '/how-its-made' },
       { label: 'Our Creations', to: '/our-creations' },
-      { label: 'Curated Collections', to: '/collections' },
-      { label: 'The Botanical Archive', to: '/shop' },
+      { label: 'Custom Request', to: '/custom-request' },
     ],
   },
   {

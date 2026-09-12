@@ -1,9 +1,37 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Star, Heart, ShoppingBag, ShieldCheck, Truck, RefreshCw, Sparkles, ChevronRight, Check, Zap } from 'lucide-react';
+import {
+  ChevronLeft, ChevronRight, Minus, Plus, Heart, ShoppingBag, Zap,
+  Truck, Sparkles, Leaf, Check, Gift,
+} from 'lucide-react';
 import { getProductById, getProducts as getCatalogProducts } from '../services/productService.js';
+import { getSettings } from '../services/settingsService.js';
+import { deriveGiftAttributes } from '../services/giftFinderService.js';
 import { useStore } from '../context/StoreContext.jsx';
 import ProductCard from '../components/ProductCard.jsx';
+
+// Catalogue quantity guard. The storefront cannot read /api/inventory (customers
+// receive 403 on that endpoint), so this caps a single order line without ever
+// claiming a stock number.
+const QUANTITY_MAX = 10;
+
+// Honest, category-level inclusion statement — derived from the real category
+// field rather than invented per-product content.
+const CATEGORY_INCLUSION = {
+  bouquets: 'Sculpted everlasting blooms',
+  cards: 'Handmade botanical cards',
+  charms: 'Handcrafted keepsake piece',
+  hampers: 'Curated keepsake gift box',
+  custom: 'Bespoke made-to-order creation',
+  other: 'Handcrafted studio piece',
+};
+
+const HOW_IT_ARRIVES = [
+  { step: 'Prepared', detail: 'Handcrafted to order in our studio.' },
+  { step: 'Wrapped', detail: 'Tied with ribbon and finished with a wax seal.' },
+  { step: 'Packed', detail: 'Nested in a rigid presentation box.' },
+  { step: 'Delivered', detail: 'Pan-India dispatch to your door.' },
+];
 
 export default function ProductPage() {
   const { id } = useParams();
@@ -12,21 +40,27 @@ export default function ProductPage() {
 
   const [product, setProduct] = useState(null);
   const [notFound, setNotFound] = useState(false);
-  const [selectedImage, setSelectedImage] = useState(0);
+  const [galleryIndex, setGalleryIndex] = useState(0);
   const [selectedPalette, setSelectedPalette] = useState(null);
   const [selectedRibbon, setSelectedRibbon] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [giftMessage, setGiftMessage] = useState('');
+  const [justAdded, setJustAdded] = useState(false);
   const [activeTab, setActiveTab] = useState('craft');
+
+  const settings = useMemo(() => getSettings(), []);
 
   useEffect(() => {
     const found = getProductById(id);
     if (found) {
       setProduct(found);
       setNotFound(false);
-      setSelectedImage(0);
+      setGalleryIndex(0);
       setSelectedPalette(found.palettes && found.palettes.length > 0 ? found.palettes[0].name : null);
       setSelectedRibbon(found.ribbons && found.ribbons.length > 0 ? found.ribbons[0].name : null);
+      setQuantity(1);
+      setGiftMessage('');
+      setJustAdded(false);
     } else {
       setProduct(null);
       setNotFound(true);
@@ -34,15 +68,42 @@ export default function ProductPage() {
     window.scrollTo(0, 0);
   }, [id]);
 
+  // Related products: same category first, then a comparable price band, then
+  // the rest of the live catalogue. Never a hardcoded list.
+  const relatedProducts = useMemo(() => {
+    if (!product) return [];
+    const all = getCatalogProducts().filter((p) => p.id !== product.id && p.visibility !== 'Hidden');
+    const sameCategory = all.filter((p) => p.category === product.category);
+    const band = Math.max(500, Math.round(product.price * 0.35));
+    const similarPrice = all.filter(
+      (p) => p.category !== product.category && Math.abs(p.price - product.price) <= band
+    );
+    const chosen = [...sameCategory, ...similarPrice];
+    const rest = all.filter((p) => !chosen.includes(p));
+    return [...chosen, ...rest].slice(0, 4);
+  }, [product]);
+
   if (notFound) {
     return (
       <div className="w-full min-h-[60vh] flex flex-col items-center justify-center bg-[#fcf9f4] px-4 text-center space-y-4">
-        <div className="w-16 h-16 rounded-full bg-[#f6f3ee] mx-auto flex items-center justify-center text-3xl">🥀</div>
-        <p className="font-serif text-[24px] text-[#180f0a]">This keepsake is no longer available</p>
-        <p className="text-[14px] text-[#4e4540] max-w-md">It may have sold out or been retired from the catalogue.</p>
-        <div className="flex gap-3 pt-2">
-          <Link to="/shop" className="px-6 py-2.5 rounded-full bg-[#180f0a] text-white text-[13px] font-semibold">Browse the Shop</Link>
-          <Link to="/" className="px-6 py-2.5 rounded-full bg-white border border-[#e5e2dd] text-[#180f0a] text-[13px] font-semibold">Back to Home</Link>
+        <div className="w-16 h-16 rounded-full bg-[#f6f3ee] mx-auto flex items-center justify-center text-3xl" aria-hidden="true">
+          🥀
+        </div>
+        <h1 className="font-serif text-[26px] text-[#180f0a]">This creation is no longer available</h1>
+        <p className="text-[14px] text-[#4e4540] max-w-md">
+          It may have sold out or been retired from the catalogue. Here are some other ways to find
+          something special.
+        </p>
+        <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+          <Link to="/shop" className="px-6 py-2.5 rounded-full bg-[#180f0a] text-white text-[13px] font-semibold hover:bg-[#964735] transition-colors">
+            Browse Gifts
+          </Link>
+          <Link to="/" className="px-6 py-2.5 rounded-full bg-white border border-[#e5e2dd] text-[#180f0a] text-[13px] font-semibold hover:bg-[#f6f3ee] transition-colors">
+            Back Home
+          </Link>
+          <Link to="/gift-finder" className="px-6 py-2.5 rounded-full bg-white border border-[#e5e2dd] text-[#180f0a] text-[13px] font-semibold hover:bg-[#f6f3ee] transition-colors">
+            Find a Gift
+          </Link>
         </div>
       </div>
     );
@@ -51,57 +112,80 @@ export default function ProductPage() {
   if (!product) {
     return (
       <div className="w-full min-h-[60vh] flex items-center justify-center bg-[#fcf9f4]">
-        <div className="text-center space-y-3">
-          <p className="font-serif text-[24px] text-[#180f0a]">Locating Botanical Keepsake...</p>
-        </div>
+        <p className="font-serif text-[24px] text-[#180f0a]">Locating botanical keepsake…</p>
       </div>
     );
   }
 
   const wishlisted = isWishlisted(product.id);
+  const images = product.images && product.images.length ? product.images : [product.image].filter(Boolean);
+  const hasGallery = images.length > 1;
+  const madeToOrder = product.stockTracked === false;
+  const attributes = deriveGiftAttributes(product);
+  const personalizable = attributes.personalization !== 'simple';
+  const lineTotal = product.price * quantity;
 
   const purchaseOptions = () => ({
     quantity,
     palette: selectedPalette,
     ribbon: selectedRibbon,
-    giftMessage: giftMessage.trim() || undefined
+    giftMessage: giftMessage.trim() || undefined,
   });
 
   const handleAddToCart = () => {
     addItemToCart(product, purchaseOptions());
+    setJustAdded(true);
   };
 
-  // Buy Now: add the exact selection (quantity/options/gift message) to the
-  // bag, then go straight to checkout. Guests reach the authentication gate
-  // at /checkout and return after signing in — the cart is never lost.
   const handleBuyNow = () => {
     addItemToCart(product, purchaseOptions());
     navigate('/checkout');
   };
 
-  const relatedProducts = getCatalogProducts()
-    .filter((p) => p.id !== product.id && p.visibility !== 'Hidden')
-    .slice(0, 4);
+  const stepGallery = (delta) => {
+    if (!hasGallery) return;
+    setGalleryIndex((i) => (i + delta + images.length) % images.length);
+  };
+
+  const inclusionItems = [
+    { label: CATEGORY_INCLUSION[product.category] || CATEGORY_INCLUSION.other, source: 'category' },
+    ...(product.palette ? [{ label: `Botanical colorway: ${product.palette}`, source: 'palette' }] : []),
+    ...(selectedRibbon ? [{ label: `Ribbon: ${selectedRibbon}`, source: 'ribbon' }] : []),
+    ...(giftMessage.trim() ? [{ label: 'Handwritten gift note enclosed', source: 'note' }] : []),
+  ];
+
+  const tabs = [
+    { key: 'craft', label: 'Craft & Materials' },
+    { key: 'delivery', label: 'Packaging & Delivery' },
+  ];
 
   return (
-    <div className="w-full bg-[#fcf9f4] min-h-screen py-8 lg:py-12">
+    <div className="w-full bg-[#fcf9f4] min-h-screen py-8 lg:py-12 pb-28 lg:pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Breadcrumb Navigation */}
-        <nav className="flex items-center gap-2 text-[12px] text-[#80756f] mb-8 font-medium">
+        {/* Breadcrumb */}
+        <nav className="flex items-center gap-2 text-[12px] text-[#80756f] mb-8 font-medium" aria-label="Breadcrumb">
           <Link to="/" className="hover:text-[#180f0a] transition-colors">Home</Link>
-          <ChevronRight className="w-3.5 h-3.5" />
+          <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
           <Link to="/shop" className="hover:text-[#180f0a] transition-colors">Shop</Link>
-          <ChevronRight className="w-3.5 h-3.5" />
+          <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
           <span className="text-[#180f0a] truncate">{product.name}</span>
         </nav>
 
-        {/* Product Hero Details Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-start">
-          {/* Gallery Col (6 Cols) */}
+          {/* ── Gallery (left) ── */}
           <div className="lg:col-span-6 space-y-4">
-            <div className="relative aspect-square w-full rounded-3xl overflow-hidden bg-white shadow-sm border border-[#e5e2dd]">
+            <div
+              className="relative aspect-square w-full rounded-3xl overflow-hidden bg-white shadow-sm border border-[#e5e2dd] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#180f0a]"
+              tabIndex={hasGallery ? 0 : -1}
+              onKeyDown={(e) => {
+                if (e.key === 'ArrowLeft') { e.preventDefault(); stepGallery(-1); }
+                if (e.key === 'ArrowRight') { e.preventDefault(); stepGallery(1); }
+              }}
+              role={hasGallery ? 'group' : undefined}
+              aria-label={hasGallery ? `Product image ${galleryIndex + 1} of ${images.length}` : undefined}
+            >
               <img
-                src={product.images ? product.images[selectedImage] : (product.image || '')}
+                src={images[galleryIndex]}
                 alt={product.name}
                 className="w-full h-full object-cover transition-all duration-300"
               />
@@ -112,108 +196,138 @@ export default function ProductPage() {
                   </span>
                 </div>
               )}
+
+              {hasGallery && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => stepGallery(-1)}
+                    aria-label="Previous image"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm shadow-md flex items-center justify-center text-[#180f0a] hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#180f0a]"
+                  >
+                    <ChevronLeft className="w-5 h-5" aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => stepGallery(1)}
+                    aria-label="Next image"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm shadow-md flex items-center justify-center text-[#180f0a] hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#180f0a]"
+                  >
+                    <ChevronRight className="w-5 h-5" aria-hidden="true" />
+                  </button>
+                  <span className="absolute bottom-4 right-4 px-2.5 py-1 rounded-full bg-[#180f0a]/80 text-white text-[11px] font-semibold">
+                    {galleryIndex + 1} / {images.length}
+                  </span>
+                </>
+              )}
             </div>
 
-            {/* Gallery Thumbnail Strips */}
-            {product.images && product.images.length > 1 && (
-              <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-none">
-                {product.images.map((imgUrl, idx) => (
+            {/* Thumbnails (only when the product genuinely has several images) */}
+            {hasGallery && (
+              <div className="flex items-center gap-3 overflow-x-auto pb-2">
+                {images.map((imgUrl, idx) => (
                   <button
                     key={idx}
-                    onClick={() => setSelectedImage(idx)}
                     type="button"
-                    className={`relative w-20 h-20 rounded-2xl overflow-hidden bg-white border-2 transition-all shrink-0 ${
-                      selectedImage === idx ? 'border-[#964735] ring-2 ring-[#ffdad3]' : 'border-[#e5e2dd] opacity-75 hover:opacity-100'
+                    onClick={() => setGalleryIndex(idx)}
+                    aria-label={`Show image ${idx + 1}`}
+                    aria-current={galleryIndex === idx}
+                    className={`relative w-20 h-20 rounded-2xl overflow-hidden bg-white border-2 transition-all shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#180f0a] ${
+                      galleryIndex === idx ? 'border-[#964735] ring-2 ring-[#ffdad3]' : 'border-[#e5e2dd] opacity-75 hover:opacity-100'
                     }`}
                   >
-                    <img src={imgUrl} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
+                    <img src={imgUrl} alt="" className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>
             )}
 
-            {/* Atelier Craftsmanship Stamp */}
+            {/* Atelier stamp */}
             <div className="p-4 rounded-2xl bg-[#f6f3ee] border border-[#e5e2dd] flex items-center gap-4">
               <div className="w-10 h-10 rounded-full bg-[#180f0a] text-white flex items-center justify-center font-serif text-[18px]">
                 FA
               </div>
               <div className="text-[13px] text-[#4e4540]">
-                <p className="font-semibold text-[#180f0a]">Handmade in Small Batches</p>
-                <p>{product.craftTime || 'Hand-sculpted chenille wire armature'}</p>
+                <p className="font-semibold text-[#180f0a]">Handmade in small batches</p>
+                <p>{madeToOrder ? 'Crafted after you order' : 'Studio-made in limited runs'}</p>
               </div>
             </div>
           </div>
 
-          {/* Config & Buy Col (6 Cols) */}
+          {/* ── Purchase panel (right) ── */}
           <div className="lg:col-span-6 space-y-6">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-3">
                 <span className="text-[11px] uppercase font-bold tracking-widest text-[#964735]">
                   {product.categoryLabel || 'Handcrafted Flora'}
                 </span>
-                {product.rating && (
-                  <div className="flex items-center gap-1.5 text-[#964735] text-[13px] font-semibold">
-                    <Star className="w-4 h-4 fill-[#964735]" />
-                    <span>{product.rating}</span>
-                    <span className="text-[#80756f] font-normal text-[12px]">· Studio Rating</span>
-                  </div>
-                )}
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#f6f3ee] border border-[#e5e2dd] text-[11px] font-semibold text-[#4e4540]">
+                  <Leaf className="w-3 h-3 text-[#5b6d54]" aria-hidden="true" />
+                  {madeToOrder ? 'Made to order' : 'Handcrafted in small batches'}
+                </span>
               </div>
 
               <h1 className="font-serif text-[32px] sm:text-[40px] text-[#180f0a] font-normal leading-tight tracking-tight">
                 {product.name}
               </h1>
 
-              <div className="flex items-baseline gap-3 pt-1">
+              <div className="flex flex-wrap items-baseline gap-3">
                 <span className="text-[28px] font-bold text-[#180f0a]">
                   ₹{product.price.toLocaleString('en-IN')}
                 </span>
-                {product.originalPrice && (
-                  <span className="text-[16px] text-[#80756f] line-through">
-                    ₹{product.originalPrice.toLocaleString('en-IN')}
-                  </span>
-                )}
                 <span className="text-[11px] uppercase font-bold text-[#5b6d54] bg-[#d8e7cd] px-2.5 py-0.5 rounded-full">
-                  All Taxes Included
+                  All taxes included
                 </span>
               </div>
 
-              <p className="text-[15px] text-[#4e4540] leading-relaxed pt-2">
-                {product.description}
+              <p className="text-[15px] text-[#4e4540] leading-relaxed">
+                {product.description
+                  || `A handcrafted ${(product.categoryLabel || 'studio piece').toLowerCase()}${product.palette ? ` in ${product.palette}` : ''}, made in small batches and finished by hand.`}
               </p>
+
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#4e4540]">
+                  <Check className="w-3.5 h-3.5 text-[#5b6d54]" aria-hidden="true" /> Handcrafted
+                </span>
+                {personalizable && (
+                  <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#4e4540]">
+                    <Sparkles className="w-3.5 h-3.5 text-[#964735]" aria-hidden="true" /> Personalizable
+                  </span>
+                )}
+                <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#4e4540]">
+                  <Gift className="w-3.5 h-3.5 text-[#964735]" aria-hidden="true" /> Gift-ready packaging
+                </span>
+                {madeToOrder && (
+                  <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#4e4540]">
+                    <Leaf className="w-3.5 h-3.5 text-[#5b6d54]" aria-hidden="true" /> Made to order
+                  </span>
+                )}
+              </div>
             </div>
 
-            {/* Custom Palette Selection */}
+            {/* Palette */}
             {product.palettes && product.palettes.length > 0 && (
               <div className="space-y-3 pt-2 border-t border-[#e5e2dd]">
                 <div className="flex items-center justify-between">
                   <span className="text-[12px] font-bold uppercase tracking-wider text-[#180f0a]">
-                    Botanical Colorway
+                    Botanical colorway
                   </span>
                   <span className="text-[12px] text-[#964735] font-semibold">{selectedPalette}</span>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {product.palettes.map((pal) => (
                     <button
                       key={pal.id}
                       type="button"
-                      onClick={() => setSelectedPalette(pal.name)}
-                      className={`p-3 rounded-2xl flex items-center gap-3 border text-left transition-all ${
+                      aria-pressed={selectedPalette === pal.name}
+                      onClick={() => { setSelectedPalette(pal.name); setJustAdded(false); }}
+                      className={`p-3 rounded-2xl flex items-center gap-3 border text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#180f0a] ${
                         selectedPalette === pal.name
-                          ? 'bg-white border-[#180f0a] shadow-xs'
+                          ? 'bg-white border-[#180f0a]'
                           : 'bg-[#f6f3ee] border-[#e5e2dd] hover:bg-white'
                       }`}
                     >
-                      <div className="flex -space-x-1 shrink-0">
-                        <span
-                          style={{ backgroundColor: pal.color1 }}
-                          className="w-4 h-4 rounded-full border border-white"
-                        />
-                        <span
-                          style={{ backgroundColor: pal.color2 }}
-                          className="w-4 h-4 rounded-full border border-white"
-                        />
-                      </div>
+                      <Leaf className="w-4 h-4 text-[#5b6d54] shrink-0" aria-hidden="true" />
                       <span className="text-[12px] font-medium text-[#1c1c19] line-clamp-1">{pal.name}</span>
                     </button>
                   ))}
@@ -221,141 +335,254 @@ export default function ProductPage() {
               </div>
             )}
 
-            {/* Ribbon Finish */}
+            {/* Ribbon */}
             {product.ribbons && product.ribbons.length > 0 && (
               <div className="space-y-3 pt-2 border-t border-[#e5e2dd]">
                 <div className="flex items-center justify-between">
                   <span className="text-[12px] font-bold uppercase tracking-wider text-[#180f0a]">
-                    Ribbon & Stem Tie
+                    Ribbon & stem tie
                   </span>
                   <span className="text-[12px] text-[#964735] font-semibold">{selectedRibbon}</span>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {product.ribbons.map((ribbon) => (
                     <button
                       key={ribbon.id}
                       type="button"
-                      onClick={() => setSelectedRibbon(ribbon.name)}
-                      className={`p-3 rounded-2xl flex flex-col justify-center border text-left transition-all ${
+                      aria-pressed={selectedRibbon === ribbon.name}
+                      onClick={() => { setSelectedRibbon(ribbon.name); setJustAdded(false); }}
+                      className={`p-3 rounded-2xl border text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#180f0a] ${
                         selectedRibbon === ribbon.name
-                          ? 'bg-white border-[#180f0a] shadow-xs'
+                          ? 'bg-white border-[#180f0a]'
                           : 'bg-[#f6f3ee] border-[#e5e2dd] hover:bg-white'
                       }`}
                     >
                       <span className="text-[12px] font-semibold text-[#180f0a]">{ribbon.name}</span>
-                      <span className="text-[10px] text-[#80756f]">{ribbon.desc}</span>
+                      {ribbon.desc && <span className="text-[10px] text-[#80756f] block">{ribbon.desc}</span>}
                     </button>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Complimentary Gift Card Input */}
+            {/* Gift note */}
             <div className="space-y-2 pt-2 border-t border-[#e5e2dd]">
-              <label className="block text-[12px] font-bold uppercase tracking-wider text-[#180f0a]">
-                Complimentary Calligraphy Gift Note (Optional)
+              <label htmlFor="gift-note" className="block text-[12px] font-bold uppercase tracking-wider text-[#180f0a]">
+                Handwritten gift note (optional)
               </label>
               <textarea
+                id="gift-note"
                 rows={2}
+                maxLength={240}
                 value={giftMessage}
-                onChange={(e) => setGiftMessage(e.target.value)}
-                placeholder="Include a personal message for the recipient..."
+                onChange={(e) => { setGiftMessage(e.target.value); setJustAdded(false); }}
+                placeholder="Include a personal message for the recipient…"
                 className="w-full p-3 rounded-2xl bg-white text-[13px] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a] resize-none"
               />
               <p className="text-[11px] text-[#80756f]">
-                Will be hand-inscribed on deckled cotton paper and enclosed with an organic wax seal.
+                Inscribed on deckled cotton paper and enclosed with an organic wax seal.
+                {' '}{giftMessage.length}/240
               </p>
             </div>
 
-            {/* Quantity and Actions */}
-            <div className="pt-4 border-t border-[#e5e2dd] flex flex-col sm:flex-row items-center gap-3">
-              {/* Quantity Counter */}
-              <div className="flex items-center justify-between px-4 py-2.5 rounded-full bg-white border border-[#e5e2dd] w-full sm:w-36 shrink-0">
+            {/* Personalization preview — renders only the customer's own selections */}
+            {(giftMessage.trim() || selectedPalette || selectedRibbon) && (
+              <div className="rounded-2xl bg-[#f6f3ee] border border-[#e5e2dd] p-4 sm:p-5">
+                <p className="text-[10px] uppercase font-bold tracking-widest text-[#964735] mb-2">
+                  Your bespoke preview
+                </p>
+                <div className="rounded-xl bg-[#faf7f2] border border-[#e5e2dd] p-4 space-y-2">
+                  {selectedPalette && (
+                    <p className="text-[12px] text-[#4e4540]"><span className="font-semibold text-[#180f0a]">Colorway:</span> {selectedPalette}</p>
+                  )}
+                  {selectedRibbon && (
+                    <p className="text-[12px] text-[#4e4540]"><span className="font-semibold text-[#180f0a]">Ribbon:</span> {selectedRibbon}</p>
+                  )}
+                  <p className="font-serif text-[15px] text-[#1c1c19] italic leading-relaxed border-t border-[#e5e2dd] pt-2">
+                    {giftMessage.trim() ? `“${giftMessage.trim()}”` : 'Your gift note will appear here.'}
+                  </p>
+                </div>
+                <p className="text-[10px] text-[#80756f] mt-2">
+                  Preview of your selections only — no photo-real render is generated.
+                </p>
+              </div>
+            )}
+
+            {/* Quantity + primary actions */}
+            <div className="pt-4 border-t border-[#e5e2dd] space-y-3">
+              <div className="flex items-center gap-3">
+                <span className="text-[12px] font-bold uppercase tracking-wider text-[#180f0a]">Quantity</span>
+                <div className="flex items-center justify-between px-3 py-1.5 rounded-full bg-white border border-[#e5e2dd] w-32">
+                  <button
+                    type="button"
+                    onClick={() => { setQuantity((q) => Math.max(1, q - 1)); setJustAdded(false); }}
+                    disabled={quantity <= 1}
+                    aria-label="Decrease quantity"
+                    className="text-[#4e4540] hover:text-[#180f0a] p-1 disabled:opacity-40"
+                  >
+                    <Minus className="w-4 h-4" aria-hidden="true" />
+                  </button>
+                  <span className="text-[14px] font-bold text-[#180f0a]" aria-live="polite">{quantity}</span>
+                  <button
+                    type="button"
+                    onClick={() => { setQuantity((q) => Math.min(QUANTITY_MAX, q + 1)); setJustAdded(false); }}
+                    disabled={quantity >= QUANTITY_MAX}
+                    aria-label="Increase quantity"
+                    className="text-[#4e4540] hover:text-[#180f0a] p-1 disabled:opacity-40"
+                  >
+                    <Plus className="w-4 h-4" aria-hidden="true" />
+                  </button>
+                </div>
+                <span className="text-[12px] text-[#80756f]">Max {QUANTITY_MAX} per order</span>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                 <button
                   type="button"
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="text-[18px] text-[#4e4540] hover:text-[#180f0a] px-2"
+                  onClick={handleAddToCart}
+                  className="flex-1 py-3.5 rounded-full bg-[#180f0a] hover:bg-[#964735] text-white text-[13px] font-semibold tracking-wide flex items-center justify-center gap-2 shadow-md transition-all active:translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#964735] focus-visible:ring-offset-2"
                 >
-                  -
+                  <ShoppingBag className="w-4 h-4" aria-hidden="true" />
+                  <span>Add to Bag · ₹{lineTotal.toLocaleString('en-IN')}</span>
                 </button>
-                <span className="text-[14px] font-bold text-[#180f0a]">{quantity}</span>
+
                 <button
                   type="button"
-                  onClick={() => setQuantity(quantity + 1)}
-                  className="text-[18px] text-[#4e4540] hover:text-[#180f0a] px-2"
+                  onClick={() => toggleWishlist(product)}
+                  aria-pressed={wishlisted}
+                  aria-label={wishlisted ? 'Remove from Saved Gifts' : 'Save to Saved Gifts'}
+                  title={wishlisted ? 'Remove from Saved Gifts' : 'Save to Saved Gifts'}
+                  className={`p-3.5 rounded-full border transition-all shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#964735] ${
+                    wishlisted
+                      ? 'bg-[#ffdad3] border-[#964735] text-[#964735]'
+                      : 'bg-white border-[#e5e2dd] text-[#4e4540] hover:text-[#964735]'
+                  }`}
                 >
-                  +
+                  <Heart className={`w-5 h-5 ${wishlisted ? 'fill-[#964735]' : ''}`} aria-hidden="true" />
                 </button>
               </div>
 
-              {/* Add to Bag Button */}
               <button
                 type="button"
-                onClick={handleAddToCart}
-                className="w-full flex-1 py-3.5 rounded-full bg-[#180f0a] hover:bg-[#964735] text-white text-[13px] font-semibold tracking-wide flex items-center justify-center gap-2 shadow-md transition-all active:translate-y-0.5"
+                onClick={handleBuyNow}
+                className="w-full py-3.5 rounded-full bg-white border-2 border-[#180f0a] hover:bg-[#f6f3ee] text-[#180f0a] text-[13px] font-semibold tracking-wide flex items-center justify-center gap-2 shadow-sm transition-all active:translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#180f0a] focus-visible:ring-offset-2"
               >
-                <ShoppingBag className="w-4 h-4" />
-                <span>Add to Bag · ₹{(product.price * quantity).toLocaleString('en-IN')}</span>
+                <Zap className="w-4 h-4" aria-hidden="true" />
+                <span>Buy Now · ₹{lineTotal.toLocaleString('en-IN')}</span>
               </button>
 
-              {/* Wishlist Button */}
-              <button
-                type="button"
-                onClick={() => toggleWishlist(product)}
-                className={`p-3.5 rounded-full border transition-all ${
-                  wishlisted
-                    ? 'bg-[#ffdad3] border-[#964735] text-[#964735]'
-                    : 'bg-white border-[#e5e2dd] text-[#4e4540] hover:text-[#964735]'
-                }`}
-                title={wishlisted ? 'Saved in Wishlist' : 'Save to Wishlist'}
-              >
-                <Heart className={`w-5 h-5 ${wishlisted ? 'fill-[#964735]' : ''}`} />
-              </button>
+              {/* Immediate feedback after Add to Bag */}
+              {justAdded && (
+                <div className="fa-fade-in rounded-2xl bg-[#d8e7cd] border border-[#c3d6b6] p-4 flex flex-wrap items-center justify-between gap-3" role="status">
+                  <p className="text-[13px] font-semibold text-[#2f3d29] flex items-center gap-2">
+                    <Check className="w-4 h-4" aria-hidden="true" />
+                    Added to your bag
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Link
+                      to="/cart"
+                      className="px-4 py-2 rounded-full bg-[#180f0a] text-white text-[12px] font-semibold hover:bg-[#964735] transition-colors"
+                    >
+                      View Bag
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => setJustAdded(false)}
+                      className="px-4 py-2 rounded-full bg-white border border-[#c3d6b6] text-[#2f3d29] text-[12px] font-semibold"
+                    >
+                      Continue Shopping
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Buy Now — secondary purchase action (Phase 3D.5, E-06) */}
-            <button
-              type="button"
-              onClick={handleBuyNow}
-              className="w-full py-3.5 rounded-full bg-white border-2 border-[#180f0a] hover:bg-[#f6f3ee] text-[#180f0a] text-[13px] font-semibold tracking-wide flex items-center justify-center gap-2 shadow-sm transition-all active:translate-y-0.5"
-            >
-              <Zap className="w-4 h-4" />
-              <span>Buy Now · ₹{(product.price * quantity).toLocaleString('en-IN')}</span>
-            </button>
-
-            {/* Trust Assurances */}
-            <div className="grid grid-cols-3 gap-2 pt-4 text-center">
-              <div className="p-3 rounded-2xl bg-white border border-[#e5e2dd]">
-                <Truck className="w-4 h-4 text-[#964735] mx-auto mb-1" />
-                <span className="text-[11px] font-medium text-[#1c1c19] block">Pan-India Delivery</span>
-              </div>
-              <div className="p-3 rounded-2xl bg-white border border-[#e5e2dd]">
-                <Sparkles className="w-4 h-4 text-[#964735] mx-auto mb-1" />
-                <span className="text-[11px] font-medium text-[#1c1c19] block">Everlasting Blooms</span>
-              </div>
-              <div className="p-3 rounded-2xl bg-white border border-[#e5e2dd]">
-                <ShieldCheck className="w-4 h-4 text-[#964735] mx-auto mb-1" />
-                <span className="text-[11px] font-medium text-[#1c1c19] block">Rigid Gift Packaging</span>
-              </div>
+            {/* Delivery information — from store settings, never invented */}
+            <div className="rounded-2xl bg-white border border-[#e5e2dd] p-4 space-y-2">
+              <p className="text-[12px] font-bold uppercase tracking-wider text-[#180f0a] flex items-center gap-2">
+                <Truck className="w-4 h-4 text-[#964735]" aria-hidden="true" /> Delivery
+              </p>
+              <ul className="space-y-1.5 text-[13px] text-[#4e4540]">
+                {settings && settings.shippingEnabled && (
+                  <li>
+                    Pan-India dispatch
+                    {settings.freeShippingAbove
+                      ? ` · complimentary on orders above ₹${Number(settings.freeShippingAbove).toLocaleString('en-IN')}`
+                      : ''}
+                  </li>
+                )}
+                {settings && settings.standardShippingRate !== undefined && (
+                  <li>
+                    Standard delivery: {settings.standardShippingRate === 0 ? 'Complimentary' : `₹${settings.standardShippingRate}`}
+                    {settings.shippingConfiguration && settings.shippingConfiguration.standardDays
+                      ? ` · ${settings.shippingConfiguration.standardDays}`
+                      : ''}
+                  </li>
+                )}
+                {settings && settings.expressShippingRate ? (
+                  <li>
+                    Express atelier dispatch: ₹{settings.expressShippingRate}
+                    {settings.shippingConfiguration && settings.shippingConfiguration.expressDays
+                      ? ` · ${settings.shippingConfiguration.expressDays}`
+                      : ''}
+                  </li>
+                ) : null}
+                {madeToOrder && <li>Made to order — allow extra studio time before dispatch.</li>}
+              </ul>
             </div>
           </div>
         </div>
 
-        {/* Detailed Tabs: Craft, Dimensions, Delivery */}
-        <div className="mt-16 bg-white rounded-3xl p-6 lg:p-10 border border-[#e5e2dd] shadow-xs">
+        {/* What's Included + How It Arrives */}
+        <div className="mt-14 grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white rounded-3xl p-6 lg:p-8 border border-[#e5e2dd]">
+            <h2 className="font-serif text-[24px] text-[#180f0a] mb-1">What&apos;s included</h2>
+            <p className="text-[13px] text-[#4e4540] mb-4">Built from this product&apos;s own details.</p>
+            <ul className="space-y-2.5">
+              {inclusionItems.map((item) => (
+                <li key={item.label} className="flex items-start gap-2.5 text-[14px] text-[#1c1c19]">
+                  <Check className="w-4 h-4 text-[#5b6d54] mt-0.5 shrink-0" aria-hidden="true" />
+                  <span>{item.label}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="bg-[#f6f3ee] rounded-3xl p-6 lg:p-8 border border-[#e5e2dd]">
+            <h2 className="font-serif text-[24px] text-[#180f0a] mb-1">How it arrives</h2>
+            <p className="text-[13px] text-[#4e4540] mb-4">Our studio journey, step by step.</p>
+            <ol className="space-y-3">
+              {HOW_IT_ARRIVES.map((stage, idx) => (
+                <li key={stage.step} className="flex items-start gap-3">
+                  <span className="w-6 h-6 rounded-full bg-[#180f0a] text-white text-[11px] font-bold flex items-center justify-center shrink-0">
+                    {idx + 1}
+                  </span>
+                  <span>
+                    <span className="text-[13px] font-semibold text-[#180f0a] block">{stage.step}</span>
+                    <span className="text-[13px] text-[#4e4540]">{stage.detail}</span>
+                  </span>
+                </li>
+              ))}
+            </ol>
+            <p className="text-[11px] text-[#80756f] mt-4">
+              Studio information only — live courier tracking is not yet integrated.
+              {' '}
+              <Link to="/order-tracking" className="font-semibold text-[#964735] hover:underline">Track an existing order →</Link>
+            </p>
+          </div>
+        </div>
+
+        {/* Detail tabs — only real content is rendered */}
+        <div className="mt-10 bg-white rounded-3xl p-6 lg:p-10 border border-[#e5e2dd]">
           <div className="flex items-center gap-6 border-b border-[#e5e2dd] pb-4 mb-6">
-            {[
-              { key: 'craft', label: 'Artisanal Materials & Craft' },
-              { key: 'dimensions', label: 'Dimensions & Care' },
-              { key: 'delivery', label: 'Packaging & Dispatch' }
-            ].map((tab) => (
+            {tabs.map((tab) => (
               <button
                 key={tab.key}
+                type="button"
                 onClick={() => setActiveTab(tab.key)}
-                className={`text-[14px] font-serif transition-colors pb-1 relative ${
-                  activeTab === tab.key
-                    ? 'text-[#180f0a] font-medium'
-                    : 'text-[#80756f] hover:text-[#180f0a]'
+                aria-current={activeTab === tab.key}
+                className={`text-[14px] font-serif transition-colors pb-1 relative focus:outline-none focus-visible:ring-2 focus-visible:ring-[#180f0a] rounded ${
+                  activeTab === tab.key ? 'text-[#180f0a] font-medium' : 'text-[#80756f] hover:text-[#180f0a]'
                 }`}
               >
                 {tab.label}
@@ -369,24 +596,21 @@ export default function ProductPage() {
           {activeTab === 'craft' && (
             <div className="space-y-4 max-w-3xl text-[14px] text-[#4e4540] leading-relaxed">
               <p>
-                Each stem is formed around a pliable copper wire armature, overlaid with dense velvet cotton chenille yarns. Petals are individually twisted, sculpted, and arranged to mimic botanical curvature while remaining soft to the touch.
+                Each stem is formed around a pliable wire armature, overlaid with dense cotton chenille
+                yarns. Petals are individually twisted and arranged to echo botanical curvature while
+                staying soft to the touch.
               </p>
-              <div className="p-4 rounded-2xl bg-[#f6f3ee] border border-[#e5e2dd]">
-                <h4 className="text-[12px] uppercase font-bold tracking-wider text-[#180f0a] mb-1">
-                  Atelier Composition
-                </h4>
-                <p>{product.materials}</p>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'dimensions' && (
-            <div className="space-y-4 max-w-3xl text-[14px] text-[#4e4540] leading-relaxed">
+              {product.materials && (
+                <div className="p-4 rounded-2xl bg-[#f6f3ee] border border-[#e5e2dd]">
+                  <h3 className="text-[12px] uppercase font-bold tracking-wider text-[#180f0a] mb-1">
+                    Atelier composition
+                  </h3>
+                  <p>{product.materials}</p>
+                </div>
+              )}
               <p>
-                <strong>Measurements:</strong> {product.dimensions}
-              </p>
-              <p>
-                <strong>Care Instructions:</strong> Simply dust with a soft camel-hair brush or dry cloth periodically. Keep away from direct water or soaking to protect paper wrapping and natural plant dyes.
+                Care: dust gently with a soft brush or dry cloth. Keep away from water to protect the
+                paper wrapping and natural dyes.
               </p>
             </div>
           )}
@@ -394,36 +618,59 @@ export default function ProductPage() {
           {activeTab === 'delivery' && (
             <div className="space-y-4 max-w-3xl text-[14px] text-[#4e4540] leading-relaxed">
               <p>
-                Arrives nested in shredded wood excelsior inside a rigid custom Kraft presentation gift box, closed with an artisan wax seal.
+                Arrives nested in a rigid presentation gift box, closed with an artisan wax seal.
               </p>
               <p>
-                Dispatches from our Mumbai atelier within 1–2 business days. Express Pan-India air delivery arrives in 3–5 days.
+                {settings && settings.shippingConfiguration && settings.shippingConfiguration.standardDays
+                  ? `Standard Pan-India delivery arrives in ${settings.shippingConfiguration.standardDays}.`
+                  : 'Dispatches from our studio within 1–2 business days, with Pan-India delivery.'}
+                {madeToOrder ? ' Made-to-order pieces begin crafting after your order is placed.' : ''}
               </p>
             </div>
           )}
         </div>
 
-        {/* Related Creations */}
-        <div className="mt-16 lg:mt-24 space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <span className="text-[11px] uppercase font-bold tracking-widest text-[#964735]">
-                Complementary Keepsakes
-              </span>
-              <h2 className="font-serif text-[28px] sm:text-[36px] text-[#180f0a]">
-                You May Also Cherish
-              </h2>
+        {/* Related */}
+        {relatedProducts.length > 0 && (
+          <div className="mt-16 lg:mt-24 space-y-6">
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <span className="text-[11px] uppercase font-bold tracking-widest text-[#964735]">
+                  Complementary Keepsakes
+                </span>
+                <h2 className="font-serif text-[28px] sm:text-[36px] text-[#180f0a]">
+                  You may also like
+                </h2>
+              </div>
+              <Link to="/shop" className="text-[13px] font-semibold text-[#180f0a] hover:text-[#964735] shrink-0">
+                Browse all →
+              </Link>
             </div>
-            <Link to="/shop" className="text-[13px] font-semibold text-[#180f0a] hover:text-[#964735]">
-              Browse All →
-            </Link>
-          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {relatedProducts.map((p) => (
-              <ProductCard key={p.id} product={p} />
-            ))}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {relatedProducts.map((p) => (
+                <ProductCard key={p.id} product={p} />
+              ))}
+            </div>
           </div>
+        )}
+      </div>
+
+      {/* Mobile sticky purchase bar — page reserves space so nothing is hidden */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#fcf9f4]/95 backdrop-blur-md border-t border-[#e5e2dd] px-4 py-3">
+        <div className="flex items-center gap-3 max-w-7xl mx-auto">
+          <div className="min-w-0">
+            <p className="text-[11px] text-[#80756f] truncate">{product.name}</p>
+            <p className="text-[15px] font-bold text-[#180f0a]">₹{lineTotal.toLocaleString('en-IN')}</p>
+          </div>
+          <button
+            type="button"
+            onClick={handleAddToCart}
+            className="ml-auto px-5 py-2.5 rounded-full bg-[#180f0a] text-white text-[13px] font-semibold flex items-center gap-2 shrink-0"
+          >
+            <ShoppingBag className="w-4 h-4" aria-hidden="true" />
+            Add to Bag
+          </button>
         </div>
       </div>
     </div>

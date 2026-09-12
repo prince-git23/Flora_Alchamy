@@ -79,6 +79,8 @@ function normalizeOrder(o) {
     ribbon: it.ribbon || '',
     giftMessage: it.giftMessage || '',
     customDetails: it.customDetails || null,
+    description: it.description || '',
+    isAddOn: !!it.isAddOn,
     isCatalogue: it.isCatalogue !== false,
   }));
   const addr = o.shippingAddress || {};
@@ -160,10 +162,12 @@ function imageForItem(item) {
  */
 export async function createOrder(orderData) {
   const items = (orderData.items || []).map((item) => {
-    const productId = item.productSlug || item.productId || item.id;
-    if (productId && isCatalogueProduct(productId)) {
+    // `id` is a storefront UI key only — the server must never treat it as a
+    // catalogue slug. Only an explicit productSlug is sent as a catalogue item.
+    const productSlug = item.productSlug;
+    if (productSlug && isCatalogueProduct(productSlug)) {
       return {
-        productSlug: productId,
+        productSlug,
         name: item.name,
         quantity: item.quantity || 1,
         palette: item.palette || '',
@@ -181,6 +185,8 @@ export async function createOrder(orderData) {
       ribbon: item.ribbon || '',
       giftMessage: item.giftMessage || '',
       customDetails: item.customDetails || null,
+      description: item.description || '',
+      isAddOn: !!item.isAddOn,
     };
   });
 

@@ -71,10 +71,13 @@ export function fromApiProduct(p) {
     palette: p.palette || '',
     occasion: p.occasion || '',
     stockTracked: p.stockTracked !== false,
-    palettes: p.palette
-      ? [{ id: slugify(p.palette), name: p.palette, color1: '#964735', color2: '#180f0a' }]
-      : [],
-    ribbons: [],
+    // Real palette / ribbon values only. Previously the palette carried two
+    // invented swatch colours; the product page now renders the real label
+    // instead of fabricating colour data.
+    palettes: p.palette ? [{ id: slugify(p.palette), name: p.palette }] : [],
+    ribbons: p.ribbon ? [{ id: slugify(p.ribbon), name: p.ribbon, desc: '' }] : [],
+    ribbon: p.ribbon || '',
+    collections: Array.isArray(p.collections) ? p.collections : [],
     tags: [],
     isFeatured: false,
     isBestseller: false,

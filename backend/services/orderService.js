@@ -86,6 +86,8 @@ export async function createOrder({ customer, items, paymentMethod = 'Sample', s
           ribbon: item.ribbon || product.ribbon || '',
           giftMessage: item.giftMessage || '',
           customDetails: item.customDetails || null,
+          description: item.description || '',
+          isAddOn: !!item.isAddOn,
           isCatalogue: product.stockTracked,
         };
         normalized.push(line);
@@ -107,6 +109,8 @@ export async function createOrder({ customer, items, paymentMethod = 'Sample', s
           ribbon: item.ribbon || '',
           giftMessage: item.giftMessage || giftMessage,
           customDetails: item.customDetails || null,
+          description: item.description || '',
+          isAddOn: !!item.isAddOn,
           isCatalogue: false,
         });
         subtotal += price * quantity;

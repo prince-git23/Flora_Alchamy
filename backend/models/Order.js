@@ -29,6 +29,10 @@ const itemSchema = new mongoose.Schema(
     ribbon: { type: String, default: '' },
     giftMessage: { type: String, default: '' },
     customDetails: { type: mongoose.Schema.Types.Mixed, default: null },
+    description: { type: String, default: '' },
+    // A storefront add-on (packaging upgrade) rides the bespoke item path but
+    // stays distinguishable from a real catalogue/custom gift.
+    isAddOn: { type: Boolean, default: false },
     // false → made-to-order custom gift, not stock-tracked
     isCatalogue: { type: Boolean, default: true },
     stockDeducted: { type: Boolean, default: false },

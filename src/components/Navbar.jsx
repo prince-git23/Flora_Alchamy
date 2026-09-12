@@ -167,14 +167,15 @@ export default function Navbar() {
             >
               Gift Finder
             </Link>
-            <Link
-              to="/our-creations"
-              className={`px-4 py-2 rounded-full text-[13px] font-semibold tracking-wide transition-all ${
-                isActive('/our-creations') ? 'bg-[#ebe8e3] text-[#1c1c19]' : 'text-[#4e4540] hover:text-[#1c1c19] hover:bg-[#f0ede9]'
-              }`}
-            >
-              Our Creations
-            </Link>
+            <NavMenu
+              label="Our Story"
+              items={[
+                { label: 'Our Story', to: '/our-story' },
+                { label: "How It's Made", to: '/how-its-made' },
+                { label: 'Our Creations', to: '/our-creations' },
+              ]}
+              isActive={isActive('/our-story') || isActive('/how-its-made') || isActive('/our-creations')}
+            />
           </nav>
 
           {/* Action Utilities */}
@@ -336,8 +337,17 @@ export default function Navbar() {
                   <Link to="/collections" className="px-3.5 py-2.5 rounded-xl text-[13px] font-medium text-[#4e4540] hover:bg-[#f0ede9]">
                     Curated Collections
                   </Link>
+                  <Link to="/our-story" className="px-3.5 py-2.5 rounded-xl text-[13px] font-medium text-[#4e4540] hover:bg-[#f0ede9]">
+                    Our Story
+                  </Link>
+                  <Link to="/how-its-made" className="px-3.5 py-2.5 rounded-xl text-[13px] font-medium text-[#4e4540] hover:bg-[#f0ede9]">
+                    How It's Made
+                  </Link>
                   <Link to="/our-creations" className="px-3.5 py-2.5 rounded-xl text-[13px] font-medium text-[#4e4540] hover:bg-[#f0ede9]">
                     Our Creations
+                  </Link>
+                  <Link to="/custom-request" className="px-3.5 py-2.5 rounded-xl text-[13px] font-medium text-[#964735] hover:bg-[#f0ede9]">
+                    Request a Custom Creation
                   </Link>
                 </div>
               </div>

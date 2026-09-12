@@ -60,6 +60,15 @@ export async function getUnreadCount({ scope = 'customer' } = {}) {
 }
 
 /**
+ * List the current customer's own conversations.
+ */
+export async function getConversations({ scope = 'customer' } = {}) {
+  const res = await api.get('/conversations/mine', { scope });
+  if (!res.ok) throw new Error(res.message);
+  return res.data.conversations;
+}
+
+/**
  * List all conversations (admin/handler only).
  */
 export async function listConversations({ status, limit = 50, scope = 'admin' } = {}) {

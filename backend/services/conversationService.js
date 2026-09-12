@@ -203,6 +203,18 @@ export async function getUnreadCount({ user }) {
 }
 
 /**
+ * List conversations for a customer (only their own).
+ */
+export async function listMyConversations({ user, limit = 50 }) {
+  const customerId = user.customerId || user._id;
+  const conversations = await Conversation.find({ customerId })
+    .sort({ lastMessageAt: -1 })
+    .limit(limit)
+    .lean();
+  return conversations;
+}
+
+/**
  * List conversations for admin/handler (all conversations with last message).
  */
 export async function listConversations({ user, status, limit = 50 }) {
