@@ -137,9 +137,19 @@ export default function CustomGiftsPage() {
   };
 
   const handleAddToCart = () => {
+    // Send configuration IDs to the server; the server calculates the authoritative price.
+    const customGiftConfig = {
+      baseId: selectedBase.id,
+      flowerIds: selectedFlowers,
+      paletteId: selectedPalette.id,
+      ribbonId: selectedRibbon.id,
+      sealId: selectedSeal.id,
+    };
+
     const customItem = {
       id: `custom-${Date.now()}`,
       name: `Custom ${selectedOccasion.name} Gift — ${selectedBase.title}`,
+      // Frontend estimate for UX — server ignores this and recalculates
       price: totalPrice,
       images: [selectedBase.image],
       categoryLabel: 'Custom Gift Studio',
@@ -156,7 +166,8 @@ export default function CustomGiftsPage() {
         base: selectedBase.title,
         flowers: selectedFlowers.join(', '),
         seal: selectedSeal.name
-      }
+      },
+      customGiftConfig,
     });
 
     navigate('/cart');

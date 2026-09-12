@@ -136,7 +136,7 @@ async function main() {
     body: {
       items: [
         { productSlug: 'dusty-rose-lavender-posy', name: 'Tampered', price: 1, quantity: 1 },
-        { name: 'Custom made-to-order keepsake', price: 2400, quantity: 1, isCatalogue: false, customDetails: { occasion: 'birthday' } },
+        { name: 'Custom made-to-order keepsake', quantity: 1, customGiftConfig: { baseId: 'ceramic-pot', flowerIds: ['rose'], paletteId: 'sage', ribbonId: 'velvet-cord', sealId: 'gold' }, customDetails: { occasion: 'birthday' } },
       ],
       shippingAddress: { name: 'Smoke A', address: '1 Test St', city: 'Mumbai', pincode: '400001' },
     },
@@ -146,10 +146,10 @@ async function main() {
   const order = r.json.order;
   check('order id assigned (FA-…)', /^FA-\d+$/.test(ORDER_ID || ''));
   check('catalogue price recomputed server-side (1850 not 1)', order?.items?.[0]?.price === 1850);
-  check('custom item price preserved (2400)', order?.items?.[1]?.price === 2400);
-  check('subtotal = 1850 + 2400', order?.subtotal === 4250);
+  check('custom gift price server-calculated (1250)', order?.items?.[1]?.price === 1250);
+  check('subtotal = 1850 + 1250', order?.subtotal === 3100);
   check('shipping free ≥ ₹1999 threshold', order?.shipping === 0);
-  check('total = subtotal + shipping', order?.total === 4250);
+  check('total = subtotal + shipping', order?.total === 3100);
   check('status initialized to "new"', order?.orderStatus === 'new');
   check('status history records new', order?.statusHistory?.[0]?.status === 'new');
   check('customer bound from JWT (not client)', order?.customerId === CUST_A_ID || String(order?.customerId) === String(CUST_A_ID));

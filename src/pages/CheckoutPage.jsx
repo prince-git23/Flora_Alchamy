@@ -307,7 +307,7 @@ export default function CheckoutPage() {
         {/* Title */}
         <div className="space-y-1 mb-6">
           <span className="text-[11px] uppercase font-bold tracking-widest text-[#964735]">
-            Flora Alchemy Checkout
+            Secure Checkout
           </span>
           <h1 className="font-serif text-[36px] sm:text-[42px] text-[#180f0a] font-normal tracking-tight">
             {step === 0 ? 'Your Account' : step === 1 ? 'Delivery Details' : step === 2 ? 'Payment Method' : 'Review & Place Order'}
@@ -373,14 +373,14 @@ export default function CheckoutPage() {
           <div className="bg-white rounded-3xl p-10 sm:p-14 border border-[#e5e2dd] text-center space-y-4 shadow-sm max-w-xl mx-auto my-8">
             <p className="font-serif text-[24px] text-[#180f0a]">Your shopping bag is currently empty.</p>
             <p className="text-[14px] text-[#4e4540]">
-              Please explore our handcrafted botanicals and add your favorite creations before proceeding to checkout.
+              Your bag is empty. Browse our handcrafted pieces and add your favorites before checking out.
             </p>
             <div className="pt-2">
               <Link
                 to="/shop"
                 className="inline-flex px-7 py-3.5 rounded-full bg-[#180f0a] text-white text-[13px] font-semibold hover:bg-[#964735] transition-colors shadow-sm"
               >
-                Explore Handcrafted Blooms
+                Browse Gifts
               </Link>
             </div>
           </div>

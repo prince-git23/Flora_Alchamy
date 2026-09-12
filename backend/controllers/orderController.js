@@ -111,6 +111,7 @@ export async function createStaffOrder(req, res, next) {
       paymentMethod: paymentMethod === 'UPI' ? 'Sample' : paymentMethod,
       isRush,
       forceSamplePayment: true,
+      allowLegacyPricing: true,
     });
     res.status(201).json({ success: true, order });
   } catch (err) {

@@ -110,7 +110,9 @@ export default function Footer() {
                   Subscribe
                 </button>
               </form>
-              <p className="text-[11px] text-[#80756f] pt-2">Preview only — no emails are sent yet.</p>
+              <p className="text-[11px] text-[#80756f] mt-2 max-w-sm">
+                Preview only — newsletter emails aren't connected yet, so nothing is sent.
+              </p>
             </div>
           </div>
 

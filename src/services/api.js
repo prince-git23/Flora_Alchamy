@@ -102,6 +102,8 @@ export async function addToCart(product, options = {}) {
       ribbon: options.ribbon || null,
       giftMessage: options.giftMessage || null,
       customDetails: options.customDetails || null,
+      customGiftConfig: options.customGiftConfig || null,
+      addOnId: options.addOnId || null,
       isAddOn,
     };
     updated = [newItem, ...cart];

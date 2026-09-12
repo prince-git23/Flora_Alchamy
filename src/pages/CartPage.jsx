@@ -225,7 +225,7 @@ export default function CartPage() {
                       const idx = cart.findIndex((item) => item.isAddOn && item.id === PACKAGING_ADD_ON.id);
                       if (e.target.checked) {
                         if (idx === -1) {
-                          addItemToCart(PACKAGING_ADD_ON, { isAddOn: true, customPrice: PACKAGING_ADD_ON.price });
+                          addItemToCart(PACKAGING_ADD_ON, { isAddOn: true, addOnId: PACKAGING_ADD_ON.id });
                         }
                       } else if (idx > -1) {
                         removeItemFromCart(idx);

@@ -86,7 +86,7 @@ export default function LoginPage() {
     setEmail('customer@example.com');
     setPassword('demo1234');
     setError('');
-    showToast('Filled with Demo Customer credentials');
+    showToast('DEV ONLY — demo credentials filled. No automatic login.');
   };
 
   return (
@@ -306,23 +306,20 @@ export default function LoginPage() {
             </form>
           )}
 
-          {/* Demo Auto Fill (explicit helper — never silent) */}
+          {/* DEV ONLY helper — unmistakable testing affordance, not a production
+              sign-in method. It only prefills fields; no automatic login. */}
           {mode !== 'forgot' && (
-            <div className="pt-2 border-t border-[#e5e2dd] text-center">
+            <div className="pt-3 border-t border-dashed border-[#d8cfc6] text-center">
               <button
                 type="button"
                 onClick={handleFillDemo}
-                className="text-[12px] font-semibold text-[#964735] hover:underline"
+                title="Development/testing helper — not available in production"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-dashed border-[#c9a227]/60 bg-[#fdf6e3] text-[10px] font-bold tracking-widest uppercase text-[#8a6d1a] hover:bg-[#f7ecc9] transition-colors"
               >
-                ⚡ Quick Fill with Demo Account (DEV ONLY)
+                Dev Only · Fill Demo Credentials
               </button>
             </div>
           )}
-
-          <div className="flex items-center justify-center gap-2 text-[11px] text-[#80756f] text-center">
-            <Info className="w-3.5 h-3.5 shrink-0" />
-            <span>Prototype authentication · Sample data environment · Demo credentials never sign you in automatically</span>
-          </div>
         </div>
       </div>
     </div>

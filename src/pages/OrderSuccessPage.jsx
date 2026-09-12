@@ -42,7 +42,7 @@ export default function OrderSuccessPage() {
   if (loading) {
     return (
       <div className="w-full min-h-[60vh] flex items-center justify-center bg-[#fcf9f4]">
-        <p className="font-serif text-[20px] text-[#180f0a]">Preparing Order Keepsake Confirmation...</p>
+        <p className="font-serif text-[20px] text-[#180f0a]">Loading your order...</p>
       </div>
     );
   }
@@ -95,13 +95,13 @@ export default function OrderSuccessPage() {
 
           <div className="space-y-2">
             <span className="text-[11px] font-bold uppercase tracking-widest text-[#964735]">
-              Order Successfully Established
+              Order Confirmed
             </span>
             <h1 className="font-serif text-[34px] sm:text-[44px] text-[#180f0a] font-normal leading-tight tracking-tight">
-              Thank you for your commission, {firstName}.
+              Thank you, {firstName}!
             </h1>
             <p className="text-[15px] text-[#4e4540] max-w-xl mx-auto leading-relaxed">
-              Your handcrafted botanical keepsake has been scheduled into creation.
+              Your handcrafted gift has been received and is being prepared.
               {paymentStatus === 'Paid'
                 ? ' A receipt for this order has been recorded in your account.'
                 : ` Payment is recorded as ${paymentStatus.toLowerCase()} — no amount has been captured yet.`}
@@ -111,21 +111,21 @@ export default function OrderSuccessPage() {
           {/* Details Bar */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 p-5 sm:p-6 rounded-2xl bg-[#f0eae1] border border-[#e5ddd2] text-left mt-2">
             <div className="space-y-1">
-              <p className="text-[10px] uppercase font-bold tracking-wider text-[#80756f]">Order Identifier</p>
+              <p className="text-[10px] uppercase font-bold tracking-wider text-[#80756f]">Order</p>
               <p className="text-[15px] font-bold text-[#180f0a] font-mono">{order.id}</p>
             </div>
             <div className="space-y-1">
-              <p className="text-[10px] uppercase font-bold tracking-wider text-[#80756f]">Date Established</p>
+              <p className="text-[10px] uppercase font-bold tracking-wider text-[#80756f]">Date</p>
               <p className="text-[15px] font-bold text-[#180f0a]">{formatDate(order.createdAt)}</p>
             </div>
             <div className="space-y-1">
-              <p className="text-[10px] uppercase font-bold tracking-wider text-[#80756f]">Settlement Total</p>
+              <p className="text-[10px] uppercase font-bold tracking-wider text-[#80756f]">Total</p>
               <p className="text-[15px] font-bold text-[#180f0a] flex items-center gap-2">
                 {formatINR(order.total)} {paidPill}
               </p>
             </div>
             <div className="space-y-1">
-              <p className="text-[10px] uppercase font-bold tracking-wider text-[#80756f]">Current Status</p>
+              <p className="text-[10px] uppercase font-bold tracking-wider text-[#80756f]">Status</p>
               <p className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-[#e5e2dd] text-[12px] font-semibold text-[#180f0a]">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#5b6d54]" />
                 {statusStage}. {statusLabel}

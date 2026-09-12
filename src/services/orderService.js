@@ -176,6 +176,16 @@ export async function createOrder(orderData) {
         customDetails: item.customDetails || null,
       };
     }
+    // Add-ons: send addOnId for server-authoritative pricing; price is ignored.
+    if (item.isAddOn) {
+      return {
+        name: item.name || 'Add-on',
+        addOnId: item.addOnId || item.id || null,
+        quantity: item.quantity || 1,
+        image: imageForItem(item),
+        isAddOn: true,
+      };
+    }
     return {
       name: item.name || 'Custom Gift',
       price: Number(item.price) || 0,
@@ -185,8 +195,8 @@ export async function createOrder(orderData) {
       ribbon: item.ribbon || '',
       giftMessage: item.giftMessage || '',
       customDetails: item.customDetails || null,
+      customGiftConfig: item.customGiftConfig || null,
       description: item.description || '',
-      isAddOn: !!item.isAddOn,
     };
   });
 

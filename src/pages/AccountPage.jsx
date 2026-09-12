@@ -1,19 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, Navigate } from 'react-router-dom';
-import { User, Package, MapPin, Mail, Phone, Edit2, LogOut, Plus, Check, Trash2, Star } from 'lucide-react';
+import { User, Package, MapPin, Mail, Phone, Edit2, LogOut, Plus, Check, Trash2, Star, Heart, ShoppingBag, MessageSquare, Truck, ArrowRight, Settings } from 'lucide-react';
 import { getAccount, apiLogout, getActiveCustomerId, getActiveCustomer, updateCustomer, addAddress, updateAddress, deleteAddress } from '../services/customerService.js';
-import { getOrdersByCustomer, getStatusLabel, formatDate } from '../services/orderService.js';
+import { getOrdersByCustomer, getStatusLabel, formatDate, getCustomerFacingStatus } from '../services/orderService.js';
+import { getConversations } from '../services/conversationService.js';
 import { useStore } from '../context/StoreContext.jsx';
 
 const EMPTY_ADDRESS = { label: 'Home', name: '', address: '', city: '', state: '', pincode: '', phone: '' };
 
 export default function AccountPage() {
   const navigate = useNavigate();
-  const { showToast } = useStore();
+  const { showToast, wishlist, addItemToCart, toggleWishlist } = useStore();
   const [account, setAccount] = useState(null);
   const [profile, setProfile] = useState(null);
   const [orders, setOrders] = useState([]);
-  const [activeTab, setActiveTab] = useState('orders');
+  const [conversations, setConversations] = useState([]);
+  const [activeTab, setActiveTab] = useState('overview');
   const [loaded, setLoaded] = useState(false);
 
   // Profile editing
@@ -35,8 +37,12 @@ export default function AccountPage() {
       setProfileForm({ name: (live && live.name) || (acc && acc.name) || '', phone: (live && live.phone) || (acc && acc.phone) || '' });
       const customerId = acc ? acc.customerId || acc.id : getActiveCustomerId();
       if (customerId) {
-        const ords = await getOrdersByCustomer(customerId);
+        const [ords, convs] = await Promise.all([
+          getOrdersByCustomer(customerId),
+          getConversations().catch(() => []),
+        ]);
         setOrders(ords);
+        setConversations(convs);
       }
       setLoaded(true);
     }
@@ -160,9 +166,11 @@ export default function AccountPage() {
   };
 
   const tabs = [
-    { key: 'orders', label: 'Order History', count: orders.length },
-    { key: 'profile', label: 'Profile' },
-    { key: 'addresses', label: 'Addresses', count: addresses.length },
+    { key: 'overview', label: 'Overview', icon: User },
+    { key: 'orders', label: 'Orders', icon: Package, count: orders.length },
+    { key: 'saved', label: 'Saved Gifts', icon: Heart, count: wishlist.length },
+    { key: 'addresses', label: 'Addresses', icon: MapPin, count: addresses.length },
+    { key: 'profile', label: 'Profile', icon: Settings },
   ];
 
   return (
@@ -228,6 +236,111 @@ export default function AccountPage() {
           ))}
         </div>
 
+        {/* Overview Tab */}
+        {activeTab === 'overview' && (
+          <div className="space-y-8">
+            {/* Welcome */}
+            <div className="bg-gradient-to-br from-[#180f0a] to-[#2e241e] rounded-3xl p-6 sm:p-8 text-white">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-14 h-14 rounded-full bg-white/15 flex items-center justify-center font-serif text-[22px]">
+                  {displayName.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <h2 className="font-serif text-[24px] font-normal">Welcome back, {displayName.split(' ')[0] || 'there'}</h2>
+                  <p className="text-[13px] text-white/60">{displayEmail}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <button type="button" onClick={() => orders[0] && navigate(`/order-tracking/${orders[0].id || orders[0].orderId}`)} disabled={orders.length === 0} className="flex items-center gap-3 p-3 rounded-2xl bg-white/10 hover:bg-white/15 transition-colors text-left disabled:opacity-40">
+                  <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center"><Package className="w-4 h-4 text-white" /></div>
+                  <div className="min-w-0"><p className="text-[12px] font-semibold text-white">Track Order</p><p className="text-[11px] text-white/50 truncate">{orders.length > 0 ? `Latest: #${orders[0].id || orders[0].orderId}` : 'No orders yet'}</p></div>
+                </button>
+                <button type="button" onClick={() => setActiveTab('saved')} className="flex items-center gap-3 p-3 rounded-2xl bg-white/10 hover:bg-white/15 transition-colors text-left">
+                  <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center"><Heart className="w-4 h-4 text-white" /></div>
+                  <div className="min-w-0"><p className="text-[12px] font-semibold text-white">Saved Gifts</p><p className="text-[11px] text-white/50 truncate">{wishlist.length} saved</p></div>
+                </button>
+                <button type="button" onClick={() => setActiveTab('addresses')} className="flex items-center gap-3 p-3 rounded-2xl bg-white/10 hover:bg-white/15 transition-colors text-left">
+                  <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center"><MapPin className="w-4 h-4 text-white" /></div>
+                  <div className="min-w-0"><p className="text-[12px] font-semibold text-white">Addresses</p><p className="text-[11px] text-white/50 truncate">{defaultAddress ? `Default: ${defaultAddress.city}` : 'Add one'}</p></div>
+                </button>
+                <button type="button" onClick={() => {}} className="flex items-center gap-3 p-3 rounded-2xl bg-white/10 hover:bg-white/15 transition-colors text-left">
+                  <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center"><MessageSquare className="w-4 h-4 text-white" /></div>
+                  <div className="min-w-0"><p className="text-[12px] font-semibold text-white">Conversations</p><p className="text-[11px] text-white/50 truncate">{conversations.length > 0 ? `${conversations.length} thread${conversations.length > 1 ? 's' : ''}` : 'None yet'}</p></div>
+                </button>
+              </div>
+            </div>
+
+            {/* Recent Orders */}
+            <section>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-serif text-[20px] text-[#180f0a]">Recent Orders</h3>
+                {orders.length > 3 && (
+                  <button onClick={() => setActiveTab('orders')} className="text-[12px] font-semibold text-[#964735] hover:underline">View All →</button>
+                )}
+              </div>
+              {orders.length === 0 ? (
+                <div className="bg-white rounded-3xl p-10 border border-[#e5e2dd] text-center space-y-3">
+                  <p className="font-serif text-[18px] text-[#180f0a]">No orders yet</p>
+                  <p className="text-[13px] text-[#80756f]">Your handcrafted floral orders will appear here.</p>
+                  <Link to="/shop" className="inline-block px-6 py-2.5 rounded-full bg-[#180f0a] text-white text-[12px] font-semibold hover:bg-[#964735] transition-colors">Browse Gifts</Link>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {orders.slice(0, 3).map((ord) => (
+                    <div key={ord.id || ord.orderId} className="bg-white rounded-2xl p-4 border border-[#e5e2dd] shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <span className="text-[13px] font-bold text-[#180f0a]">#{ord.id || ord.orderId}</span>
+                        <span className="text-[12px] text-[#80756f]">{formatDate(ord.createdAt || ord.date)}</span>
+                        <span className="px-2.5 py-1 rounded-full bg-[#ffdad3]/60 text-[#964735] text-[11px] font-bold uppercase">{getCustomerFacingStatus(ord.orderStatus || ord.status || 'new')}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[13px] font-bold text-[#180f0a]">₹{ord.total?.toLocaleString('en-IN')}</span>
+                        <button type="button" onClick={() => navigate(`/order-tracking/${ord.id || ord.orderId}`)} className="px-3 py-1.5 rounded-full bg-[#180f0a] text-white text-[11px] font-semibold hover:bg-[#964735] transition-colors flex items-center gap-1"><Truck className="w-3 h-3" /> Track</button>
+                        <Link to={`/order/${ord.id || ord.orderId}/conversation`} className="px-3 py-1.5 rounded-full border border-[#e5e2dd] text-[#4e4540] text-[11px] font-semibold hover:bg-[#f6f3ee] transition-colors flex items-center gap-1"><MessageSquare className="w-3 h-3" /> Message</Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {/* Conversations */}
+            <section>
+              <h3 className="font-serif text-[20px] text-[#180f0a] mb-4">Recent Conversations</h3>
+              {conversations.length === 0 ? (
+                <div className="bg-white rounded-3xl p-8 border border-[#e5e2dd] text-center space-y-2">
+                  <p className="text-[14px] text-[#80756f]">No conversations yet. Message Flora Alchemy from any order page.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {conversations.slice(0, 3).map((conv) => (
+                    <Link key={conv._id || conv.id} to={`/order/${conv.orderId}/conversation`} className="flex items-center justify-between bg-white rounded-2xl p-4 border border-[#e5e2dd] hover:border-[#c17c74] transition-all">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-[#ffdad3]/50 flex items-center justify-center"><MessageSquare className="w-4 h-4 text-[#964735]" /></div>
+                        <div>
+                          <p className="text-[13px] font-semibold text-[#180f0a]">Order #{conv.orderId}</p>
+                          <p className="text-[11px] text-[#80756f]">{conv.lastMessageAt ? `Last message ${new Date(conv.lastMessageAt).toLocaleDateString()}` : 'No messages yet'}</p>
+                        </div>
+                      </div>
+                      <ArrowRight className="w-4 h-4 text-[#80756f]" />
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {/* Quick Actions */}
+            <section className="bg-[#f6f3ee] rounded-3xl p-6 border border-[#e5e2dd]">
+              <h3 className="font-serif text-[18px] text-[#180f0a] mb-3">Need another gift?</h3>
+              <div className="flex flex-wrap gap-3">
+                <Link to="/shop" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#180f0a] text-white text-[12px] font-semibold hover:bg-[#964735] transition-colors"><ShoppingBag className="w-3.5 h-3.5" /> Browse Gifts</Link>
+                <Link to="/gift-finder" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white border border-[#e5e2dd] text-[#180f0a] text-[12px] font-semibold hover:bg-[#f6f3ee] transition-colors">Find a Gift</Link>
+                <Link to="/custom-gifts" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white border border-[#e5e2dd] text-[#180f0a] text-[12px] font-semibold hover:bg-[#f6f3ee] transition-colors">Custom Gift Studio</Link>
+              </div>
+            </section>
+          </div>
+        )}
+
         {/* Orders Tab */}
         {activeTab === 'orders' && (
           <div className="space-y-6">
@@ -285,6 +398,41 @@ export default function AccountPage() {
                   </div>
                 </div>
               ))
+            )}
+          </div>
+        )}
+
+        {/* Saved Gifts Tab */}
+        {activeTab === 'saved' && (
+          <div className="space-y-6">
+            {wishlist.length === 0 ? (
+              <div className="bg-white rounded-3xl p-10 border border-[#e5e2dd] text-center space-y-3">
+                <p className="font-serif text-[20px] text-[#180f0a]">No saved gifts yet</p>
+                <p className="text-[13px] text-[#80756f]">Tap the heart on any bloom, card, or hamper to save it here.</p>
+                <Link to="/shop" className="inline-block px-6 py-2.5 rounded-full bg-[#180f0a] text-white text-[12px] font-semibold hover:bg-[#964735] transition-colors">Browse the Collection</Link>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {wishlist.map((item) => (
+                  <div key={item.id} className="bg-white rounded-2xl p-4 border border-[#e5e2dd] shadow-xs flex flex-col space-y-3 group">
+                    <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-[#f6f3ee]">
+                      <Link to={`/product/${item.id}`}>
+                        <img src={item.images ? item.images[0] : (item.image || '')} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      </Link>
+                      <button type="button" onClick={() => toggleWishlist(item)} className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/90 shadow-sm flex items-center justify-center text-[#964735] hover:scale-110 transition-transform" title="Remove">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    <div className="space-y-1 min-w-0">
+                      <Link to={`/product/${item.id}`} className="font-serif text-[15px] text-[#180f0a] font-medium hover:text-[#964735] transition-colors line-clamp-1">{item.name}</Link>
+                      <p className="text-[14px] font-bold text-[#180f0a]">₹{item.price.toLocaleString('en-IN')}</p>
+                    </div>
+                    <button type="button" onClick={() => addItemToCart(item)} className="w-full py-2 rounded-full bg-[#180f0a] text-white hover:bg-[#964735] text-[12px] font-semibold flex items-center justify-center gap-1.5 transition-colors">
+                      <ShoppingBag className="w-3.5 h-3.5" /> Move to Bag
+                    </button>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         )}

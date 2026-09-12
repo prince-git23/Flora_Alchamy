@@ -3,6 +3,7 @@ import Product from '../models/Product.js';
 import { ApiError } from '../middleware/errorMiddleware.js';
 import { reserveStockForOrder } from './inventoryService.js';
 import { isConfigured as razorpayConfigured, isRazorpayMethod } from './razorpayService.js';
+import { calculateCustomGiftPrice, resolveAddOnPrice } from '../config/customGiftPricing.js';
 
 export { ORDER_STATUSES };
 
@@ -46,8 +47,12 @@ export function assertValidTransition(order, newStatus) {
  *    sequence runs inside a Mongoose session transaction.
  *  - made-to-order (custom, non-catalogue) items carry bespoke pricing and are
  *    not stock-tracked, preserving the Phase 3A.5 behavior.
+ *  - customer orders require productSlug or customGiftConfig; client price is
+ *    never accepted for customer-originated orders.
+ *  - staff orders (allowLegacyPricing) may accept client prices for bespoke
+ *    items that cannot be represented by customGiftConfig.
  */
-export async function createOrder({ customer, items, paymentMethod = 'Sample', shippingAddress, giftMessage = '', isRush = false, forceSamplePayment = false }) {
+export async function createOrder({ customer, items, paymentMethod = 'Sample', shippingAddress, giftMessage = '', isRush = false, forceSamplePayment = false, allowLegacyPricing = false }) {
   if (!customer) {
     throw new ApiError(401, 'An authenticated customer is required to place an order.', 'UNAUTHORIZED');
   }
@@ -93,11 +98,41 @@ export async function createOrder({ customer, items, paymentMethod = 'Sample', s
         normalized.push(line);
         subtotal += price * quantity;
       } else {
-        // Made-to-order custom item (bespoke price, not stock-tracked).
-        const price = Number(item.price);
-        if (!Number.isFinite(price) || price < 0) {
-          throw new ApiError(422, `Invalid price for custom item "${item.name}".`, 'VALIDATION_ERROR');
+        // Made-to-order custom item.
+        // If the item carries a customGiftConfig (from the Custom Gift Studio),
+        // the server calculates the price from the configuration IDs.
+        // The client-supplied price is IGNORED for Studio items.
+        let price;
+        let customDetails = item.customDetails || null;
+
+        if (item.customGiftConfig && item.customGiftConfig.baseId) {
+          // Custom Gift Studio — server-authoritative pricing
+          const result = calculateCustomGiftPrice(item.customGiftConfig);
+          if (result.errors.length > 0) {
+            throw new ApiError(422, `Invalid custom gift configuration: ${result.errors.join('; ')}`, 'VALIDATION_ERROR');
+          }
+          price = result.price;
+          customDetails = { ...customDetails, pricingBreakdown: result.breakdown };
+        } else if (item.isAddOn) {
+          // Add-ons — server-authoritative pricing. Client sends addOnId; server resolves price.
+          // The client-supplied price is IGNORED.
+          const addOnResult = resolveAddOnPrice(item.addOnId);
+          if (addOnResult.errors.length > 0) {
+            throw new ApiError(422, `Invalid add-on: ${addOnResult.errors.join('; ')}`, 'VALIDATION_ERROR');
+          }
+          price = addOnResult.price;
+        } else if (allowLegacyPricing) {
+          // Staff-created bespoke order — accept client price under staff authority.
+          price = Number(item.price);
+          if (!Number.isFinite(price) || price < 0) {
+            throw new ApiError(422, `Invalid price for custom item "${item.name}".`, 'VALIDATION_ERROR');
+          }
+        } else {
+          // Customer order without productSlug or customGiftConfig — REJECT.
+          // Customers must use either a catalogue product or a validated custom gift.
+          throw new ApiError(422, 'Each order item must include productSlug (catalogue product) or customGiftConfig (custom gift). Arbitrary client pricing is not permitted.', 'VALIDATION_ERROR');
         }
+
         normalized.push({
           productSlug: null,
           name: item.name || 'Custom Gift',
@@ -108,7 +143,7 @@ export async function createOrder({ customer, items, paymentMethod = 'Sample', s
           palette: item.palette || '',
           ribbon: item.ribbon || '',
           giftMessage: item.giftMessage || giftMessage,
-          customDetails: item.customDetails || null,
+          customDetails,
           description: item.description || '',
           isAddOn: !!item.isAddOn,
           isCatalogue: false,
