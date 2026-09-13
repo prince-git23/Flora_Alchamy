@@ -57,6 +57,11 @@ export default function AdminSidebar({ isOpen, onClose }) {
           name: 'Customers',
           path: '/admin/customers',
           icon: 'group'
+        },
+        {
+          name: 'Custom Requests',
+          path: '/admin/custom-requests',
+          icon: 'draw'
         }
       ]
     },

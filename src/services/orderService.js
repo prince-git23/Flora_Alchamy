@@ -157,8 +157,10 @@ function imageForItem(item) {
 
 /**
  * Create an order through the backend. Only catalogue items send a slug —
- * the server re-prices them from MongoDB. Custom made-to-order items send
- * their bespoke price and are not stock-tracked server-side.
+ * the server re-prices them from MongoDB. Custom Gift Studio items send a
+ * customGiftConfig (never a price) — the server calculates the authoritative
+ * total via backend/config/customGiftPricing.js. Add-ons send addOnId and are
+ * likewise priced server-side.
  */
 export async function createOrder(orderData) {
   const items = (orderData.items || []).map((item) => {

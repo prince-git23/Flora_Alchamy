@@ -1,0 +1,215 @@
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Link } from 'react-router-dom';
+import AdminLayout from '../../components/admin/AdminLayout.jsx';
+import { getAllCustomRequests } from '../../services/customRequestService.js';
+import { getCustomers } from '../../services/customerService.js';
+import { formatDate } from '../../services/orderService.js';
+
+// Backend enum (backend/models/CustomRequest.js). Do not invent statuses.
+const STATUS_FILTERS = ['All', 'pending', 'reviewing', 'quoted', 'accepted', 'declined'];
+
+const STATUS_BADGE = {
+  pending: 'bg-[#fdf6e3] text-[#8a6d1a] border-[#e9d8a6]',
+  reviewing: 'bg-[#eef3fb] text-[#3a5a8c] border-[#c9d9ef]',
+  quoted: 'bg-[#f3eefb] text-[#6b4fa1] border-[#ddd0f0]',
+  accepted: 'bg-[#e8f0e6] text-[#3f5a3a] border-[#c4d6bf]',
+  declined: 'bg-[#fdecea] text-[#8a2a18] border-[#f5c6bd]',
+};
+
+export default function AdminCustomRequestsPage() {
+  const [requests, setRequests] = useState([]);
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const load = useCallback(async () => {
+    setLoadError(null);
+    try {
+      const list = await getAllCustomRequests(statusFilter);
+      setRequests(Array.isArray(list) ? list : []);
+      setLoaded(true);
+    } catch (err) {
+      setLoadError(err.message || 'Unable to load custom requests.');
+      setLoaded(true);
+    }
+  }, [statusFilter]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  // Customer names via the existing staff customer list (read-only lookup).
+  const customerNames = useMemo(() => {
+    const map = {};
+    try {
+      getCustomers().forEach((c) => {
+        const key = String(c.id || c._id || '');
+        if (key) map[key] = c.name || c.email || 'Customer';
+      });
+    } catch {
+      /* store not hydrated yet — fall back to a generic label */
+    }
+    return map;
+  }, [requests]);
+
+  const filtered = useMemo(() => {
+    if (!searchQuery.trim()) return requests;
+    const q = searchQuery.toLowerCase();
+    return requests.filter(
+      (r) =>
+        (customerNames[String(r.customerId)] || '').toLowerCase().includes(q) ||
+        (r.occasion || '').toLowerCase().includes(q) ||
+        (r.description || '').toLowerCase().includes(q)
+    );
+  }, [requests, searchQuery, customerNames]);
+
+  return (
+    <AdminLayout>
+      <div className="max-w-7xl mx-auto space-y-6 pb-12">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="font-serif text-3xl sm:text-4xl text-[#180f0a] tracking-tight font-normal">Custom Requests</h1>
+            <p className="text-[14px] text-[#4e4540] mt-1">Bespoke creation ideas submitted from the storefront{loaded && !loadError ? ` · ${requests.length} request${requests.length !== 1 ? 's' : ''}` : ''}</p>
+          </div>
+        </div>
+
+        {/* Status filters + search */}
+        <div className="bg-white rounded-xl border border-[#e5e2dd] p-3.5 shadow-xs flex flex-col lg:flex-row lg:items-center gap-3">
+          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filter by status">
+            {STATUS_FILTERS.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setStatusFilter(s)}
+                aria-pressed={statusFilter === s}
+                className={`px-3 py-1.5 rounded-full text-[12px] font-semibold capitalize transition-colors ${
+                  statusFilter === s
+                    ? 'bg-[#180f0a] text-white'
+                    : 'bg-[#f6f3ee] text-[#4e4540] hover:bg-[#ebe8e3]'
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+          <div className="relative lg:ml-auto lg:w-72">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[16px] text-[#80756f]">search</span>
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search customer, occasion, idea..."
+              aria-label="Search custom requests"
+              className="w-full text-[13px] bg-[#f6f3ee] border border-[#d1c4bd] focus:border-[#180f0a] rounded-lg pl-9 pr-3 py-1.5 text-[#1c1c19] placeholder:text-[#80756f] focus:ring-1 focus:ring-[#180f0a] transition"
+            />
+          </div>
+        </div>
+
+        {loadError && (
+          <div className="p-4 rounded-xl bg-[#fdecea] border border-[#f5c6bd] text-[13px] text-[#8a2a18] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <span>{loadError}</span>
+            <button type="button" onClick={load} className="px-4 py-1.5 rounded-full bg-[#180f0a] text-white text-[12px] font-semibold hover:bg-[#2e241e] transition-colors self-start sm:self-auto">
+              Retry
+            </button>
+          </div>
+        )}
+
+        {/* Empty state */}
+        {loaded && !loadError && filtered.length === 0 && (
+          <div className="p-12 sm:p-16 bg-white rounded-2xl text-center space-y-4 shadow-xs border border-[#e5e2dd]">
+            <div className="w-16 h-16 rounded-full bg-[#f6f3ee] mx-auto flex items-center justify-center text-[#80756f]">
+              <span className="material-symbols-outlined text-[32px]">draw</span>
+            </div>
+            <div className="max-w-md mx-auto">
+              <h3 className="font-serif text-2xl text-[#180f0a] font-medium">No custom requests yet</h3>
+              <p className="text-[14px] text-[#4e4540] mt-1.5">
+                {searchQuery || statusFilter !== 'All'
+                  ? 'No requests match the current filters.'
+                  : 'When customers submit bespoke ideas from Custom Request, they will appear here.'}
+              </p>
+            </div>
+            {(searchQuery || statusFilter !== 'All') && (
+              <button
+                type="button"
+                onClick={() => { setSearchQuery(''); setStatusFilter('All'); }}
+                className="px-5 py-2 rounded-full bg-[#180f0a] text-white text-[13px] font-semibold shadow-xs hover:bg-[#2e241e] transition-colors"
+              >
+                Clear Filters
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Requests table (desktop) */}
+        {filtered.length > 0 && (
+          <div className="bg-white rounded-xl border border-[#e5e2dd] shadow-xs overflow-hidden">
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="bg-[#f6f3ee] text-[10px] uppercase tracking-wider text-[#80756f]">
+                    <th className="px-4 py-3 font-bold">Request</th>
+                    <th className="px-4 py-3 font-bold">Customer</th>
+                    <th className="px-4 py-3 font-bold">Occasion</th>
+                    <th className="px-4 py-3 font-bold">Budget</th>
+                    <th className="px-4 py-3 font-bold">Desired Date</th>
+                    <th className="px-4 py-3 font-bold">Created</th>
+                    <th className="px-4 py-3 font-bold">Status</th>
+                    <th className="px-4 py-3 font-bold text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((r) => (
+                    <tr key={r._id || r.id} className="border-t border-[#f0ede9] hover:bg-[#faf8f5] transition-colors">
+                      <td className="px-4 py-3 text-[13px] font-semibold text-[#180f0a] max-w-[240px]">
+                        <span className="line-clamp-1">{r.description}</span>
+                      </td>
+                      <td className="px-4 py-3 text-[13px] text-[#4e4540]">{customerNames[String(r.customerId)] || 'Customer'}</td>
+                      <td className="px-4 py-3 text-[13px] text-[#4e4540] capitalize">{r.occasion || '—'}</td>
+                      <td className="px-4 py-3 text-[13px] text-[#4e4540]">{r.budget || '—'}</td>
+                      <td className="px-4 py-3 text-[13px] text-[#4e4540]">{r.desiredDate ? formatDate(r.desiredDate) : '—'}</td>
+                      <td className="px-4 py-3 text-[13px] text-[#80756f]">{formatDate(r.createdAt)}</td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold capitalize border ${STATUS_BADGE[r.status] || 'bg-[#f6f3ee] text-[#4e4540] border-[#e5e2dd]'}`}>
+                          {r.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <Link
+                          to={`/admin/custom-requests/${r._id || r.id}`}
+                          className="inline-block px-3.5 py-1.5 rounded-full bg-[#180f0a] text-white text-[12px] font-semibold hover:bg-[#964735] transition-colors"
+                        >
+                          View Request
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Card list (mobile) */}
+            <div className="md:hidden divide-y divide-[#f0ede9]">
+              {filtered.map((r) => (
+                <Link key={r._id || r.id} to={`/admin/custom-requests/${r._id || r.id}`} className="block p-4 hover:bg-[#faf8f5] transition-colors">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="text-[13px] font-semibold text-[#180f0a] line-clamp-2">{r.description}</p>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold capitalize border shrink-0 ${STATUS_BADGE[r.status] || 'bg-[#f6f3ee] text-[#4e4540] border-[#e5e2dd]'}`}>
+                      {r.status}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-[12px] text-[#80756f]">
+                    <span className="font-medium text-[#4e4540]">{customerNames[String(r.customerId)] || 'Customer'}</span>
+                    {r.occasion && <span className="capitalize">{r.occasion}</span>}
+                    {r.budget && <span>{r.budget}</span>}
+                    <span>{formatDate(r.createdAt)}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </AdminLayout>
+  );
+}

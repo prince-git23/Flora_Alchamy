@@ -25,7 +25,10 @@ export async function createCustomRequest(req, res, next) {
 
 export async function listMyCustomRequests(req, res, next) {
   try {
-    const requests = await CustomRequest.find({ customerId: req.user.customerId }).sort({ createdAt: -1 });
+    // adminNotes are internal staff observations — never shipped to customers.
+    const requests = await CustomRequest.find({ customerId: req.user.customerId })
+      .select('-adminNotes')
+      .sort({ createdAt: -1 });
     res.json({ success: true, requests });
   } catch (err) {
     next(err);

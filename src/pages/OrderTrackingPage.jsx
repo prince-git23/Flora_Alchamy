@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Search, Package, MapPin, Sparkles, Clock, UserRound, ArrowRight } from 'lucide-react';
+import { Search, Package, MapPin, Sparkles, Clock, UserRound, ArrowRight, MessageSquare } from 'lucide-react';
 import { getOrderById, formatINR, formatDate, getCustomerFacingStatus } from '../services/orderService.js';
 import { getActiveCustomerId } from '../services/customerService.js';
 import OrderStatusTracker from '../components/OrderStatusTracker.jsx';
@@ -213,21 +213,22 @@ export default function OrderTrackingPage() {
               <div className="space-y-1 text-center sm:text-left">
                 <p className="font-serif text-[18px] text-[#180f0a]">Need assistance with this order?</p>
                 <p className="text-[13px] text-[#4e4540]">
-                  Visit your account for order details, or continue browsing the shop.
+                  Message our studio about this order, or visit your account for details.
                 </p>
               </div>
-              <div className="flex items-center gap-3 shrink-0">
+              <div className="flex flex-wrap items-center justify-center gap-3 shrink-0">
                 <Link
-                  to="/account"
-                  className="px-5 py-2.5 rounded-full bg-[#180f0a] text-white text-[12px] font-semibold hover:bg-[#964735] transition-colors"
+                  to={`/order/${currentOrder.id || currentOrder.orderId}/conversation`}
+                  className="px-5 py-2.5 rounded-full bg-[#180f0a] text-white text-[12px] font-semibold hover:bg-[#964735] transition-colors flex items-center gap-1.5"
                 >
-                  Go to My Account
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  <span>Message About This Order</span>
                 </Link>
                 <Link
-                  to="/shop"
+                  to="/account"
                   className="px-5 py-2.5 rounded-full bg-white border border-[#e5e2dd] text-[#180f0a] text-[12px] font-semibold hover:bg-[#f6f3ee] transition-colors"
                 >
-                  Continue Shopping
+                  Go to My Account
                 </Link>
               </div>
             </div>

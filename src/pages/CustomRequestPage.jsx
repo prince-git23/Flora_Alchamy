@@ -58,8 +58,8 @@ export default function CustomRequestPage() {
             <Link to="/shop" className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#180f0a] text-white text-[13px] font-semibold hover:bg-[#964735] transition-colors">
               Browse Gifts
             </Link>
-            <Link to="/account/orders" className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-[#e5e2dd] text-[#180f0a] text-[13px] font-semibold hover:bg-[#f6f3ee] transition-colors">
-              My Requests
+            <Link to="/account" className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-[#e5e2dd] text-[#180f0a] text-[13px] font-semibold hover:bg-[#f6f3ee] transition-colors">
+              My Account
             </Link>
           </div>
         </div>

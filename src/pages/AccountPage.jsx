@@ -4,6 +4,7 @@ import { User, Package, MapPin, Mail, Phone, Edit2, LogOut, Plus, Check, Trash2,
 import { getAccount, apiLogout, getActiveCustomerId, getActiveCustomer, updateCustomer, addAddress, updateAddress, deleteAddress } from '../services/customerService.js';
 import { getOrdersByCustomer, getStatusLabel, formatDate, getCustomerFacingStatus } from '../services/orderService.js';
 import { getConversations } from '../services/conversationService.js';
+import { getMyCustomRequests } from '../services/customRequestService.js';
 import { useStore } from '../context/StoreContext.jsx';
 
 const EMPTY_ADDRESS = { label: 'Home', name: '', address: '', city: '', state: '', pincode: '', phone: '' };
@@ -15,6 +16,7 @@ export default function AccountPage() {
   const [profile, setProfile] = useState(null);
   const [orders, setOrders] = useState([]);
   const [conversations, setConversations] = useState([]);
+  const [customRequests, setCustomRequests] = useState([]);
   const [activeTab, setActiveTab] = useState('overview');
   const [loaded, setLoaded] = useState(false);
 
@@ -37,12 +39,14 @@ export default function AccountPage() {
       setProfileForm({ name: (live && live.name) || (acc && acc.name) || '', phone: (live && live.phone) || (acc && acc.phone) || '' });
       const customerId = acc ? acc.customerId || acc.id : getActiveCustomerId();
       if (customerId) {
-        const [ords, convs] = await Promise.all([
+        const [ords, convs, reqs] = await Promise.all([
           getOrdersByCustomer(customerId),
           getConversations().catch(() => []),
+          getMyCustomRequests().catch(() => []),
         ]);
         setOrders(ords);
         setConversations(convs);
+        setCustomRequests(reqs);
       }
       setLoaded(true);
     }
@@ -324,6 +328,31 @@ export default function AccountPage() {
                       </div>
                       <ArrowRight className="w-4 h-4 text-[#80756f]" />
                     </Link>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {/* Custom Requests */}
+            <section>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-serif text-[20px] text-[#180f0a]">My Custom Requests</h3>
+                <Link to="/custom-request" className="text-[12px] font-semibold text-[#964735] hover:underline">New Request →</Link>
+              </div>
+              {customRequests.length === 0 ? (
+                <div className="bg-white rounded-3xl p-8 border border-[#e5e2dd] text-center space-y-2">
+                  <p className="text-[14px] text-[#80756f]">No custom requests yet. Ask our studio for something one-of-a-kind.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {customRequests.slice(0, 3).map((req) => (
+                    <div key={req._id || req.id} className="bg-white rounded-2xl p-4 border border-[#e5e2dd] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-[13px] font-semibold text-[#180f0a] line-clamp-1">{req.description}</p>
+                        <p className="text-[11px] text-[#80756f]">Submitted {new Date(req.createdAt).toLocaleDateString()}{req.occasion ? ` · ${req.occasion}` : ''}</p>
+                      </div>
+                      <span className="px-2.5 py-1 rounded-full bg-[#f0ede9] text-[#4e4540] text-[11px] font-bold uppercase self-start sm:self-auto">{req.status}</span>
+                    </div>
                   ))}
                 </div>
               )}
