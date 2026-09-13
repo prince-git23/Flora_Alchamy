@@ -80,6 +80,9 @@ export default function CheckoutPage() {
     if (!formData.fullName || formData.fullName.trim().length < 2) {
       errs.fullName = 'Please provide a valid recipient name.';
     }
+    if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      errs.email = 'Please provide a valid email address.';
+    }
     if (!formData.phone || formData.phone.replace(/\D/g, '').length < 10) {
       errs.phone = 'Please provide a valid 10-digit phone number.';
     }
@@ -88,6 +91,9 @@ export default function CheckoutPage() {
     }
     if (!formData.city || formData.city.trim().length < 2) {
       errs.city = 'Please provide a city.';
+    }
+    if (!formData.state) {
+      errs.state = 'Please select a state.';
     }
     if (!formData.pincode || formData.pincode.replace(/\D/g, '').length < 6) {
       errs.pincode = 'Please provide a valid 6-digit postal code.';

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, ShoppingBag, Star, Eye, Sparkles, Leaf } from 'lucide-react';
 import { useStore } from '../context/StoreContext.jsx';
@@ -32,17 +32,28 @@ export default function ProductCard({ product }) {
     toggleWishlist(product);
   };
 
+  const [imgError, setImgError] = useState(false);
+  const imgSrc = product.images ? product.images[0] : (product.image || '');
+
   return (
     <article className="group relative flex flex-col bg-white rounded-3xl p-3 sm:p-4 shadow-[0_4px_20px_-2px_rgba(46,36,30,0.04)] hover:shadow-[0_12px_32px_-4px_rgba(46,36,30,0.09)] transition-all duration-300 border border-[#f0ede9]">
       {/* Thumbnail container */}
       <div className="relative aspect-square w-full rounded-2xl overflow-hidden bg-[#f6f3ee] mb-3">
         <Link to={`/product/${product.id}`} className="block w-full h-full" tabIndex={-1}>
-          <img
-            src={product.images ? product.images[0] : (product.image || '')}
-            alt={product.name}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-            loading="lazy"
-          />
+          {!imgError && imgSrc ? (
+            <img
+              src={imgSrc}
+              alt={product.name}
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              loading="lazy"
+              onError={() => setImgError(true)}
+            />
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center text-[#b0a89f]">
+              <span className="text-3xl mb-1" aria-hidden="true">🌸</span>
+              <span className="text-[10px] font-medium">Image unavailable</span>
+            </div>
+          )}
         </Link>
 
         {/* Badges */}

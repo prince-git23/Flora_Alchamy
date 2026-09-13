@@ -116,6 +116,9 @@ export default function AdminHeader({ onOpenMobileMenu }) {
     if (path.startsWith('/admin/analytics')) {
       return { section: 'Insights', current: 'Analytics' };
     }
+    if (path === '/admin/conversations') {
+      return { section: 'Operations', current: 'Conversations' };
+    }
     if (path === '/admin/access') {
       return { section: 'System', subsection: 'Settings', current: 'Admin & Handler Access' };
     }

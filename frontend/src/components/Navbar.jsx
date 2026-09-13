@@ -18,54 +18,130 @@ const SHOP_ITEMS = [
 const OCCASION_ITEMS = OCCASION_OPTIONS.map((o) => ({ label: o.label, to: `/shop?occasion=${o.id}`, icon: o.icon }));
 
 /**
- * Accessible desktop dropdown. Opens on hover (pointer) and on click/keyboard,
- * closes on Escape, outside click, or route change.
+ * Accessible desktop dropdown.
+ *
+ * Interaction model:
+ *  — Hover opens (with gap-safe bridge so moving trigger→dropdown stays open).
+ *  — Click toggles and "pins" the dropdown (mouse-leave does NOT close it).
+ *  — Escape, outside click, or route change always closes.
+ *  — Arrow keys navigate items; Home/End jump to first/last.
  */
 function NavMenu({ label, items, isActive, variant = 'list' }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef(null);
+  const [pinned, setPinned] = useState(false); // true when opened via click
+  const containerRef = useRef(null);
+  const triggerRef = useRef(null);
+  const menuRef = useRef(null);
+  const leaveTimer = useRef(null);
+  const itemRefs = useRef([]);
 
+  // ── Close on outside click / Escape / route change ──
   useEffect(() => {
     if (!open) return undefined;
     const onDocClick = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setOpen(false);
+        setPinned(false);
+      }
     };
-    const onKey = (e) => {
-      if (e.key === 'Escape') setOpen(false);
+    const onDocKey = (e) => {
+      if (e.key === 'Escape') {
+        setOpen(false);
+        setPinned(false);
+        triggerRef.current?.focus();
+      }
     };
     document.addEventListener('mousedown', onDocClick);
-    document.addEventListener('keydown', onKey);
+    document.addEventListener('keydown', onDocKey);
     return () => {
       document.removeEventListener('mousedown', onDocClick);
-      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('keydown', onDocKey);
     };
   }, [open]);
 
+  // ── Hover handlers (pointer only) ──
+  const handleMouseEnter = () => {
+    clearTimeout(leaveTimer.current);
+    leaveTimer.current = null;
+    setOpen(true);
+  };
+
+  const handleMouseLeave = () => {
+    // If pinned (click-opened), don't close on mouse-leave.
+    if (pinned) return;
+    leaveTimer.current = setTimeout(() => {
+      setOpen(false);
+      leaveTimer.current = null;
+    }, 150);
+  };
+
+  // Clean up timer on unmount
+  useEffect(() => () => clearTimeout(leaveTimer.current), []);
+
+  // ── Click toggle (pins the dropdown open) ──
+  const handleTriggerClick = () => {
+    if (open && pinned) {
+      // Clicking again while pinned → close
+      setOpen(false);
+      setPinned(false);
+    } else {
+      setOpen(true);
+      setPinned(true);
+      clearTimeout(leaveTimer.current);
+      leaveTimer.current = null;
+    }
+  };
+
+  // ── Keyboard navigation inside the menu ──
+  const handleMenuKeyDown = (e) => {
+    const count = items.length;
+    if (!count) return;
+    const focused = document.activeElement;
+    const idx = itemRefs.current.indexOf(focused);
+
+    let next = -1;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      next = idx < count - 1 ? idx + 1 : 0;
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      next = idx > 0 ? idx - 1 : count - 1;
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      next = 0;
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      next = count - 1;
+    } else if (e.key === 'Tab') {
+      // Allow natural tab but close the menu
+      setOpen(false);
+      setPinned(false);
+      return;
+    }
+    if (next >= 0 && itemRefs.current[next]) {
+      itemRefs.current[next].focus();
+    }
+  };
+
   return (
     <div
-      ref={ref}
+      ref={containerRef}
       className="relative"
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => {
-        // Small delay prevents dropdown from closing when moving mouse
-        // from trigger button to dropdown content across the gap.
-        const timer = setTimeout(() => setOpen(false), 120);
-        // Store timer so it can be cleared if mouse re-enters.
-        ref.current && (ref.current._leaveTimer = timer);
-      }}
-      onMouseEnterCapture={() => {
-        // Cancel any pending leave timer when mouse re-enters.
-        if (ref.current && ref.current._leaveTimer) {
-          clearTimeout(ref.current._leaveTimer);
-          ref.current._leaveTimer = null;
-        }
-      }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       <button
+        ref={triggerRef}
         type="button"
         aria-haspopup="true"
         aria-expanded={open}
-        onClick={() => setOpen((o) => !o)}
+        onClick={handleTriggerClick}
+        onKeyDown={(e) => {
+          if (e.key === 'ArrowDown' && open) {
+            e.preventDefault();
+            itemRefs.current[0]?.focus();
+          }
+        }}
         className={`flex items-center gap-1 px-4 py-2 rounded-full text-[13px] font-semibold tracking-wide transition-all ${
           isActive ? 'bg-[#ebe8e3] text-[#1c1c19]' : 'text-[#4e4540] hover:text-[#1c1c19] hover:bg-[#f0ede9]'
         }`}
@@ -76,20 +152,26 @@ function NavMenu({ label, items, isActive, variant = 'list' }) {
 
       {open && (
         <div
+          ref={menuRef}
           role="menu"
           aria-label={label}
-          className={`absolute left-0 top-full mt-2 bg-white rounded-2xl shadow-xl border border-[#e5e2dd] p-2 z-50 ${
+          onKeyDown={handleMenuKeyDown}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          className={`absolute left-0 top-full pt-1 bg-white rounded-2xl shadow-xl border border-[#e5e2dd] p-2 z-50 ${
             variant === 'grid' ? 'w-[420px]' : 'w-64'
           }`}
         >
           <div className={variant === 'grid' ? 'grid grid-cols-2 gap-1' : 'flex flex-col'}>
-            {items.map((item) => (
+            {items.map((item, i) => (
               <Link
                 key={item.to + item.label}
+                ref={(el) => { itemRefs.current[i] = el; }}
                 to={item.to}
                 role="menuitem"
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-[13px] font-medium text-[#4e4540] hover:text-[#180f0a] hover:bg-[#f6f3ee] transition-colors"
+                tabIndex={-1}
+                onClick={() => { setOpen(false); setPinned(false); }}
+                className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-[13px] font-medium text-[#4e4540] hover:text-[#180f0a] hover:bg-[#f6f3ee] focus:bg-[#f6f3ee] focus:text-[#180f0a] focus:outline-none transition-colors"
               >
                 {item.icon && <span aria-hidden="true">{item.icon}</span>}
                 <span>{item.label}</span>

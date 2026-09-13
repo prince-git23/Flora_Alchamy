@@ -1,0 +1,215 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import AdminLayout from '../../components/admin/AdminLayout.jsx';
+import { listConversations } from '../../services/conversationService.js';
+import { getOrders, formatDate, formatINR } from '../../services/orderService.js';
+import { getCustomers } from '../../services/customerService.js';
+
+const STATUS_BADGE = {
+  open: 'bg-[#e8f0e6] text-[#3f5a3a] border-[#c4d6bf]',
+  closed: 'bg-[#f0ede9] text-[#80756f] border-[#d8d2cc]',
+};
+
+export default function AdminConversationsPage() {
+  const navigate = useNavigate();
+  const [conversations, setConversations] = useState([]);
+  const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState(null);
+  const [statusFilter, setStatusFilter] = useState('all');
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const list = await listConversations({ limit: 100, scope: 'admin' });
+        setConversations(Array.isArray(list) ? list : []);
+      } catch (err) {
+        setLoadError(err.message || 'Unable to load conversations.');
+      } finally {
+        setLoaded(true);
+      }
+    }
+    load();
+  }, []);
+
+  const orders = useMemo(() => getOrders(), []);
+  const customers = useMemo(() => {
+    const map = {};
+    getCustomers().forEach((c) => {
+      const key = String(c.id || c._id || '');
+      if (key) map[key] = c;
+    });
+    return map;
+  }, [conversations]);
+
+  const enriched = useMemo(() => {
+    return conversations.map((conv) => {
+      const order = orders.find(
+        (o) => String(o.id || o._id) === String(conv.orderId)
+      );
+      const customer = order
+        ? customers[String(order.customerId)] || null
+        : null;
+      return {
+        ...conv,
+        orderId: conv.orderId,
+        customerName: customer?.name || order?.customerName || 'Customer',
+        orderTotal: order?.total || 0,
+        orderStatus: order?.orderStatus || 'new',
+        lastMessage: conv.lastMessage || null,
+        unreadCount: conv.unreadCount || 0,
+      };
+    });
+  }, [conversations, orders, customers]);
+
+  const filtered = useMemo(() => {
+    if (statusFilter === 'all') return enriched;
+    return enriched.filter((c) => c.status === statusFilter);
+  }, [enriched, statusFilter]);
+
+  return (
+    <AdminLayout>
+      <div className="max-w-7xl mx-auto space-y-6 pb-12">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="font-serif text-3xl sm:text-4xl text-[#180f0a] tracking-tight font-normal">
+              Conversations
+            </h1>
+            <p className="text-[14px] text-[#4e4540] mt-1">
+              Order-linked customer messages
+              {loaded && !loadError
+                ? ` · ${conversations.length} conversation${conversations.length !== 1 ? 's' : ''}`
+                : ''}
+            </p>
+          </div>
+        </div>
+
+        {/* Status Filters */}
+        <div className="flex items-center gap-2" role="group" aria-label="Filter by status">
+          {['all', 'open', 'closed'].map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setStatusFilter(s)}
+              aria-pressed={statusFilter === s}
+              className={`px-4 py-1.5 rounded-full text-[12px] font-semibold transition-all ${
+                statusFilter === s
+                  ? 'bg-[#180f0a] text-white shadow-sm'
+                  : 'bg-white border border-[#e5e2dd] text-[#4e4540] hover:bg-[#f6f3ee]'
+              }`}
+            >
+              {s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
+            </button>
+          ))}
+        </div>
+
+        {/* Loading State */}
+        {!loaded && (
+          <div className="flex items-center justify-center h-32">
+            <div className="animate-spin rounded-full h-6 w-6 border-2 border-[#964735] border-t-transparent" />
+          </div>
+        )}
+
+        {/* Error State */}
+        {loadError && (
+          <div className="bg-white rounded-2xl border border-[#e5e2dd] p-8 text-center">
+            <p className="text-[14px] text-[#964735] font-medium">{loadError}</p>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="mt-3 px-4 py-2 rounded-full bg-[#180f0a] text-white text-[12px] font-semibold hover:bg-[#964735] transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {loaded && !loadError && filtered.length === 0 && (
+          <div className="bg-white rounded-2xl border border-[#e5e2dd] p-12 text-center space-y-3">
+            <div className="w-14 h-14 rounded-full bg-[#f6f3ee] mx-auto flex items-center justify-center">
+              <span className="material-symbols-outlined text-[28px] text-[#80756f]">
+                chat_bubble_outline
+              </span>
+            </div>
+            <p className="font-serif text-[20px] text-[#180f0a]">
+              {statusFilter === 'all' ? 'No conversations yet' : `No ${statusFilter} conversations`}
+            </p>
+            <p className="text-[13px] text-[#80756f] max-w-md mx-auto">
+              Customer conversations appear here when they message about an order.
+            </p>
+          </div>
+        )}
+
+        {/* Conversation List */}
+        {loaded && !loadError && filtered.length > 0 && (
+          <div className="bg-white rounded-2xl border border-[#e5e2dd] shadow-xs overflow-hidden">
+            <div className="divide-y divide-[#f0ede9]">
+              {filtered.map((conv) => (
+                <button
+                  key={conv._id || conv.id || conv.orderId}
+                  type="button"
+                  onClick={() =>
+                    navigate(`/admin/orders/${conv.orderId}/conversation`)
+                  }
+                  className="w-full text-left px-5 py-4 hover:bg-[#f6f3ee] transition-colors flex items-center gap-4"
+                >
+                  {/* Customer initial */}
+                  <div className="w-10 h-10 rounded-full bg-[#180f0a] text-white flex items-center justify-center text-[14px] font-bold shrink-0">
+                    {(conv.customerName || 'C').charAt(0).toUpperCase()}
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-[14px] font-semibold text-[#180f0a] truncate">
+                        {conv.customerName}
+                      </span>
+                      <span className="text-[12px] text-[#80756f]">
+                        · Order #{conv.orderId}
+                      </span>
+                      {conv.orderTotal > 0 && (
+                        <span className="text-[12px] text-[#80756f]">
+                          · {formatINR(conv.orderTotal)}
+                        </span>
+                      )}
+                    </div>
+                    {conv.lastMessage && (
+                      <p className="text-[13px] text-[#4e4540] truncate">
+                        {conv.lastMessage.body || conv.lastMessage}
+                      </p>
+                    )}
+                    {!conv.lastMessage && (
+                      <p className="text-[12px] text-[#b0a89f] italic">
+                        No messages yet
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Status + unread */}
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span
+                      className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
+                        STATUS_BADGE[conv.status] || STATUS_BADGE.open
+                      }`}
+                    >
+                      {conv.status || 'open'}
+                    </span>
+                    {conv.unreadCount > 0 && (
+                      <span className="w-5 h-5 rounded-full bg-[#964735] text-white text-[10px] font-bold flex items-center justify-center">
+                        {conv.unreadCount}
+                      </span>
+                    )}
+                    <span className="material-symbols-outlined text-[18px] text-[#d1c4bd]">
+                      chevron_right
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </AdminLayout>
+  );
+}

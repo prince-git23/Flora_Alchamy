@@ -141,8 +141,9 @@ export default function CartPage() {
                           <button
                             type="button"
                             onClick={() => updateItemQuantity(idx, (item.quantity || 1) - 1)}
+                            disabled={(item.quantity || 1) <= 1}
                             aria-label={`Decrease quantity of ${item.name}`}
-                            className="text-[16px] text-[#4e4540] hover:text-[#180f0a] px-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#180f0a] rounded"
+                            className="text-[16px] text-[#4e4540] hover:text-[#180f0a] px-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#180f0a] rounded disabled:opacity-30 disabled:cursor-not-allowed"
                           >
                             −
                           </button>

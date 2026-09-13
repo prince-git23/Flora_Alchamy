@@ -55,6 +55,7 @@ import AdminCreateOrderPage from './pages/admin/AdminCreateOrderPage.jsx';
 import AdminCreateProductPage from './pages/admin/AdminCreateProductPage.jsx';
 import AdminCustomRequestsPage from './pages/admin/AdminCustomRequestsPage.jsx';
 import AdminCustomRequestDetailPage from './pages/admin/AdminCustomRequestDetailPage.jsx';
+import AdminConversationsPage from './pages/admin/AdminConversationsPage.jsx';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -143,6 +144,8 @@ export default function App() {
           {/* Operations */}
           <Route path="/admin/customers" element={<AdminRoute><AdminCustomersPage /></AdminRoute>} />
           <Route path="/admin/customers/:customerId" element={<AdminRoute><AdminCustomerDetailPage /></AdminRoute>} />
+          {/* Conversations */}
+          <Route path="/admin/conversations" element={<AdminRoute><AdminConversationsPage /></AdminRoute>} />
           {/* Custom Request Operations */}
           <Route path="/admin/custom-requests" element={<AdminRoute><AdminCustomRequestsPage /></AdminRoute>} />
           <Route path="/admin/custom-requests/:requestId" element={<AdminRoute><AdminCustomRequestDetailPage /></AdminRoute>} />

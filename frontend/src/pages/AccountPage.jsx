@@ -267,7 +267,7 @@ export default function AccountPage() {
                   <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center"><MapPin className="w-4 h-4 text-white" /></div>
                   <div className="min-w-0"><p className="text-[12px] font-semibold text-white">Addresses</p><p className="text-[11px] text-white/50 truncate">{defaultAddress ? `Default: ${defaultAddress.city}` : 'Add one'}</p></div>
                 </button>
-                <button type="button" onClick={() => {}} className="flex items-center gap-3 p-3 rounded-2xl bg-white/10 hover:bg-white/15 transition-colors text-left">
+                <button type="button" onClick={() => { if (conversations.length > 0) { navigate(`/order/${conversations[0].orderId}/conversation`); } else { setActiveTab('orders'); } }} className="flex items-center gap-3 p-3 rounded-2xl bg-white/10 hover:bg-white/15 transition-colors text-left">
                   <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center"><MessageSquare className="w-4 h-4 text-white" /></div>
                   <div className="min-w-0"><p className="text-[12px] font-semibold text-white">Conversations</p><p className="text-[11px] text-white/50 truncate">{conversations.length > 0 ? `${conversations.length} thread${conversations.length > 1 ? 's' : ''}` : 'None yet'}</p></div>
                 </button>

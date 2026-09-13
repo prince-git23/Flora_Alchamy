@@ -47,6 +47,7 @@ export default function ProductPage() {
   const [giftMessage, setGiftMessage] = useState('');
   const [justAdded, setJustAdded] = useState(false);
   const [activeTab, setActiveTab] = useState('craft');
+  const [galleryImgError, setGalleryImgError] = useState(false);
 
   const settings = useMemo(() => getSettings(), []);
 
@@ -61,6 +62,7 @@ export default function ProductPage() {
       setQuantity(1);
       setGiftMessage('');
       setJustAdded(false);
+      setGalleryImgError(false);
     } else {
       setProduct(null);
       setNotFound(true);
@@ -144,6 +146,7 @@ export default function ProductPage() {
 
   const stepGallery = (delta) => {
     if (!hasGallery) return;
+    setGalleryImgError(false);
     setGalleryIndex((i) => (i + delta + images.length) % images.length);
   };
 
@@ -184,11 +187,19 @@ export default function ProductPage() {
               role={hasGallery ? 'group' : undefined}
               aria-label={hasGallery ? `Product image ${galleryIndex + 1} of ${images.length}` : undefined}
             >
-              <img
-                src={images[galleryIndex]}
-                alt={product.name}
-                className="w-full h-full object-cover transition-all duration-300"
-              />
+              {!galleryImgError ? (
+                <img
+                  src={images[galleryIndex]}
+                  alt={product.name}
+                  className="w-full h-full object-cover transition-all duration-300"
+                  onError={() => setGalleryImgError(true)}
+                />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center text-[#b0a89f] bg-[#f6f3ee]">
+                  <span className="text-4xl mb-2" aria-hidden="true">🌸</span>
+                  <span className="text-[13px] font-medium">Image unavailable</span>
+                </div>
+              )}
               {product.badge && (
                 <div className="absolute top-4 left-4">
                   <span className="px-3 py-1 rounded-full bg-[#964735] text-white text-[11px] font-bold uppercase tracking-wider shadow-sm">
@@ -229,7 +240,7 @@ export default function ProductPage() {
                   <button
                     key={idx}
                     type="button"
-                    onClick={() => setGalleryIndex(idx)}
+                    onClick={() => { setGalleryImgError(false); setGalleryIndex(idx); }}
                     aria-label={`Show image ${idx + 1}`}
                     aria-current={galleryIndex === idx}
                     className={`relative w-20 h-20 rounded-2xl overflow-hidden bg-white border-2 transition-all shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#180f0a] ${

@@ -159,11 +159,11 @@ export default function AdminDashboardPage() {
               <span className="material-symbols-outlined text-[17px]">add_circle</span>
               <span>+ Create Order</span>
             </Link>
-            <Link to="/admin/orders"
+            <Link to="/admin/conversations"
               className="relative px-4 py-2 rounded-full border border-[#d1c4bd] bg-white text-[#180f0a] hover:bg-[#f6f3ee] text-[13px] font-semibold shadow-xs transition-all flex items-center gap-1.5"
             >
               <span className="material-symbols-outlined text-[17px]">chat</span>
-              <span>Conversations</span>
+              <span>Messages</span>
               {unreadConversations > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-[#964735] text-white text-[10px] font-bold flex items-center justify-center">
                   {unreadConversations}

@@ -59,6 +59,11 @@ export default function AdminSidebar({ isOpen, onClose }) {
           icon: 'group'
         },
         {
+          name: 'Conversations',
+          path: '/admin/conversations',
+          icon: 'chat'
+        },
+        {
           name: 'Custom Requests',
           path: '/admin/custom-requests',
           icon: 'draw'
@@ -81,7 +86,7 @@ export default function AdminSidebar({ isOpen, onClose }) {
         {
           name: 'Settings',
           path: '/admin/settings',
-          aliases: ['/admin/store-preferences'],
+          aliases: ['/admin/store-preferences', '/admin/settings/commerce', '/admin/settings/notifications', '/admin/access'],
           icon: 'settings'
         },
         {
