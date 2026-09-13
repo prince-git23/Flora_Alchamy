@@ -8,7 +8,7 @@ import { validateStock } from '../services/inventoryService.js';
 import { getActiveCustomer, getActiveCustomerId } from '../services/customerService.js';
 import { getSettings, getShippingCost } from '../services/settingsService.js';
 import {
-  getPaymentMethods,
+  getEnabledPaymentMethods,
   getPaymentMethodById,
   preparePayment,
   createPaymentOrder,
@@ -297,7 +297,7 @@ export default function CheckoutPage() {
     }
   };
 
-  const paymentMethods = getPaymentMethods();
+  const paymentMethods = getEnabledPaymentMethods(settings);
   const selectedPayment = getPaymentMethodById(paymentMethod);
   const razorpayConfigured = isRazorpayConfigured();
   const defaultAddr = (activeCustomer?.addresses || []).find((a) => a.isDefault);

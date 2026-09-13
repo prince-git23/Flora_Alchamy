@@ -5,12 +5,12 @@ import { getCustomers } from '../../services/customerService.js';
 import { getProducts } from '../../services/productService.js';
 import { getCollections } from '../../services/collectionService.js';
 import { useAdminSession } from '../../context/AdminSessionContext.jsx';
+import NotificationBell from './NotificationBell.jsx';
 
 export default function AdminHeader({ onOpenMobileMenu }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { session, logout } = useAdminSession();
-  const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
@@ -139,10 +139,7 @@ export default function AdminHeader({ onOpenMobileMenu }) {
 
   const breadcrumbs = getBreadcrumbs();
 
-  // No live notification workflow exists (the backend Notification model has
-  // no delivery pipeline) — show an honest empty state rather than static
-  // sample alerts pretending to be live (Phase 3D.5, E-04).
-  const notifications = [];
+
 
   return (
     <header className="sticky top-0 z-30 h-16 bg-[#fcf9f4]/90 backdrop-blur-xl border-b border-[#e5e2dd] px-4 md:px-8 flex items-center justify-between gap-4 select-none">
@@ -265,40 +262,7 @@ export default function AdminHeader({ onOpenMobileMenu }) {
         </div>
 
         {/* Notification Bell */}
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setShowNotifications(!showNotifications)}
-            className="relative p-2 rounded-full text-[#4e4540] hover:bg-[#f0ede9] hover:text-[#180f0a] transition-colors"
-            aria-label="Toggle notifications"
-          >
-            <span className="material-symbols-outlined text-[20px]">notifications</span>
-          </button>
-
-          {showNotifications && (
-            <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-[#e5e2dd] p-3 z-50 animate-fade-in">
-              <div className="flex items-center justify-between pb-2 border-b border-[#f0ede9]">
-                <span className="text-[13px] font-semibold text-[#180f0a]">Notifications</span>
-              </div>
-              <div className="max-h-64 overflow-y-auto py-6 text-center space-y-1">
-                <span className="material-symbols-outlined text-[26px] text-[#d1c4bd] inline-block">notifications_off</span>
-                <p className="text-[13px] font-medium text-[#4e4540]">No live notifications configured.</p>
-                <p className="text-[11px] text-[#80756f]">
-                  Notification delivery is not connected in this prototype.
-                </p>
-              </div>
-              <div className="pt-2 border-t border-[#f0ede9] text-center">
-                <button
-                  type="button"
-                  onClick={() => setShowNotifications(false)}
-                  className="text-[11px] text-[#964735] font-semibold hover:underline"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+        <NotificationBell />
 
         {/* Separator */}
         <div className="h-6 w-px bg-[#e5e2dd] hidden sm:block"></div>

@@ -24,6 +24,29 @@ export function getPaymentMethods() {
   return PAYMENT_METHODS;
 }
 
+/**
+ * Return only payment methods that are enabled in the admin Commerce
+ * Settings (settings.paymentMethods). If settings is null, return all
+ * methods (fallback safe).
+ *
+ * The mapping from admin toggles to checkout method ids:
+ *   upi      → upi
+ *   cards    → card
+ *   netbanking → card (netbanking is part of the same Razorpay checkout flow)
+ *   cod      → cod
+ *   wallets  → (no matching checkout method yet — ignored)
+ */
+export function getEnabledPaymentMethods(settings) {
+  if (!settings?.paymentMethods) return PAYMENT_METHODS;
+  const pm = settings.paymentMethods;
+  return PAYMENT_METHODS.filter((m) => {
+    if (m.id === 'upi') return pm.upi !== false;
+    if (m.id === 'card') return pm.cards !== false || pm.netbanking !== false;
+    if (m.id === 'cod') return pm.cod === true;
+    return true;
+  });
+}
+
 export function getPaymentMethodById(id) {
   return PAYMENT_METHODS.find((m) => m.id === id) || PAYMENT_METHODS[0];
 }

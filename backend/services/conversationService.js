@@ -1,7 +1,9 @@
 import Conversation from '../models/Conversation.js';
 import Message from '../models/Message.js';
 import Order from '../models/Order.js';
+import User from '../models/User.js';
 import { ApiError } from '../middleware/errorMiddleware.js';
+import { createNotification } from '../controllers/notificationController.js';
 
 /**
  * conversationService — order-linked customer ↔ handler text chat.
@@ -132,6 +134,37 @@ export async function sendMessage({ conversationId, body, user }) {
     $set: { lastMessageAt: message.createdAt },
     $inc: { unreadCount: 1 },
   });
+
+  // Notify the other party
+  const order = await Order.findOne({ orderId: conversation.orderId }).select('orderId customerName').lean();
+  if (senderRole === 'customer') {
+    // Notify all staff
+    const staffUsers = await User.find({ role: { $in: ['admin', 'handler'] } }).select('_id role');
+    for (const staff of staffUsers) {
+      await createNotification({
+        userId: staff._id,
+        role: staff.role,
+        type: 'new_message',
+        title: `New message from ${order?.customerName || 'customer'}`,
+        message: body.trim().substring(0, 120),
+        entityType: 'conversation',
+        entityId: conversation._id,
+        link: `/admin/conversations`,
+      });
+    }
+  } else {
+    // Notify the customer
+    await createNotification({
+      userId: conversation.customerId,
+      role: 'customer',
+      type: 'new_message',
+      title: `Flora Alchemy replied to order ${conversation.orderId}`,
+      message: body.trim().substring(0, 120),
+      entityType: 'conversation',
+      entityId: conversation._id,
+      link: `/order/${conversation.orderId}/conversation`,
+    });
+  }
 
   return message;
 }

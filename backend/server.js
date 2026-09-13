@@ -15,6 +15,8 @@ import wishlistRoutes from './routes/wishlistRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import conversationRoutes from './routes/conversationRoutes.js';
 import customRequestRoutes from './routes/customRequestRoutes.js';
+import adminUserRoutes from './routes/adminUserRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
 import { seedIfEmpty } from './seed/seed.js';
 
 const app = express();
@@ -62,6 +64,8 @@ app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/conversations', conversationRoutes);
 app.use('/api/custom-requests', customRequestRoutes);
+app.use('/api/admin/users', adminUserRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

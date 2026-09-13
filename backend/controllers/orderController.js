@@ -1,7 +1,9 @@
 import Order, { NEXT_STATUS } from '../models/Order.js';
 import Customer from '../models/Customer.js';
+import User from '../models/User.js';
 import { ApiError } from '../middleware/errorMiddleware.js';
 import { assertValidTransition, createOrder } from '../services/orderService.js';
+import { createNotification } from './notificationController.js';
 
 export async function listOrders(req, res, next) {
   try {
@@ -77,6 +79,21 @@ export async function createCustomerOrder(req, res, next) {
       isRush,
     });
 
+    // Generate notification for admin/handler
+    const staffUsers = await User.find({ role: { $in: ['admin', 'handler'] } }).select('_id role');
+    for (const staff of staffUsers) {
+      await createNotification({
+        userId: staff._id,
+        role: staff.role,
+        type: 'new_order',
+        title: `New order ${order.orderId}`,
+        message: `${customer.name} placed an order for ₹${order.total.toLocaleString('en-IN')}.`,
+        entityType: 'order',
+        entityId: order._id,
+        link: `/admin/orders/${order.orderId}`,
+      });
+    }
+
     res.status(201).json({ success: true, order });
   } catch (err) {
     next(err);
@@ -143,6 +160,20 @@ export async function updateOrderStatus(req, res, next) {
     });
     order.updatedAt = new Date();
     await order.save();
+
+    // Notify customer of status change
+    if (order.customerId) {
+      await createNotification({
+        userId: order.customerId,
+        role: 'customer',
+        type: 'order_status_change',
+        title: `Order ${order.orderId} updated`,
+        message: `Your order status has been updated to ${nextStatus}.`,
+        entityType: 'order',
+        entityId: order._id,
+        link: `/order-tracking/${order.orderId}`,
+      });
+    }
 
     res.json({ success: true, order, availableNext: NEXT_STATUS[nextStatus] || null });
   } catch (err) {

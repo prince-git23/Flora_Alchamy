@@ -53,6 +53,14 @@ async function main() {
   check('GET /api/health → 200', r.status === 200);
 
   console.log('\n— PUBLIC CATALOGUE —');
+  // Pre-test cleanup: remove any leftover non-fixture products from prior runs
+  const preCleanupAdmin = await req('POST', '/auth/login', { body: { email: 'handler.admin@flora-alchemy.demo', password: 'handler1234' } });
+  if (preCleanupAdmin.status === 200) {
+    const preProducts = await req('GET', '/products', { token: preCleanupAdmin.json.token });
+    for (const p of preProducts.json.products || []) {
+      if (!p.isFixture) await req('DELETE', `/products/${p.slug}`, { token: preCleanupAdmin.json.token });
+    }
+  }
   r = await req('GET', '/products');
   check('public products → 200', r.status === 200);
   check('fixture catalogue returned (10)', r.json.products?.length === 10);
@@ -128,6 +136,9 @@ async function main() {
   check('hidden product visible to staff', r.status === 200);
   r = await req('DELETE', `/products/${NEW_SLUG}`, { token: TOKEN_ADMIN });
   check('admin deletes product → 200', r.status === 200);
+  // Verify cleanup: product count should be back to fixture baseline
+  r = await req('GET', '/products');
+  check('cleanup: catalogue restored to fixture baseline', r.json.products?.length === 10);
 
   console.log('\n— ORDERS: PRICE INTEGRITY —');
   // Client sends a bogus price for the catalogue item; server must recompute.
