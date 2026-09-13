@@ -38,7 +38,7 @@ export default function AdminAnalyticsOverviewPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="font-serif text-3xl sm:text-4xl text-[#180f0a] tracking-tight font-normal">Analytics Overview</h1>
-            <p className="text-[14px] text-[#4e4540] mt-1">Business insights derived from sample order data · <span className="font-semibold text-[#180f0a]">Sample Data Environment</span></p>
+            <p className="text-[14px] text-[#4e4540] mt-1">Business insights derived from sample order data</p>
           </div>
           <div className="flex items-center p-1 rounded-full bg-[#ebe8e3] text-[12px]">
             {['7d', '30d', '3m'].map(p => (
@@ -155,7 +155,7 @@ export default function AdminAnalyticsOverviewPage() {
           </div>
         </div>
 
-        <div className="text-center text-[12px] text-[#80756f] pt-4">Sample Data Environment · All metrics derived from deterministic sample records</div>
+        <div className="text-center text-[12px] text-[#80756f] pt-4">Live data · All metrics derived from MongoDB records</div>
       </div>
     </AdminLayout>
   );

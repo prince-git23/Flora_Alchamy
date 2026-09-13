@@ -7,9 +7,36 @@ import { calculateCustomGiftPrice, resolveAddOnPrice } from '../config/customGif
 
 export { ORDER_STATUSES };
 
-let orderSeq = 1000 + Math.floor(Math.random() * 9000);
+// Sequence is seeded from the database on first use so a server restart can
+// never collide with orderIds already persisted in MongoDB (previously the
+// random in-memory start could reuse FA-#### values after a restart and
+// fail every subsequent order with a duplicate-key error).
+let orderSeq = null;
+let orderSeqPromise = null;
 
-function nextOrderId() {
+async function ensureOrderSeq() {
+  if (orderSeq !== null) return;
+  if (!orderSeqPromise) {
+    orderSeqPromise = (async () => {
+      // Scan all numeric FA- ids and start above the true maximum. Sorting by
+      // createdAt is not enough — several orders can share the same timestamp
+      // second, and a non-max pick would collide on the next insert.
+      const docs = await Order.find({ orderId: /^FA-\d+$/ })
+        .select('orderId')
+        .lean();
+      let max = 1000;
+      for (const d of docs) {
+        const n = parseInt(String(d.orderId).replace('FA-', ''), 10);
+        if (Number.isFinite(n) && n > max) max = n;
+      }
+      orderSeq = max;
+    })();
+  }
+  await orderSeqPromise;
+}
+
+async function nextOrderId() {
+  await ensureOrderSeq();
   orderSeq += 1;
   return `FA-${orderSeq}`;
 }
@@ -173,7 +200,7 @@ export async function createOrder({ customer, items, paymentMethod = 'Sample', s
       paymentProvider = isRazorpayMethod(paymentMethod) ? 'razorpay' : '';
     }
 
-    const orderId = nextOrderId();
+    const orderId = await nextOrderId();
     order = await Order.create(
       [
         {

@@ -113,7 +113,7 @@ export default function AdminLoginPage() {
 
           <div className="flex items-center justify-center gap-2 text-[11px] text-[#80756f]">
             <ShieldCheck className="w-4 h-4 text-[#5b6d54]" />
-            <span>Sample Data Environment · Prototype Authentication</span>
+            <span>Handler Operations</span>
           </div>
         </div>
 

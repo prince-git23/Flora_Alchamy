@@ -43,7 +43,7 @@ export default function AdminCustomerDetailPage() {
             </Link>
             <div>
               <h1 className="font-serif text-2xl sm:text-3xl text-[#180f0a] tracking-tight font-normal">{customer.name}</h1>
-              <p className="text-[13px] text-[#80756f] mt-0.5">{customer.id} · {customer.email} · Sample Data Environment</p>
+              <p className="text-[13px] text-[#80756f] mt-0.5">{customer.id} · {customer.email}</p>
             </div>
           </div>
         </div>

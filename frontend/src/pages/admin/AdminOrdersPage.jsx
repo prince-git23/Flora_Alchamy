@@ -76,7 +76,7 @@ export default function AdminOrdersPage() {
           <div>
             <h1 className="font-serif text-3xl sm:text-4xl text-[#180f0a] tracking-tight font-normal">Orders</h1>
             <p className="text-[14px] text-[#4e4540] mt-1">
-              Manage customer orders, production progress, payments, and fulfillment · <span className="font-semibold text-[#180f0a]">Sample Data Environment</span>
+              Manage customer orders, production progress, payments, and fulfillment
             </p>
           </div>
           <div className="flex items-center gap-2.5 shrink-0">
@@ -281,7 +281,7 @@ export default function AdminOrdersPage() {
             {/* Pagination */}
             <div className="px-6 py-4 bg-[#f6f3ee] border-t border-[#e5e2dd] flex items-center justify-between text-[12px] text-[#80756f]">
               <span>Showing <strong className="text-[#180f0a]">{filteredOrders.length}</strong> of <strong className="text-[#180f0a]">{orders.length}</strong> orders</span>
-              <span>Sample Data Environment · Deterministic Records</span>
+              <span>Live records</span>
             </div>
           </div>
         )}

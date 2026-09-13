@@ -41,7 +41,7 @@ export default function AdminProductsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="font-serif text-3xl sm:text-4xl text-[#180f0a] tracking-tight font-normal">Products</h1>
-            <p className="text-[14px] text-[#4e4540] mt-1">Manage the botanical product catalog, pricing, and visibility · <span className="font-semibold text-[#180f0a]">Sample Data Environment</span></p>
+            <p className="text-[14px] text-[#4e4540] mt-1">Manage the botanical product catalog, pricing, and visibility</p>
           </div>
           <div className="flex items-center gap-2.5">
             <Link to="/admin/products/new" className="inline-flex items-center gap-2 px-4 py-2 text-[12px] font-semibold text-white bg-[#180f0a] hover:bg-[#2e241e] rounded-full transition shadow-sm">
@@ -152,7 +152,7 @@ export default function AdminProductsPage() {
 
         {/* Footer */}
         <div className="text-center text-[12px] text-[#80756f] pt-4">
-          Sample Data Environment · All prices in INR (₹)
+          All prices in INR (₹)
         </div>
       </div>
     </AdminLayout>

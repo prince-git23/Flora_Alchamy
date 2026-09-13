@@ -38,7 +38,7 @@ export default function AdminStockManagementPage() {
       <div className="max-w-7xl mx-auto space-y-6 pb-12">
         <div>
           <h1 className="font-serif text-3xl sm:text-4xl text-[#180f0a] tracking-tight font-normal">Stock Management</h1>
-          <p className="text-[14px] text-[#4e4540] mt-1">Manage stock levels, restock requests, and SKU tracking · <span className="font-semibold text-[#180f0a]">Sample Data Environment</span></p>
+          <p className="text-[14px] text-[#4e4540] mt-1">Manage stock levels, restock requests, and SKU tracking</p>
         </div>
 
         <div className="bg-white rounded-xl border border-[#e5e2dd] p-3.5 shadow-xs">

@@ -163,6 +163,10 @@ export async function deleteProduct(req, res, next) {
       throw new ApiError(404, 'Product not found.', 'PRODUCT_NOT_FOUND');
     }
     await product.deleteOne();
+    // Remove the linked inventory record so no orphan survives. Without this,
+    // re-creating a product with the same slug fails on the inventory unique
+    // index and dead stock rows pollute the inventory views.
+    await Inventory.deleteOne({ productSlug: product.slug });
     res.json({ success: true, message: `Deleted "${product.name}".` });
   } catch (err) {
     next(err);

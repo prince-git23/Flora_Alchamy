@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout.jsx';
+import ImageUploader from '../../components/admin/ImageUploader.jsx';
 import { createProduct } from '../../services/productService.js';
 import { formatINR } from '../../services/orderService.js';
-import { ArrowLeft, Save, Image, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Save, AlertCircle } from 'lucide-react';
 
 export default function AdminCreateProductPage() {
   const navigate = useNavigate();
@@ -76,7 +77,7 @@ export default function AdminCreateProductPage() {
           </Link>
           <div>
             <h1 className="font-serif text-2xl sm:text-3xl text-[#180f0a] tracking-tight font-normal">Add Product</h1>
-            <p className="text-[13px] text-[#80756f] mt-0.5">Sample Data Environment · New products stored in Sample Configuration</p>
+            <p className="text-[13px] text-[#80756f] mt-0.5">New products are saved to the catalogue database</p>
           </div>
         </div>
 
@@ -214,22 +215,9 @@ export default function AdminCreateProductPage() {
           </div>
 
           <div className="bg-white rounded-xl border border-[#e5e2dd] p-6 shadow-xs">
-            <h2 className="font-serif text-lg text-[#180f0a] font-medium mb-4">Product Images</h2>
-            <p className="text-[12px] text-[#80756f] mb-3">Image URLs (placeholder for prototype — 1+ required)</p>
-            <div className="space-y-2">
-              {[0].map((_, idx) => (
-                <div key={idx} className="flex items-center gap-2">
-                  <input type="url" value={images[idx] || ''} onChange={e => {
-                    const updated = [...images];
-                    updated[idx] = e.target.value;
-                    setImages(updated);
-                  }}
-                    placeholder="https://example.com/image.jpg"
-                    className="flex-1 text-[13px] bg-[#f6f3ee] border border-[#d1c4bd] focus:border-[#180f0a] rounded-lg px-3 py-2 text-[#1c1c19] placeholder:text-[#80756f] focus:ring-1 focus:ring-[#180f0a] transition" />
-                  <Image className="w-4 h-4 text-[#80756f] shrink-0" />
-                </div>
-              ))}
-            </div>
+            <h2 className="font-serif text-lg text-[#180f0a] font-medium mb-1">Product Images</h2>
+            <p className="text-[12px] text-[#80756f] mb-3">The first image is used as the primary storefront photo. Images upload to hosted storage when configured, otherwise to the site's own media storage.</p>
+            <ImageUploader images={images} onChange={setImages} />
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-4">

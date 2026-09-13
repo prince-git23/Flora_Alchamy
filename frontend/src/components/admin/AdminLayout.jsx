@@ -28,7 +28,7 @@ export default function AdminLayout({ children }) {
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-[#80756f] text-[12px]">
             <span className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-[#964735]"></span>
-              Flora Alchemy Handler Operations Portal • Sample Data Environment
+              Flora Alchemy Handler Operations Portal • Operations Console
             </span>
             <span>All prices settled in Indian Rupee (INR · ₹)</span>
           </div>

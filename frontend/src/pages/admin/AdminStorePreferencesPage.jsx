@@ -88,7 +88,7 @@ export default function AdminStorePreferencesPage() {
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#ffdad3] text-[#783020] text-[11px] font-bold shadow-xs">
                 <span className="h-1.5 w-1.5 rounded-full bg-[#964735] animate-pulse"></span>
-                Sample Data Environment
+                Live data
               </span>
             </div>
           </div>

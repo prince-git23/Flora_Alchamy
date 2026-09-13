@@ -145,7 +145,7 @@ export default function AdminCreateOrderPage() {
           </Link>
           <div>
             <h1 className="font-serif text-2xl sm:text-3xl text-[#180f0a] tracking-tight font-normal">Create Order</h1>
-            <p className="text-[13px] text-[#80756f] mt-0.5">Sample Data Environment · New orders stored in Sample Configuration</p>
+            <p className="text-[13px] text-[#80756f] mt-0.5">New orders are saved to the order database</p>
           </div>
         </div>
 
@@ -316,7 +316,7 @@ export default function AdminCreateOrderPage() {
               </button>
 
               <p className="text-[11px] text-[#80756f] text-center">
-                Order will be stored in Sample Configuration and appear in Admin Orders.
+                Order will be saved to the database and appear in Admin Orders.
               </p>
             </div>
           </div>

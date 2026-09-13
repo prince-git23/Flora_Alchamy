@@ -59,7 +59,7 @@ export default function AdminSalesRevenuePage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="font-serif text-3xl sm:text-4xl text-[#180f0a] tracking-tight font-normal">Sales & Revenue</h1>
-            <p className="text-[14px] text-[#4e4540] mt-1">Revenue trends, order value analysis, and financial metrics · <span className="font-semibold text-[#180f0a]">Sample Data Environment</span></p>
+            <p className="text-[14px] text-[#4e4540] mt-1">Revenue trends, order value analysis, and financial metrics</p>
           </div>
           <div className="flex items-center p-1 rounded-full bg-[#ebe8e3] text-[12px]">
             {['7d', '30d', '3m'].map(p => (
@@ -149,7 +149,7 @@ export default function AdminSalesRevenuePage() {
           </div>
         </div>
 
-        <div className="text-center text-[12px] text-[#80756f] pt-4">Sample Data Environment · Revenue calculated from sample order records</div>
+        <div className="text-center text-[12px] text-[#80756f] pt-4">Live data · Revenue calculated from live order records</div>
       </div>
     </AdminLayout>
   );

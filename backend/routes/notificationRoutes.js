@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticate } from '../middleware/authMiddleware.js';
+import { protect, adminOrHandler } from '../middleware/authMiddleware.js';
 import {
   listNotifications,
   unreadCount,
@@ -9,9 +9,11 @@ import {
 
 const router = Router();
 
-router.get('/', authenticate, listNotifications);
-router.get('/unread-count', authenticate, unreadCount);
-router.patch('/:id/read', authenticate, markRead);
-router.patch('/read-all', authenticate, markAllRead);
+// Notifications are per-authenticated-user; staff and customers both may read
+// their own feed. Creation happens server-side from real business events.
+router.get('/', protect, listNotifications);
+router.get('/unread-count', protect, unreadCount);
+router.patch('/:id/read', protect, markRead);
+router.patch('/read-all', protect, markAllRead);
 
 export default router;

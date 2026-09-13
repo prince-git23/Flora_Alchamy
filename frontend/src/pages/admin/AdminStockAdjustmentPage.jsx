@@ -34,7 +34,7 @@ export default function AdminStockAdjustmentPage() {
       <div className="max-w-7xl mx-auto space-y-6 pb-12">
         <div>
           <h1 className="font-serif text-3xl sm:text-4xl text-[#180f0a] tracking-tight font-normal">Stock Adjustment</h1>
-          <p className="text-[14px] text-[#4e4540] mt-1">Add, remove, or adjust inventory stock levels · <span className="font-semibold text-[#180f0a]">Sample Data Environment</span></p>
+          <p className="text-[14px] text-[#4e4540] mt-1">Add, remove, or adjust inventory stock levels</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

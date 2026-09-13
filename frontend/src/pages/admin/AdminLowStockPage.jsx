@@ -16,7 +16,7 @@ export default function AdminLowStockPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="font-serif text-3xl sm:text-4xl text-[#180f0a] tracking-tight font-normal">Low Stock Management</h1>
-            <p className="text-[14px] text-[#4e4540] mt-1">Items requiring immediate attention or restocking · <span className="font-semibold text-[#180f0a]">Sample Data Environment</span></p>
+            <p className="text-[14px] text-[#4e4540] mt-1">Items requiring immediate attention or restocking</p>
           </div>
           <Link to="/admin/inventory" className="px-4 py-2 text-[12px] font-semibold text-[#180f0a] bg-white hover:bg-[#f6f3ee] border border-[#d1c4bd] rounded-full transition shadow-xs">
             Back to Inventory

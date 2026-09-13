@@ -7,7 +7,7 @@ import Notification from '../models/Notification.js';
 export async function listNotifications(req, res) {
   try {
     const { unread } = req.query;
-    const filter = { userId: req.user.id };
+    const filter = { userId: req.user._id };
     if (unread === 'true') filter.read = false;
     const notifications = await Notification.find(filter)
       .sort({ createdAt: -1 })
@@ -27,7 +27,7 @@ export async function listNotifications(req, res) {
  */
 export async function unreadCount(req, res) {
   try {
-    const count = await Notification.countDocuments({ userId: req.user.id, read: false });
+    const count = await Notification.countDocuments({ userId: req.user._id, read: false });
     res.json({ unreadCount: count });
   } catch (err) {
     console.error('unreadCount error:', err);
@@ -42,7 +42,7 @@ export async function unreadCount(req, res) {
 export async function markRead(req, res) {
   try {
     const notification = await Notification.findOneAndUpdate(
-      { _id: req.params.id, userId: req.user.id },
+      { _id: req.params.id, userId: req.user._id },
       { read: true, readAt: new Date() },
       { new: true },
     );
@@ -62,7 +62,7 @@ export async function markRead(req, res) {
 export async function markAllRead(req, res) {
   try {
     await Notification.updateMany(
-      { userId: req.user.id, read: false },
+      { userId: req.user._id, read: false },
       { read: true, readAt: new Date() },
     );
     res.json({ unreadCount: 0 });

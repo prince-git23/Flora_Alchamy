@@ -44,7 +44,7 @@ export default function AdminPerformancePage() {
       <div className="max-w-7xl mx-auto space-y-6 pb-12">
         <div>
           <h1 className="font-serif text-3xl sm:text-4xl text-[#180f0a] tracking-tight font-normal">Product & Customer Performance</h1>
-          <p className="text-[14px] text-[#4e4540] mt-1">Catalog performance and customer engagement metrics · <span className="font-semibold text-[#180f0a]">Sample Data Environment</span></p>
+          <p className="text-[14px] text-[#4e4540] mt-1">Catalog performance and customer engagement metrics</p>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
@@ -108,7 +108,7 @@ export default function AdminPerformancePage() {
           </div>
         </div>
 
-        <div className="text-center text-[12px] text-[#80756f] pt-4">Sample Data Environment · All metrics derived from sample records</div>
+        <div className="text-center text-[12px] text-[#80756f] pt-4">Live data · All metrics derived from MongoDB records</div>
       </div>
     </AdminLayout>
   );

@@ -72,7 +72,7 @@ export default function AdminOrderDetailPage() {
                   {statusObj?.label}
                 </span>
               </div>
-              <p className="text-[13px] text-[#80756f] mt-0.5">Order details · Sample Data Environment</p>
+              <p className="text-[13px] text-[#80756f] mt-0.5">Order details</p>
             </div>
           </div>
           <div className="flex items-center gap-2">

@@ -120,7 +120,7 @@ async function main() {
   r = await req('POST', '/products', { token: TOKEN_A, body: { name: 'Sneaky Product', price: 100 } });
   check('customer cannot create product → 403', r.status === 403);
   r = await req('POST', '/products', { token: TOKEN_ADMIN, body: { name: 'Smoke Test Posy', price: 500, category: 'Handmade Cards' } });
-  check('admin creates product → 201', r.status === 201);
+  check('admin creates product → 201', r.status === 201, JSON.stringify(r.json).slice(0, 200));
   const NEW_SLUG = r.json.product?.slug;
   r = await req('POST', '/products', { token: TOKEN_ADMIN, body: { name: 'Smoke Test Posy', price: 1 } });
   check('duplicate slug → 409', r.status === 409);

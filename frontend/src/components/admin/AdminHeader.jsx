@@ -166,10 +166,10 @@ export default function AdminHeader({ onOpenMobileMenu }) {
           <span className="text-[#180f0a] font-semibold truncate">{breadcrumbs.current}</span>
         </div>
 
-        {/* Sample Data Environment badge */}
+        {/* Live data badge */}
         <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#ffdad3] text-[#783020] text-[10px] font-bold tracking-wider shrink-0 shadow-xs">
           <span className="h-1.5 w-1.5 rounded-full bg-[#964735] animate-pulse"></span>
-          Sample Data Environment
+          Live data
         </span>
       </div>
 

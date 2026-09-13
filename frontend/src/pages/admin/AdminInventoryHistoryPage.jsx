@@ -26,7 +26,7 @@ export default function AdminInventoryHistoryPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="font-serif text-3xl sm:text-4xl text-[#180f0a] tracking-tight font-normal">Inventory History</h1>
-            <p className="text-[14px] text-[#4e4540] mt-1">Complete log of stock movements, adjustments, and restocks · <span className="font-semibold text-[#180f0a]">Sample Data Environment</span></p>
+            <p className="text-[14px] text-[#4e4540] mt-1">Complete log of stock movements, adjustments, and restocks</p>
           </div>
           <Link to="/admin/inventory" className="px-4 py-2 text-[12px] font-semibold text-[#180f0a] bg-white hover:bg-[#f6f3ee] border border-[#d1c4bd] rounded-full transition shadow-xs">
             Back to Inventory
@@ -90,7 +90,7 @@ export default function AdminInventoryHistoryPage() {
           </div>
           <div className="px-6 py-4 bg-[#f6f3ee] border-t border-[#e5e2dd] flex items-center justify-between text-[12px] text-[#80756f]">
             <span>Showing <strong className="text-[#180f0a]">{filtered.length}</strong> records</span>
-            <span>Sample Data Environment</span>
+            <span>Live data</span>
           </div>
         </div>
       </div>

@@ -82,7 +82,7 @@ export default function AdminCommerceSettingsPage() {
               <h1 className="font-serif text-3xl sm:text-4xl text-[#180f0a] tracking-tight font-normal">Order & Commerce Settings</h1>
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#ffdad3] text-[#783020] text-[11px] font-bold shadow-xs">
                 <span className="h-1.5 w-1.5 rounded-full bg-[#964735]"></span>
-                Sample Configuration
+                Live data
               </span>
             </div>
             <p className="text-[15px] text-[#4e4540] mt-1">Configure shipping, payments, and order lifecycle rules. Saved to the backend.</p>
