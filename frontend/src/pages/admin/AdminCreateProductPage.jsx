@@ -22,6 +22,9 @@ export default function AdminCreateProductPage() {
     badge: '',
     availability: 'Ready to Ship',
     status: 'Active',
+    initialStock: '20',
+    reorderLevel: '10',
+    stockTracked: true,
   });
   const [images, setImages] = useState(['']);
   const [error, setError] = useState('');
@@ -42,7 +45,10 @@ export default function AdminCreateProductPage() {
         ...formData,
         price: parseInt(formData.price, 10) || 0,
         originalPrice: formData.originalPrice ? parseInt(formData.originalPrice, 10) : null,
-        images: images.filter(Boolean),
+        initialStock: parseInt(formData.initialStock, 10) || 0,
+        reorderLevel: parseInt(formData.reorderLevel, 10) || 10,
+        stockTracked: formData.stockTracked,
+        image: images.filter(Boolean)[0] || '',
         tags: [],
         palettes: [],
         ribbons: [],
@@ -161,13 +167,24 @@ export default function AdminCreateProductPage() {
               </div>
               <div>
                 <label className="block text-[12px] font-semibold text-[#4e4540] mb-1.5">Initial Stock</label>
-                <input type="number" defaultValue="20" min="0"
+                <input type="number" value={formData.initialStock} min="0"
+                  onChange={e => setFormData({ ...formData, initialStock: e.target.value })}
                   className="w-full text-[13px] bg-[#f6f3ee] border border-[#d1c4bd] focus:border-[#180f0a] rounded-lg px-3 py-2 text-[#1c1c19] focus:ring-1 focus:ring-[#180f0a] transition" />
               </div>
               <div>
                 <label className="block text-[12px] font-semibold text-[#4e4540] mb-1.5">Reorder Level</label>
-                <input type="number" defaultValue="10" min="0"
+                <input type="number" value={formData.reorderLevel} min="0"
+                  onChange={e => setFormData({ ...formData, reorderLevel: e.target.value })}
                   className="w-full text-[13px] bg-[#f6f3ee] border border-[#d1c4bd] focus:border-[#180f0a] rounded-lg px-3 py-2 text-[#1c1c19] focus:ring-1 focus:ring-[#180f0a] transition" />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input type="checkbox" checked={formData.stockTracked}
+                    onChange={e => setFormData({ ...formData, stockTracked: e.target.checked })}
+                    className="w-4 h-4 rounded border-[#d1c4bd] text-[#180f0a] focus:ring-[#180f0a]" />
+                  <span className="text-[12px] font-semibold text-[#4e4540]">Track inventory for this product</span>
+                </label>
+                <p className="text-[11px] text-[#80756f] mt-1 ml-7">Enable to manage stock levels and receive low-stock alerts.</p>
               </div>
             </div>
           </div>

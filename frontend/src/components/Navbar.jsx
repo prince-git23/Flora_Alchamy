@@ -46,7 +46,20 @@ function NavMenu({ label, items, isActive, variant = 'list' }) {
       ref={ref}
       className="relative"
       onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
+      onMouseLeave={() => {
+        // Small delay prevents dropdown from closing when moving mouse
+        // from trigger button to dropdown content across the gap.
+        const timer = setTimeout(() => setOpen(false), 120);
+        // Store timer so it can be cleared if mouse re-enters.
+        ref.current && (ref.current._leaveTimer = timer);
+      }}
+      onMouseEnterCapture={() => {
+        // Cancel any pending leave timer when mouse re-enters.
+        if (ref.current && ref.current._leaveTimer) {
+          clearTimeout(ref.current._leaveTimer);
+          ref.current._leaveTimer = null;
+        }
+      }}
     >
       <button
         type="button"

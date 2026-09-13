@@ -1,4 +1,5 @@
 import Product from '../models/Product.js';
+import Inventory from '../models/Inventory.js';
 import jwt from 'jsonwebtoken';
 import { ApiError } from '../middleware/errorMiddleware.js';
 
@@ -108,6 +109,23 @@ export async function createProduct(req, res, next) {
       throw new ApiError(409, `A product named "${out.name}" already exists.`, 'DUPLICATE');
     }
     const product = await Product.create({ ...out, isFixture: false });
+
+    // Auto-create inventory record for stock-tracked products.
+    // Initial stock comes from the request body (default 0 if not provided).
+    if (product.stockTracked !== false) {
+      const initialStock = Math.max(0, parseInt(req.body.initialStock, 10) || 0);
+      const reorderLevel = Math.max(0, parseInt(req.body.reorderLevel, 10) || 5);
+      await Inventory.create({
+        productSlug: product.slug,
+        sku: product.sku || '',
+        productName: product.name,
+        currentStock: initialStock,
+        reorderLevel,
+        unit: 'units',
+        isFixture: false,
+      });
+    }
+
     res.status(201).json({ success: true, product });
   } catch (err) {
     next(err);

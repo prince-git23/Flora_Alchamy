@@ -18,7 +18,6 @@ import AccountPage from './pages/AccountPage.jsx';
 import WishlistPage from './pages/WishlistPage.jsx';
 import SearchPage from './pages/SearchPage.jsx';
 import CollectionsPage from './pages/CollectionsPage.jsx';
-import OurCreationsPage from './pages/OurCreationsPage.jsx';
 import OurStoryPage from './pages/OurStoryPage.jsx';
 import HowItsMadePage from './pages/HowItsMadePage.jsx';
 import CustomRequestPage from './pages/CustomRequestPage.jsx';

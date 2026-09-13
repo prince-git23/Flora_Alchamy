@@ -12,7 +12,9 @@
     "test:api": "node scripts/api-smoke.mjs",
     "test:payment": "node scripts/payment-smoke.mjs",
     "test:conversation": "node scripts/conversation-smoke.mjs",
-    "test:razorpay-real": "node scripts/razorpay-real-smoke.mjs"
+    "test:pricing": "node scripts/custom-gift-pricing-test.mjs",
+    "test:razorpay-real": "node scripts/razorpay-real-smoke.mjs",
+    "test": "npm run test:api && npm run test:payment && npm run test:conversation && npm run test:pricing"
   },
   "engines": {
     "node": ">=18.0.0"

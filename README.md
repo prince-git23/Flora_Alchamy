@@ -4,6 +4,15 @@ Handcrafted botanical keepsakes, personalized gifts, and floral art boutique —
 
 ## Architecture
 
+```
+Flora_Alchamy/
+├── frontend/          ← React/Vite application
+├── backend/           ← Express/MongoDB API
+├── .freebuff/         ← development tooling
+├── docs/              ← project documentation
+└── root config        ← repository-level files
+```
+
 - **Frontend:** React 19 + Vite + Tailwind CSS
 - **Backend:** Express.js + MongoDB/Mongoose
 - **Auth:** JWT (customer + admin/handler sessions)
@@ -19,6 +28,7 @@ Handcrafted botanical keepsakes, personalized gifts, and floral art boutique —
 ### Frontend
 
 ```bash
+cd frontend
 npm install
 npm run dev        # http://localhost:3000
 ```
@@ -40,9 +50,20 @@ powershell -ExecutionPolicy Bypass -File .freebuff/start-backend.ps1
 powershell -ExecutionPolicy Bypass -File .freebuff/start-server.ps1
 ```
 
+### Root-Level Scripts
+
+```bash
+npm run dev          # Start frontend
+npm run build        # Build frontend
+npm run api          # Start backend
+npm run api:dev      # Start backend in dev mode
+npm run test         # Run all backend tests
+npm run install:all  # Install all dependencies
+```
+
 ## Environment Variables
 
-### Frontend (.env)
+### Frontend (frontend/.env)
 
 | Variable | Purpose |
 |---|---|
@@ -80,6 +101,8 @@ Backend runs at `/api` with RESTful endpoints:
 - Settings: read/write store configuration
 - Wishlist: customer-owned, per-account
 - Customers: profile, addresses
+- Conversations: order-linked customer ↔ handler messaging
+- Custom Requests: customer submission, admin management
 
 All business data is server-authoritative. Client prices are never trusted for order creation.
 
@@ -87,7 +110,11 @@ All business data is server-authoritative. Client prices are never trusted for o
 
 ```bash
 cd backend
-npm run test:api     # 119 API smoke tests
+npm run test:api         # 119 API smoke tests
+npm run test:payment     # 45 payment lifecycle tests
+npm run test:conversation # 34 conversation tests
+npm run test:pricing     # 22 custom gift pricing tests
+npm test                 # Run all four suites
 ```
 
 ## Canonical Order Lifecycle

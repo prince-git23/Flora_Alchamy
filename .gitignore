@@ -1,10 +1,30 @@
+# Dependencies
 node_modules/
-build/
+
+# Build output
 dist/
-coverage/
-.DS_Store
-*.log
-*.log.err
+build/
+
+# Environment files
 .env*
 !.env.example
+
+# Logs
+*.log
+*.log.err
+
+# OS files
+.DS_Store
+
+# MongoDB local data
 .mongo-data/
+
+# Vite cache
+.vite/
+
+# Coverage
+coverage/
+
+# Freebuff runtime logs
+.freebuff/*.log
+.freebuff/*.log.err

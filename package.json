@@ -1,34 +1,20 @@
 {
-  "name": "react-example",
+  "name": "flora-alchemy",
   "private": true,
-  "version": "0.0.0",
-  "type": "module",
+  "version": "0.1.0",
+  "description": "Flora Alchemy — Handcrafted botanical keepsakes and personalized gifting boutique",
   "scripts": {
-    "dev": "vite --port=3000 --host=0.0.0.0",
-    "build": "vite build",
-    "preview": "vite preview",
-    "clean": "rm -rf dist",
-    "lint": "vite build",
+    "dev": "cd frontend && npm run dev",
+    "build": "cd frontend && npm run build",
+    "preview": "cd frontend && npm run preview",
     "api": "cd backend && npm start",
     "api:dev": "cd backend && npm run dev",
     "api:seed": "cd backend && npm run seed",
-    "test:api": "cd backend && npm run test:api"
-  },
-  "dependencies": {
-    "@google/genai": "^2.4.0",
-    "lucide-react": "^0.546.0",
-    "motion": "^12.23.24",
-    "react": "^19.0.1",
-    "react-dom": "^19.0.1",
-    "react-router-dom": "^7.18.3",
-    "three": "^0.185.1"
-  },
-  "devDependencies": {
-    "@tailwindcss/vite": "^4.1.14",
-    "@vitejs/plugin-react": "^5.0.4",
-    "autoprefixer": "^10.4.21",
-    "esbuild": "^0.25.0",
-    "tailwindcss": "^4.1.14",
-    "vite": "^6.2.3"
+    "test:api": "cd backend && npm run test:api",
+    "test:payment": "cd backend && npm run test:payment",
+    "test:conversation": "cd backend && npm run test:conversation",
+    "test:pricing": "cd backend && npm run test:pricing",
+    "test": "cd backend && npm test",
+    "install:all": "cd frontend && npm install && cd ../backend && npm install"
   }
 }
