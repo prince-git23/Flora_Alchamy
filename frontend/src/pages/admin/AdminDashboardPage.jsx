@@ -190,7 +190,7 @@ export default function AdminDashboardPage() {
                 </div>
                 <div className="flex items-center gap-1 text-[12px] text-[#1d2918] font-medium">
                   <span className="material-symbols-outlined text-[15px]">trending_up</span>
-                  <span>Sample data environment</span>
+                  <span>Live from server data</span>
                 </div>
               </div>
 
@@ -258,7 +258,7 @@ export default function AdminDashboardPage() {
                 </div>
                 <div className="flex items-center gap-1 text-[12px] text-[#1d2918] font-medium">
                   <span className="material-symbols-outlined text-[15px]">arrow_upward</span>
-                  <span>From sample orders</span>
+                  <span>Paid + Sample-payment orders</span>
                 </div>
               </div>
             </div>
