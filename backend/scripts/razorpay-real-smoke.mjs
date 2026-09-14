@@ -28,6 +28,22 @@ import { spawn } from 'node:child_process';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
+import dotenv from 'dotenv';
+import path from 'node:path';
+
+// Load backend/.env so MONGO_URI is available for test-database derivation.
+dotenv.config({ path: path.resolve(fileURLToPath(new URL('..', import.meta.url)), '.env') });
+
+function testMongoUri(baseUri, dbName) {
+  if (!baseUri) return baseUri;
+  try {
+    const u = new URL(baseUri);
+    u.pathname = `/${dbName}`;
+    return u.toString();
+  } catch {
+    return baseUri;
+  }
+}
 
 const API_PORT = 4096;
 const API = `http://127.0.0.1:${API_PORT}/api`;
@@ -87,7 +103,12 @@ const child = spawn(process.execPath, ['server.js'], {
     RAZORPAY_KEY_ID: KEY_ID,
     RAZORPAY_KEY_SECRET: KEY_SECRET,
     ...(WEBHOOK_SECRET ? { RAZORPAY_WEBHOOK_SECRET: WEBHOOK_SECRET } : {}),
-    SEED_ON_START: 'false',
+    // Real-credentials run: use the dedicated test database like the other
+    // suites (env var wins; falls back to MONGO_URI from backend/.env).
+    ...(testMongoUri(process.env.MONGO_URI, 'Flora-Alchemy-Test-Razorpay')
+      ? { MONGO_URI: testMongoUri(process.env.MONGO_URI, 'Flora-Alchemy-Test-Razorpay') }
+      : {}),
+    SEED_ON_START: 'true',
   },
   stdio: ['ignore', 'pipe', 'pipe'],
 });

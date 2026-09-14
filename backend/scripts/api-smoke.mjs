@@ -1,14 +1,25 @@
 /**
  * API smoke tests — Flora Alchemy backend.
  *
- * Run against a LIVE server (backend/.env points at the local MongoDB):
+ * Self-contained: boots its OWN backend process on port 4095 against its OWN
+ * MongoDB database (Flora-Alchemy-Test-Api), seeds it, runs assertions, then
+ * shuts down. No dev server or dev database required — repeatable and
+ * pollution-free (Phase 16 isolation).
+ *
  *   npm run test:api   (from backend/)
  *
  * Covers: register, login, me, product CRUD + price integrity, order
  * creation + ownership + lifecycle, inventory deduction/adjustment,
  * analytics derivation, settings persistence, and authorization negatives.
  */
-const BASE = process.env.API_URL || 'http://127.0.0.1:4000/api';
+import { bootTestServer, stopTestServer } from './lib/testServer.mjs';
+
+const { child: API_CHILD, base: API_BASE } = await bootTestServer({
+  port: 4095,
+  db: 'Flora-Alchemy-Test-Api',
+  label: 'api-smoke',
+});
+const BASE = `${API_BASE}/api`;
 
 let passed = 0;
 let failed = 0;
@@ -396,5 +407,7 @@ async function main() {
 
 main().catch((err) => {
   console.error('SMOKE RUNNER ERROR:', err);
-  process.exit(1);
+  process.exitCode = 1;
+}).finally(() => {
+  stopTestServer(API_CHILD);
 });

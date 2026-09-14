@@ -21,10 +21,9 @@
  * Run:  cd backend && node scripts/payment-smoke.mjs
  */
 
-import { spawn } from 'node:child_process';
 import http from 'node:http';
 import crypto from 'node:crypto';
-import { fileURLToPath } from 'node:url';
+import { bootTestServer } from './lib/testServer.mjs';
 
 const KEY_ID = 'rzp_test_mock_key';
 const KEY_SECRET = 'mock-secret-000';
@@ -32,20 +31,7 @@ const WEBHOOK_SECRET = 'mock-webhook-secret';
 const API_PORT = 4097;
 const MOCK_PORT = 4098;
 const API = `http://127.0.0.1:${API_PORT}/api`;
-
-// Test isolation: point the spawned server at its OWN database so concurrent
-// suites (or a running dev server) can never mutate the same inventory rows.
-function testMongoUri(baseUri, dbName) {
-  if (!baseUri) return baseUri;
-  try {
-    const u = new URL(baseUri);
-    u.pathname = `/${dbName}`;
-    return u.toString();
-  } catch {
-    return baseUri;
-  }
-}
-const TEST_MONGO_URI = testMongoUri(process.env.MONGO_URI, 'Flora-Alchemy-Test-Payment');
+let API_BASE = API.replace(/\/api$/, '');
 
 let passed = 0;
 let failed = 0;
@@ -105,61 +91,28 @@ const sign = (orderId, paymentId) =>
 const signWebhook = (rawBody) =>
   crypto.createHmac('sha256', WEBHOOK_SECRET).update(rawBody).digest('hex');
 
-async function waitForServer(url, tries = 40) {
-  for (let i = 0; i < tries; i += 1) {
-    try {
-      const r = await fetch(url);
-      if (r.ok) return true;
-    } catch { /* not up yet */ }
-    await new Promise((r) => setTimeout(r, 500));
-  }
-  return false;
-}
-
-// Preflight: refuse to run if the API port is already served by another
-// process. Sharing a port makes two suites mutate the same Atlas inventory
-// concurrently, which corrupts stock assertions (a false double-deduction).
-async function portInUse(port) {
-  try {
-    await fetch(`http://127.0.0.1:${port}/api/health`);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 // ── Main ────────────────────────────────────────────────────────────────
-if (await portInUse(API_PORT)) {
-  console.error(`\nPAYMENT SMOKE ABORTED: port ${API_PORT} is already in use.`);
-  console.error('Stop the other server/suite first — concurrent runs share MongoDB state and produce false failures.');
-  process.exit(1);
-}
 const mockServer = await startMockRazorpay();
-const child = spawn(process.execPath, ['server.js'], {
-  cwd: fileURLToPath(new URL('..', import.meta.url)),
-  env: {
-    ...process.env,
-    PORT: String(API_PORT),
-    RAZORPAY_KEY_ID: KEY_ID,
-    RAZORPAY_KEY_SECRET: KEY_SECRET,
-    RAZORPAY_WEBHOOK_SECRET: WEBHOOK_SECRET,
-    RAZORPAY_BASE_URL: `http://127.0.0.1:${MOCK_PORT}`,
-    MONGO_URI: TEST_MONGO_URI || process.env.MONGO_URI,
-    SEED_ON_START: 'true',
-  },
-  stdio: ['ignore', 'pipe', 'pipe'],
-});
-
-let booted = false;
+let child;
 try {
-  booted = await waitForServer(`http://127.0.0.1:${API_PORT}/api/health`);
-} catch { booted = false; }
-check('backend boots with Razorpay test config', booted);
-if (!booted) {
-  child.kill();
+  ({ child, base: API_BASE } = await bootTestServer({
+    port: API_PORT,
+    db: 'Flora-Alchemy-Test-Payment',
+    label: 'payment-smoke',
+    extraEnv: {
+      RAZORPAY_KEY_ID: KEY_ID,
+      RAZORPAY_KEY_SECRET: KEY_SECRET,
+      RAZORPAY_WEBHOOK_SECRET: WEBHOOK_SECRET,
+      RAZORPAY_BASE_URL: `http://127.0.0.1:${MOCK_PORT}`,
+    },
+  }));
+} catch (err) {
+  console.error(`\nPAYMENT SMOKE ABORTED: ${err.message}`);
   mockServer.close();
   process.exit(1);
 }
+
+check('backend boots with Razorpay test config', Boolean(API_BASE));
 
 const stamp = Date.now();
 const EMAIL_A = `pay-a-${stamp}@example.com`;

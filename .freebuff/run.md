@@ -66,13 +66,21 @@ Start mongod (or rely on Atlas) → backend (waits for DB) → frontend.
 
 ## Verify
 
-- API health: `curl http://localhost:4000/api/health`
-- API smoke suite (needs backend up): `cd backend && npm run test:api` (120 assertions — auth, products, orders, lifecycle, inventory, analytics, settings, wishlist ownership, addresses)
-- Payment suite: `cd backend && npm run test:payment` (45 tests)
-- Conversation suite: `cd backend && npm run test:conversation` (34 tests)
-- Pricing suite: `cd backend && npm run test:pricing` (22 tests)
-- Integration suite: `cd backend && npm run test:integration` (33 tests)
-- Security suite: `cd backend && npm run test:security` (56 tests — run LAST; its brute-force test intentionally exhausts the login limiter for this IP until the 15-minute window resets, so restart the backend after a full run if you need to log in again)
+- API health (dev server only): `curl http://localhost:4000/api/health`
+- **Full QA (no dev server needed — every suite boots its own isolated backend + dedicated test DB):**
+  ```
+  cd backend && npm test          # runs ALL suites via scripts/run-all.mjs
+  ```
+  Suite order is fixed: Pricing → API → Integration → Payment → Conversation → Security. Exit code is non-zero on any failure.
+- Individual suites (each self-contained, safe to run in any order, repeatedly):
+  - `npm run test:api` (120) — auth, products, orders, lifecycle, inventory, wishlist, addresses, analytics, settings
+  - `npm run test:integration` (56) — operator CRUD, notifications, product/inventory consistency, collection CRUD, real multipart upload, custom requests
+  - `npm run test:payment` (45) — boots a mock Razorpay server
+  - `npm run test:conversation` (34)
+  - `npm run test:pricing` (22) — server-authoritative custom-gift pricing
+  - `npm run test:security` (56) — token forgery, isolation, tampering, rate limits; boots its own server so limiter exhaustion stays contained
+  - `npm run test:razorpay-real` — SKIPPED (exit 0) unless real rzp_test_* credentials are exported
+- **Test databases:** suites write ONLY to `Flora-Alchemy-Test-*` databases derived from `MONGO_URI` in `backend/.env`; the dev database is never touched. Shared helper: `backend/scripts/lib/testServer.mjs`.
 - Storefront: open http://localhost:3000 — fresh visitors are **GUEST**; demo quick-fill helpers exist on /login and /admin/login but authenticate only on explicit action against the real backend (bcrypt + JWT).
 
 ## Architecture

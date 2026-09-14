@@ -16,7 +16,8 @@
     "test:integration": "node scripts/integration-smoke.mjs",
     "test:security": "node scripts/security-smoke.mjs",
     "test:razorpay-real": "node scripts/razorpay-real-smoke.mjs",
-    "test": "npm run test:api && npm run test:payment && npm run test:conversation && npm run test:pricing"
+    "test:all": "node scripts/run-all.mjs",
+    "test": "npm run test:all"
   },
   "engines": {
     "node": ">=18.0.0"

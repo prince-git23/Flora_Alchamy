@@ -2,9 +2,20 @@
  * Phase 15 security regression tests.
  *
  * Every assertion proves a security control is actually enforced server-side.
- * Run: node scripts/security-smoke.mjs   (against a live server)
+ * Self-contained: boots its OWN backend (port 4093) against its OWN database
+ * (Flora-Alchemy-Test-Security). The brute-force test exhausts THIS server's
+ * in-memory login limiter only — other suites are never affected (Phase 16).
+ *
+ * Run: node scripts/security-smoke.mjs
  */
-const BASE = process.env.API_URL || 'http://127.0.0.1:4000/api';
+import { bootTestServer, stopTestServer } from './lib/testServer.mjs';
+
+const { child: API_CHILD, base: API_BASE } = await bootTestServer({
+  port: 4093,
+  db: 'Flora-Alchemy-Test-Security',
+  label: 'security-smoke',
+});
+const BASE = `${API_BASE}/api`;
 
 let passed = 0;
 let failed = 0;
@@ -235,5 +246,7 @@ async function main() {
 
 main().catch((err) => {
   console.error('SECURITY RUNNER ERROR:', err);
-  process.exit(1);
+  process.exitCode = 1;
+}).finally(() => {
+  stopTestServer(API_CHILD);
 });

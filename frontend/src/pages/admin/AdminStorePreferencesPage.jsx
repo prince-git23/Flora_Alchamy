@@ -9,7 +9,7 @@ import {
 
 export default function AdminStorePreferencesPage() {
   const [preferences, setPreferences] = useState(getStorePreferences());
-  const [syncStatus, setSyncStatus] = useState('Sample preferences ready');
+  const [syncStatus, setSyncStatus] = useState('Saved on this device');
   const [saveStatus, setSaveStatus] = useState('idle'); // 'idle' | 'saving' | 'saved'
   const [toastMessage, setToastMessage] = useState(null);
 

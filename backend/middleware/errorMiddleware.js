@@ -55,6 +55,16 @@ export function errorHandler(err, req, res, _next) {
     });
   }
 
+  // Multer upload errors — surface honest 4xx instead of a raw 500.
+  if (err.name === 'MulterError') {
+    const status = err.code === 'LIMIT_FILE_SIZE' ? 413 : 422;
+    const message =
+      err.code === 'LIMIT_FILE_SIZE'
+        ? 'Image is larger than the 5 MB limit.'
+        : `Upload rejected: ${err.code}`;
+    return res.status(status).json({ success: false, message, code: 'UPLOAD_ERROR' });
+  }
+
   console.error('[api-error]', err);
   return res.status(500).json({
     success: false,

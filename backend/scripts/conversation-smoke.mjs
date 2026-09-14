@@ -14,25 +14,18 @@
  *   J. Unread count
  */
 
-import { spawn } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
+import { bootTestServer, stopTestServer } from './lib/testServer.mjs';
 
-const API_PORT = 4099;
-const API = `http://127.0.0.1:${API_PORT}/api`;
-
-// Test isolation: own database so concurrent suites never share inventory.
-function testMongoUri(baseUri, dbName) {
-  if (!baseUri) return baseUri;
-  try {
-    const u = new URL(baseUri);
-    u.pathname = `/${dbName}`;
-    return u.toString();
-  } catch {
-    return baseUri;
-  }
-}
-const TEST_MONGO_URI = testMongoUri(process.env.MONGO_URI, 'Flora-Alchemy-Test-Conversation');
+// Test isolation: own backend process + own database (loads backend/.env
+// itself — fixes the Phase 16 finding where process.env.MONGO_URI was unset
+// and suites silently ran against the dev database).
+const { child, base: API_BASE } = await bootTestServer({
+  port: 4099,
+  db: 'Flora-Alchemy-Test-Conversation',
+  label: 'conversation-smoke',
+});
+const API = `${API_BASE}/api`;
 
 let passed = 0;
 let failed = 0;
@@ -56,25 +49,9 @@ async function req(method, path, { token, body } = {}) {
   return { status: res.status, json };
 }
 
-async function waitForServer(url, tries = 40) {
-  for (let i = 0; i < tries; i += 1) {
-    try { const r = await fetch(url); if (r.ok) return true; } catch {}
-    await new Promise((r) => setTimeout(r, 500));
-  }
-  return false;
-}
-
-// ── Boot backend ──────────────────────────────────────────────────────
-const child = spawn(process.execPath, ['server.js'], {
-  cwd: fileURLToPath(new URL('..', import.meta.url)),
-  env: { ...process.env, PORT: String(API_PORT), MONGO_URI: TEST_MONGO_URI || process.env.MONGO_URI, SEED_ON_START: 'true' },
-  stdio: ['ignore', 'pipe', 'pipe'],
-});
-
+// ── Boot backend (spawned by bootTestServer above) ───────────────────
 try {
-  const booted = await waitForServer(`${API}/health`);
-  check('backend boots', booted);
-  if (!booted) { child.kill(); process.exit(1); }
+  check('backend boots (isolated server, dedicated test DB)', Boolean(API_BASE));
 
   // ── Register two customers + one admin ──────────────────────────────
   const stamp = Date.now();

@@ -1,6 +1,9 @@
 /**
  * Phase 3G-C.1 — Custom Gift Pricing Authority Test
  *
+ * Self-contained: boots its OWN backend (port 4092) against its OWN database
+ * (Flora-Alchemy-Test-Pricing) — no dev server, no dev-DB writes (Phase 16).
+ *
  * Tests:
  * 1. Valid config → server calculates price (1850 base + 300 peony = 2150)
  * 2. Tampered client price (₹10) → server ignores, uses authoritative price
@@ -9,8 +12,14 @@
  * 5. No customGiftConfig and no productSlug → 422
  * 6. Add-on with client price → accepted (packaging upgrade)
  */
+import { bootTestServer, stopTestServer } from './lib/testServer.mjs';
 
-const BASE = 'http://127.0.0.1:4000';
+const { child: API_CHILD, base: API_ROOT } = await bootTestServer({
+  port: 4092,
+  db: 'Flora-Alchemy-Test-Pricing',
+  label: 'pricing-test',
+});
+const BASE = API_ROOT;
 
 async function login() {
   const res = await fetch(`${BASE}/api/auth/login`, {
@@ -54,7 +63,10 @@ async function run() {
 
   const token = await login();
   assert('Login succeeds', !!token);
-  if (!token) { console.log('\nCannot continue without token.'); return; }
+  if (!token) {
+    stopTestServer(API_CHILD);
+    return;
+  }
 
   // TEST 1: Valid config — server calculates price
   console.log('\nTEST 1: Valid custom gift config');
@@ -203,7 +215,7 @@ async function run() {
 
   console.log(`\n══════════════════════════════════════`);
   console.log(`PRICING TEST: ${passed} passed, ${failed} failed`);
-  if (failed > 0) process.exit(1);
+  if (failed > 0) process.exitCode = 1;
 }
 
-run().catch((e) => { console.error(e); process.exit(1); });
+run().catch((e) => { console.error(e); process.exitCode = 1; }).finally(() => { stopTestServer(API_CHILD); });

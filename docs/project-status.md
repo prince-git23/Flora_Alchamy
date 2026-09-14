@@ -1,6 +1,6 @@
 # Flora Alchemy — Project Status
 
-**Last Updated:** September 13, 2026
+**Last Updated:** September 14, 2026 (Phase 16 — Test Completion & Full-Stack QA)
 
 ## Current Architecture
 
@@ -21,7 +21,7 @@ Flora_Alchamy/
 │   ├── models/            (12 MongoDB models)
 │   ├── routes/            (12 route files, 57 endpoints)
 │   ├── services/          (5 service files)
-│   ├── scripts/           (5 test scripts)
+│   ├── scripts/           (7 test suites + run-all orchestrator + lib/testServer.mjs)
 │   └── seed/              (seed data)
 ├── .freebuff/         ← development tooling
 ├── docs/              ← project documentation
@@ -104,15 +104,12 @@ Flora_Alchamy/
 None. All P0 items resolved.
 
 ### P1 — Important
-- Rate limiting on auth/API/webhook endpoints
 - Tax/GST calculation (business decision needed)
 - Refund flow (business decision needed)
 
 ### P2 — Quality/Performance
 - Code splitting / lazy loading (1.41 MB single chunk)
-- Security headers (Helmet)
-- Input sanitization
-- Additional test coverage (custom requests, wishlist, addresses)
+- Shared rate-limit store (Redis) only if deployed multi-instance
 
 ### P3 — Optional
 - Docker/PM2 deployment
@@ -121,10 +118,33 @@ None. All P0 items resolved.
 - Newsletter backend
 
 ### External — Requires Credentials/Decisions
-- Real Razorpay test mode verification (needs rzp_test_* keys)
+- Real Razorpay test mode verification (needs rzp_test_* keys; `npm run test:razorpay-real` skips without them)
+- ImageKit credentials for CDN image hosting (local-disk upload fallback is real and tested)
 - Newsletter provider selection
 - GST/tax rules
 - Cancellation/refund policy
+
+## Testing (Phase 16)
+
+Every suite boots its OWN backend process against its OWN MongoDB test database
+(`Flora-Alchemy-Test-*`) — the development database is never touched, suites
+cannot pollute each other, and the security suite's rate-limiter exhaustion
+stays contained in its own server process.
+
+| Suite | Command (from backend/) | Assertions |
+|---|---|---|
+| Pricing | `npm run test:pricing` | 22 |
+| API | `npm run test:api` | 120 |
+| Integration | `npm run test:integration` | 56 |
+| Payment (mock Razorpay) | `npm run test:payment` | 45 |
+| Conversation | `npm run test:conversation` | 34 |
+| Security | `npm run test:security` | 56 |
+| **Full run** | **`npm test`** | **333** |
+
+Shared bootstrap: `backend/scripts/lib/testServer.mjs`. Orchestrator:
+`backend/scripts/run-all.mjs` (fixed order Pricing → API → Integration →
+Payment → Conversation → Security; non-zero exit on any failure).
+`npm run test:razorpay-real` auto-skips (exit 0) without real rzp_test_* keys.
 
 ## Production Readiness
 
@@ -140,14 +160,16 @@ None. All P0 items resolved.
 - ✅ Payment adapter ready
 - ✅ Responsive design
 - ✅ Error handling
+- ✅ Rate limiting (failed-login, register, payments, uploads, webhooks)
+- ✅ Security headers (Helmet CSP/HSTS) + CORS allowlist
+- ✅ Operator status management (suspension enforced server-side)
+- ✅ Automated test suite: 333 assertions, isolated per-suite databases
 
 ### Not Ready
-- ❌ Rate limiting
-- ❌ Security headers
 - ❌ Production deployment config
 - ❌ Structured logging
 - ❌ Monitoring/health checks
-- ❌ Real payment verification
+- ❌ Real payment verification (needs rzp_test_* credentials — EXTERNAL)
 
 ## External Dependencies
 
@@ -165,7 +187,10 @@ None. All P0 items resolved.
 - `MONGO_URI` — MongoDB connection string
 - `JWT_SECRET` — Auth token signing key
 - `JWT_EXPIRES_IN` — Token lifetime (default: 7d)
-- `CORS_ORIGIN` — Allowed browser origins
+- `CORS_ORIGIN` — Allowed browser origins (REQUIRED in production)
+- `NODE_ENV` — `production` enables strict rate limits
+- `TRUST_PROXY` — `true` only behind a reverse proxy
 - `SEED_ON_START` — Auto-seed demo fixtures on boot
-- `RAZORPAY_KEY_ID` — Razorpay test key (optional)
-- `RAZORPAY_KEY_SECRET` — Razorpay test secret (optional)
+- `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` / `RAZORPAY_WEBHOOK_SECRET` — Razorpay (optional)
+- `IMAGEKIT_*` — Image hosting CDN (optional; local-disk fallback is real)
+- `RATE_LIMIT_*` — Rate-limit tuning (see backend/.env.example)
