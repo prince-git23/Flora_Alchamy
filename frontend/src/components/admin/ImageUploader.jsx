@@ -171,6 +171,8 @@ export default function ImageUploader({ images, onChange }) {
             <div key={`${img}-${idx}`} className="relative group">
               <div className="aspect-square rounded-xl overflow-hidden border border-[#e5e2dd] bg-[#f6f3ee]">
                 <img
+                  loading="lazy"
+                  decoding="async"
                   src={img}
                   alt={`Product image ${idx + 1}`}
                   className="w-full h-full object-cover"

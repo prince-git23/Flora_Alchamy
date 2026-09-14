@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { adminLogin, adminLogout, getAdminSession } from '../services/authService.js';
+import { signalDataChanged } from '../services/dataStore.js';
 
 const AdminSessionContext = createContext(null);
 
@@ -10,7 +11,10 @@ export function AdminSessionProvider({ children }) {
   // state immediately (markers are removed by apiClient).
   useEffect(() => {
     const onExpired = (e) => {
-      if (e && e.detail && e.detail.scope === 'admin') setSession(null);
+      if (e && e.detail && e.detail.scope === 'admin') {
+        setSession(null);
+        signalDataChanged();
+      }
     };
     window.addEventListener('fa:auth-expired', onExpired);
     return () => window.removeEventListener('fa:auth-expired', onExpired);
@@ -20,6 +24,10 @@ export function AdminSessionProvider({ children }) {
     const result = await adminLogin(email, password);
     if (result.success) {
       setSession(result.session);
+      // Session scope changed → full re-hydration with admin data (Phase 17
+      // request audit: plain route navigation no longer re-hydrates, so
+      // auth transitions must signal explicitly).
+      signalDataChanged();
     }
     return result;
   };
@@ -27,6 +35,7 @@ export function AdminSessionProvider({ children }) {
   const logout = () => {
     adminLogout();
     setSession(null);
+    signalDataChanged();
   };
 
   const isAuthenticated = session !== null;

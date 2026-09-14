@@ -1,7 +1,7 @@
 import CustomRequest from '../models/CustomRequest.js';
 import User from '../models/User.js';
 import { ApiError } from '../middleware/errorMiddleware.js';
-import { createNotification } from './notificationController.js';
+import { createNotification, createNotificationsForUsers } from './notificationController.js';
 
 export async function createCustomRequest(req, res, next) {
   try {
@@ -19,20 +19,16 @@ export async function createCustomRequest(req, res, next) {
       imageUrl: imageUrl || '',
       status: 'pending',
     });
-    // Notify staff of new custom request
+    // Notify staff of new custom request — batched insertMany (Phase 17).
     const staffUsers = await User.find({ role: { $in: ['admin', 'handler'] } }).select('_id role');
-    for (const staff of staffUsers) {
-      await createNotification({
-        userId: staff._id,
-        role: staff.role,
-        type: 'new_custom_request',
-        title: 'New custom request',
-        message: `A new custom gift request has been submitted (${occasion || 'general'}).`,
-        entityType: 'custom_request',
-        entityId: request._id,
-        link: `/admin/custom-requests/${request._id}`,
-      });
-    }
+    await createNotificationsForUsers(staffUsers, {
+      type: 'new_custom_request',
+      title: 'New custom request',
+      message: `A new custom gift request has been submitted (${occasion || 'general'}).`,
+      entityType: 'custom_request',
+      entityId: request._id,
+      link: `/admin/custom-requests/${request._id}`,
+    });
 
     res.status(201).json({ success: true, request });
   } catch (err) {

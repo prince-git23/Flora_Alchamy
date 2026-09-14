@@ -408,7 +408,9 @@ export default function AccountPage() {
                     {ord.items.map((item, idx) => (
                       <div key={idx} className="pt-3 first:pt-0 flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <img src={item.image} alt={item.name} className="w-14 h-14 rounded-xl object-cover border border-[#e5e2dd]" />
+                          <img
+                            loading="lazy"
+                            decoding="async" src={item.image} alt={item.name} className="w-14 h-14 rounded-xl object-cover border border-[#e5e2dd]" />
                           <div>
                             <p className="font-serif text-[15px] text-[#180f0a] font-medium">{item.name}</p>
                             <p className="text-[11px] text-[#80756f]">Qty: {item.quantity || 1}</p>
@@ -446,7 +448,9 @@ export default function AccountPage() {
                   <div key={item.id} className="bg-white rounded-2xl p-4 border border-[#e5e2dd] shadow-xs flex flex-col space-y-3 group">
                     <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-[#f6f3ee]">
                       <Link to={`/product/${item.id}`}>
-                        <img src={item.images ? item.images[0] : (item.image || '')} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                        <img
+                          loading="lazy"
+                          decoding="async" src={item.images ? item.images[0] : (item.image || '')} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                       </Link>
                       <button type="button" onClick={() => toggleWishlist(item)} className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/90 shadow-sm flex items-center justify-center text-[#964735] hover:scale-110 transition-transform" title="Remove">
                         <Trash2 className="w-3.5 h-3.5" />
@@ -693,4 +697,4 @@ function AddressForm({ form, setForm, onSave, onCancel, saving, error, isNew }) 
       </div>
     </form>
   );
-}
+}

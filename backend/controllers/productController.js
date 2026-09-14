@@ -3,6 +3,7 @@ import Inventory from '../models/Inventory.js';
 import jwt from 'jsonwebtoken';
 import { ApiError } from '../middleware/errorMiddleware.js';
 import { escapeRegExp, safeString } from '../utils/querySafety.js';
+import { cached, cacheInvalidatePrefix } from '../utils/publicCache.js';
 
 // Optional auth for public reads: a valid staff token reveals hidden products.
 async function isStaffRequest(req) {
@@ -78,7 +79,14 @@ export async function listProducts(req, res, next) {
         { sku: { $regex: escapeRegExp(q), $options: 'i' } },
       ];
     }
-    const products = await Product.find(match).sort({ createdAt: 1 }).limit(500);
+    // Staff views stay live (admin must see writes instantly); the public
+    // visible-only listing is read-heavy and low-volatility → 30s TTL cache
+    // invalidated by any product write (Phase 17).
+    const staffView = staff && (!visibility || visibility !== 'Visible');
+    const cacheKey = `products:list:${category || ''}:${q || ''}`;
+    const load = () =>
+      Product.find(match).sort({ createdAt: 1 }).limit(500).lean();
+    const products = staffView ? await load() : await cached(cacheKey, load, Product);
     res.json({ success: true, products });
   } catch (err) {
     next(err);
@@ -87,11 +95,14 @@ export async function listProducts(req, res, next) {
 
 export async function getProduct(req, res, next) {
   try {
-    const product = await Product.findOne({ slug: req.params.id });
+    // Public detail reads are cached (30s TTL, write-invalidated). Staff always
+    // gets a live read so admin edits reflect instantly.
+    const staff = await isStaffRequest(req);
+    const load = () => Product.findOne({ slug: req.params.id }).lean();
+    const product = staff ? await load() : await cached(`products:detail:${req.params.id}`, load, Product);
     if (!product) {
       throw new ApiError(404, 'Product not found.', 'PRODUCT_NOT_FOUND');
     }
-    const staff = await isStaffRequest(req);
     if (!staff && product.visibility === 'Hidden') {
       throw new ApiError(404, 'Product not found.', 'PRODUCT_NOT_FOUND');
     }
@@ -112,6 +123,7 @@ export async function createProduct(req, res, next) {
       throw new ApiError(409, `A product named "${out.name}" already exists.`, 'DUPLICATE');
     }
     const product = await Product.create({ ...out, isFixture: false });
+    cacheInvalidatePrefix('products:');
 
     // Auto-create inventory record for stock-tracked products.
     // Initial stock comes from the request body (default 0 if not provided).
@@ -153,6 +165,7 @@ export async function updateProduct(req, res, next) {
     }
     Object.assign(product, out);
     await product.save();
+    cacheInvalidatePrefix('products:');
     res.json({ success: true, product });
   } catch (err) {
     next(err);
@@ -166,6 +179,7 @@ export async function deleteProduct(req, res, next) {
       throw new ApiError(404, 'Product not found.', 'PRODUCT_NOT_FOUND');
     }
     await product.deleteOne();
+    cacheInvalidatePrefix('products:');
     // Remove the linked inventory record so no orphan survives. Without this,
     // re-creating a product with the same slug fails on the inventory unique
     // index and dead stock rows pollute the inventory views.

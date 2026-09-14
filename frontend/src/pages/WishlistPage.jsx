@@ -105,6 +105,8 @@ export default function WishlistPage() {
                 <div className="relative aspect-square w-full rounded-2xl overflow-hidden bg-[#f6f3ee]">
                   <Link to={`/product/${item.id}`}>
                     <img
+                      loading="lazy"
+                      decoding="async"
                       src={item.images ? item.images[0] : (item.image || '')}
                       alt={item.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"

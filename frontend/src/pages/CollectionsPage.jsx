@@ -52,6 +52,8 @@ export default function CollectionsPage() {
             >
               <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#f6f3ee]">
                 <img
+                  loading="lazy"
+                  decoding="async"
                   src={col.image}
                   alt={col.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"

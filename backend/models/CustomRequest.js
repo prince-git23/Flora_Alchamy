@@ -6,7 +6,8 @@ const customRequestSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Customer',
       required: true,
-      index: true,
+      // compound { customerId, createdAt: -1 } below covers the 'mine' query;
+      // no separate single-field index needed (Phase 17 dedup).
     },
     description: {
       type: String,
@@ -46,6 +47,8 @@ const customRequestSchema = new mongoose.Schema(
 );
 
 customRequestSchema.index({ status: 1, createdAt: -1 });
+// Customer's own request list (GET /custom-requests/mine).
+customRequestSchema.index({ customerId: 1, createdAt: -1 });
 
 const CustomRequest = mongoose.model('CustomRequest', customRequestSchema);
 

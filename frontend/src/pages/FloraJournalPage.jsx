@@ -117,6 +117,8 @@ export default function FloraJournalPage() {
             <article key={creation.id} className="group bg-white rounded-2xl border border-[#e5e2dd] overflow-hidden hover:shadow-lg transition-shadow">
               <div className="aspect-[4/3] overflow-hidden bg-[#f6f3ee]">
                 <img
+                  loading="lazy"
+                  decoding="async"
                   src={creation.image}
                   alt={creation.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"

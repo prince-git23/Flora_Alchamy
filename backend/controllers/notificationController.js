@@ -3,17 +3,22 @@ import Notification from '../models/Notification.js';
 /**
  * GET /api/notifications
  * List notifications for the current user. Supports ?unread=true filter.
+ * Projection: only fields the UI renders — skips entityType/entityId/link
+ * internals not displayed and keeps payloads small (Phase 17).
  */
+const LIST_PROJECTION = 'type title message read readAt createdAt link';
+
 export async function listNotifications(req, res) {
   try {
     const { unread } = req.query;
     const filter = { userId: req.user._id };
     if (unread === 'true') filter.read = false;
     const notifications = await Notification.find(filter)
+      .select(LIST_PROJECTION)
       .sort({ createdAt: -1 })
       .limit(50)
       .lean();
-    const unreadCount = await Notification.countDocuments({ userId: req.user.id, read: false });
+    const unreadCount = await Notification.countDocuments({ userId: req.user._id, read: false });
     res.json({ notifications, unreadCount });
   } catch (err) {
     console.error('listNotifications error:', err);
@@ -23,7 +28,7 @@ export async function listNotifications(req, res) {
 
 /**
  * GET /api/notifications/unread-count
- * Lightweight endpoint for badge polling.
+ * Lightweight endpoint for badge polling (covered by { userId, read } index).
  */
 export async function unreadCount(req, res) {
   try {
@@ -37,7 +42,7 @@ export async function unreadCount(req, res) {
 
 /**
  * PATCH /api/notifications/:id/read
- * Mark a single notification as read.
+ * Mark a single notification as read (ownership enforced in the filter).
  */
 export async function markRead(req, res) {
   try {
@@ -47,7 +52,7 @@ export async function markRead(req, res) {
       { new: true },
     );
     if (!notification) return res.status(404).json({ message: 'Notification not found.' });
-    const unreadCount = await Notification.countDocuments({ userId: req.user.id, read: false });
+    const unreadCount = await Notification.countDocuments({ userId: req.user._id, read: false });
     res.json({ notification, unreadCount });
   } catch (err) {
     console.error('markRead error:', err);
@@ -57,7 +62,7 @@ export async function markRead(req, res) {
 
 /**
  * PATCH /api/notifications/read-all
- * Mark all notifications as read.
+ * Mark all notifications as read for the current user only.
  */
 export async function markAllRead(req, res) {
   try {
@@ -86,5 +91,32 @@ export async function createNotification({ userId, role, type, title, message, e
   } catch (err) {
     console.error('createNotification error:', err);
     return null; // Non-critical — don't break business flow
+  }
+}
+
+/**
+ * Helper: batch-create notifications for many users (one insertMany round
+ * trip instead of N awaited creates — Phase 17 N+1 fix for staff broadcasts).
+ * Same non-critical contract: failures never break the business flow.
+ */
+export async function createNotificationsForUsers(users, payload) {
+  try {
+    if (!Array.isArray(users) || users.length === 0) return [];
+    const docs = users.map((u) => ({
+      userId: u._id,
+      role: u.role,
+      type: payload.type,
+      title:
+        typeof payload.title === 'function' ? payload.title(u) : payload.title,
+      message:
+        typeof payload.message === 'function' ? payload.message(u) : payload.message,
+      entityType: payload.entityType || null,
+      entityId: payload.entityId || null,
+      link: payload.link || null,
+    }));
+    return await Notification.insertMany(docs, { ordered: false });
+  } catch (err) {
+    console.error('createNotificationsForUsers error:', err);
+    return []; // Non-critical
   }
 }

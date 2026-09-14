@@ -68,6 +68,8 @@ export default function Footer() {
           <div className="md:col-span-4 space-y-4">
             <Link to="/" className="flex items-center gap-3" aria-label="Flora Alchemy home">
               <img
+                loading="lazy"
+                decoding="async"
                 src="/assets/images/flora-asset-27.jpg"
                 alt=""
                 className="h-7 w-auto object-contain"

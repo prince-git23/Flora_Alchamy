@@ -1,5 +1,23 @@
 # Flora Alchemy — how to run (full stack)
 
+## Phase 17 — Performance Optimization
+
+**Baseline (measured):** main JS bundle 1,397KB raw / 333KB gzip, single chunk incl. three.js (~600KB) shipped to every visitor; public reads ~21–41ms; `/orders/mine` unbounded; notification unread-count queried with `req.user.id` (undefined — never hit the `{userId, read}` index); staff notifications inserted one-by-one (N+1, 3 sites); order items resolved `Product.findOne` per item (N+1); 3 missing indexes; 26 of 29 `<img>` eager.
+
+**Backend:**
+- `utils/publicCache.js` (new): 30s TTL read-through cache for public products/collections/settings only. Misses never cached (preserves 404 semantics); lean() results re-serialized through the model's toJSON transform for contract parity; invalidation on every product/collection/settings write. Measured: products 41ms→4ms, collections 24ms→4ms, settings 38ms→2ms (warm).
+- Notification controller `req.user.id` → `req.user._id` (unread-count now hits its index); staff-broadcast inserts batched (order/custom-request/conversation sites); order items batch-resolved via one `find({slug: {$in}})` instead of per-item findOne; `/orders/mine` bounded (limit 100, newest first); new indexes: `orders.paymentProviderOrderId`, `inventorymovements {productSlug, createdAt}`, `customrequests.customerId`.
+
+**Frontend:**
+- Route-level code splitting (`React.lazy` + Suspense) + manualChunks: initial bundle 1,397KB→295KB raw (333KB→92KB gzip); three.js isolated to a 500KB async chunk fetched only where the 3D hero renders.
+- Full-store re-hydration throttled (30s min interval); mutations refresh only affected slices instead of 6 API calls per `signalDataChanged()`.
+- Removed dead localStorage admin-roster path in adminSettings.js; fixed admin 401 handler to consume the response body (previously unhandled rejection).
+- 26 additional `<img loading="lazy" decoding="async">` across pages/components (29/29 lazy except above-the-fold hero).
+
+**Test determinism fix (found during regression):** test servers inherited live ImageKit credentials from backend/.env — invalid creds made multipart upload tests fail against the real ImageKit API. `bootTestServer` now strips IMAGEKIT_* (deterministic local provider); live-provider verification stays an external check.
+
+**Regression:** npm test 333/333 green (one API test caught a real cache-null bug — fixed at root, test unchanged).
+
 ## Project Structure
 
 ```

@@ -3,7 +3,7 @@ import Message from '../models/Message.js';
 import Order from '../models/Order.js';
 import User from '../models/User.js';
 import { ApiError } from '../middleware/errorMiddleware.js';
-import { createNotification } from '../controllers/notificationController.js';
+import { createNotification, createNotificationsForUsers } from '../controllers/notificationController.js';
 
 /**
  * conversationService — order-linked customer ↔ handler text chat.
@@ -138,20 +138,16 @@ export async function sendMessage({ conversationId, body, user }) {
   // Notify the other party
   const order = await Order.findOne({ orderId: conversation.orderId }).select('orderId customerName').lean();
   if (senderRole === 'customer') {
-    // Notify all staff
+    // Notify all staff — batched insertMany (Phase 17 N+1 fix).
     const staffUsers = await User.find({ role: { $in: ['admin', 'handler'] } }).select('_id role');
-    for (const staff of staffUsers) {
-      await createNotification({
-        userId: staff._id,
-        role: staff.role,
-        type: 'new_message',
-        title: `New message from ${order?.customerName || 'customer'}`,
-        message: body.trim().substring(0, 120),
-        entityType: 'conversation',
-        entityId: conversation._id,
-        link: `/admin/conversations`,
-      });
-    }
+    await createNotificationsForUsers(staffUsers, {
+      type: 'new_message',
+      title: `New message from ${order?.customerName || 'customer'}`,
+      message: body.trim().substring(0, 120),
+      entityType: 'conversation',
+      entityId: conversation._id,
+      link: `/admin/conversations`,
+    });
   } else {
     // Notify the customer
     await createNotification({

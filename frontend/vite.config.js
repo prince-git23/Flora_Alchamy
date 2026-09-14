@@ -15,6 +15,18 @@ export default defineConfig(() => {
         '@': path.resolve(__dirname, './src'),
       },
     },
+    build: {
+      rollupOptions: {
+        output: {
+          // Phase 17: three.js (~545 KB) lives in its own vendor chunk so it is
+          // downloaded once and cached across deploys — page-code changes no
+          // longer invalidate the big library chunk.
+          manualChunks(id) {
+            if (id.includes('node_modules/three')) return 'three';
+          },
+        },
+      },
+    },
     server: {
       hmr: process.env.DISABLE_HMR !== 'true',
       watch: process.env.DISABLE_HMR === 'true' ? null : {},

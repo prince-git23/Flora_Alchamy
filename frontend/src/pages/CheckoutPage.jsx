@@ -863,7 +863,9 @@ export default function CheckoutPage() {
                           return (
                             <div key={idx} className="flex items-start gap-3">
                               {item.image ? (
-                                <img src={item.image} alt={item.name} className="w-14 h-14 rounded-xl object-cover border border-[#e5e2dd]" />
+                                <img
+                                  loading="lazy"
+                                  decoding="async" src={item.image} alt={item.name} className="w-14 h-14 rounded-xl object-cover border border-[#e5e2dd]" />
                               ) : (
                                 <span className="w-14 h-14 rounded-xl bg-[#f6f3ee] border border-[#e5e2dd] flex items-center justify-center text-xl" aria-hidden="true">
                                   {item.isAddOn ? '🎁' : '🌸'}
@@ -934,7 +936,9 @@ export default function CheckoutPage() {
                     {cart.map((item, idx) => (
                       <div key={idx} className="flex items-center gap-3">
                         {item.image ? (
-                          <img src={item.image} alt={item.name} className="w-12 h-12 rounded-xl object-cover border border-[#e5e2dd]" />
+                          <img
+                            loading="lazy"
+                            decoding="async" src={item.image} alt={item.name} className="w-12 h-12 rounded-xl object-cover border border-[#e5e2dd]" />
                         ) : (
                           <span className="w-12 h-12 rounded-xl bg-[#f6f3ee] border border-[#e5e2dd] flex items-center justify-center text-lg" aria-hidden="true">🎁</span>
                         )}
@@ -1003,4 +1007,4 @@ export default function CheckoutPage() {
       </div>
     </div>
   );
-}
+}

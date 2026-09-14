@@ -228,6 +228,8 @@ export default function Navbar() {
           {/* Brand Logo */}
           <Link to="/" className="flex items-center gap-3 group shrink-0" aria-label="Flora Alchemy home">
             <img
+              loading="lazy"
+              decoding="async"
               src="/assets/images/flora-asset-27.jpg"
               alt=""
               className="h-8 w-auto object-contain transition-transform duration-300 group-hover:scale-105"

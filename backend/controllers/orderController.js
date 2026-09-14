@@ -3,7 +3,7 @@ import Customer from '../models/Customer.js';
 import User from '../models/User.js';
 import { ApiError } from '../middleware/errorMiddleware.js';
 import { assertValidTransition, createOrder } from '../services/orderService.js';
-import { createNotification } from './notificationController.js';
+import { createNotification, createNotificationsForUsers } from './notificationController.js';
 import { escapeRegExp, safeString } from '../utils/querySafety.js';
 
 export async function listOrders(req, res, next) {
@@ -29,9 +29,13 @@ export async function listOrders(req, res, next) {
 
 export async function listMyOrders(req, res, next) {
   try {
+    // Bounded result: newest 100 orders for the authenticated customer
+    // (supported by the { customerId, createdAt: -1 } index). The storefront
+    // order-history page renders at most a handful; 100 is a generous ceiling
+    // that keeps payloads bounded as order history grows (Phase 17).
     const orders = await Order.find({
       customerId: req.user.customerId,
-    }).sort({ createdAt: -1 });
+    }).sort({ createdAt: -1 }).limit(100).lean();
     res.json({ success: true, orders });
   } catch (err) {
     next(err);
@@ -81,20 +85,17 @@ export async function createCustomerOrder(req, res, next) {
       isRush,
     });
 
-    // Generate notification for admin/handler
+    // Generate notification for admin/handler — one batched insertMany
+    // instead of an awaited create per staff member (Phase 17 N+1 fix).
     const staffUsers = await User.find({ role: { $in: ['admin', 'handler'] } }).select('_id role');
-    for (const staff of staffUsers) {
-      await createNotification({
-        userId: staff._id,
-        role: staff.role,
-        type: 'new_order',
-        title: `New order ${order.orderId}`,
-        message: `${customer.name} placed an order for ₹${order.total.toLocaleString('en-IN')}.`,
-        entityType: 'order',
-        entityId: order._id,
-        link: `/admin/orders/${order.orderId}`,
-      });
-    }
+    await createNotificationsForUsers(staffUsers, {
+      type: 'new_order',
+      title: `New order ${order.orderId}`,
+      message: `${customer.name} placed an order for ₹${order.total.toLocaleString('en-IN')}.`,
+      entityType: 'order',
+      entityId: order._id,
+      link: `/admin/orders/${order.orderId}`,
+    });
 
     res.status(201).json({ success: true, order });
   } catch (err) {

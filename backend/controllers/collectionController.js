@@ -1,6 +1,7 @@
 import Collection from '../models/Collection.js';
 import jwt from 'jsonwebtoken';
 import { ApiError } from '../middleware/errorMiddleware.js';
+import { cached, cacheInvalidatePrefix } from '../utils/publicCache.js';
 
 async function isStaffRequest(req) {
   const header = req.headers.authorization || '';
@@ -25,7 +26,9 @@ export async function listCollections(req, res, next) {
     const staff = await isStaffRequest(req);
     const match = {};
     if (!staff) match.visibility = 'Visible';
-    const collections = await Collection.find(match).sort({ createdAt: 1 }).limit(200);
+    // Public visible-only listing: 30s TTL cache, invalidated on writes.
+    const load = () => Collection.find(match).sort({ createdAt: 1 }).limit(200).lean();
+    const collections = staff ? await load() : await cached('collections:list', load, Collection);
     res.json({ success: true, collections });
   } catch (err) {
     next(err);
@@ -69,6 +72,7 @@ export async function createCollection(req, res, next) {
       visibility: ['Visible', 'Hidden'].includes(visibility) ? visibility : 'Visible',
       isFixture: false,
     });
+    cacheInvalidatePrefix('collections:');
     res.status(201).json({ success: true, collection });
   } catch (err) {
     next(err);
@@ -95,6 +99,7 @@ export async function updateCollection(req, res, next) {
       }
     }
     await collection.save();
+    cacheInvalidatePrefix('collections:');
     res.json({ success: true, collection });
   } catch (err) {
     next(err);
@@ -108,6 +113,7 @@ export async function deleteCollection(req, res, next) {
       throw new ApiError(404, 'Collection not found.', 'NOT_FOUND');
     }
     await collection.deleteOne();
+    cacheInvalidatePrefix('collections:');
     res.json({ success: true, message: `Deleted collection "${collection.name}".` });
   } catch (err) {
     next(err);

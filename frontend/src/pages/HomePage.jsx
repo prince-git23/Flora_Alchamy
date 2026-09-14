@@ -630,6 +630,8 @@ export default function HomePage() {
             <div className="lg:col-span-5 flex justify-center">
               <div className="relative w-full max-w-md aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl border border-white/10">
                 <img
+                  loading="lazy"
+                  decoding="async"
                   src="/assets/images/flora-asset-25.jpg"
                   alt="Spring Blossom Archive"
                   className="w-full h-full object-cover"
@@ -651,6 +653,8 @@ export default function HomePage() {
             <div className="lg:col-span-6 relative">
               <div className="relative rounded-3xl overflow-hidden shadow-xl aspect-[4/3] border border-[#e5e2dd]">
                 <img
+                  loading="lazy"
+                  decoding="async"
                   src="/assets/images/flora-asset-13.jpg"
                   alt="Flora Alchemy Studio Table"
                   className="w-full h-full object-cover"

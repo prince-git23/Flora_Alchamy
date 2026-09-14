@@ -15,6 +15,8 @@ export default function MinimalHeader({ variant = 'auth' }) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-3" aria-label="Flora Alchemy home">
           <img
+            loading="lazy"
+            decoding="async"
             src="/assets/images/flora-asset-27.jpg"
             alt="Flora Alchemy"
             className="h-7 w-auto object-contain"

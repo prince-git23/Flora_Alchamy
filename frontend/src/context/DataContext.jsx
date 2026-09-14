@@ -18,12 +18,21 @@ export function DataProvider({ children }) {
   const [error, setError] = useState('');
   const [tick, setTick] = useState(0);
   const syncing = useRef(false);
+  const hasHydrated = useRef(false);
 
   const isAuthPage = location.pathname === '/login' || location.pathname === '/admin/login';
 
-  const sync = async () => {
+  const sync = async ({ force = false } = {}) => {
     if (syncing.current) return;
+    // Phase 17 — request-efficiency guard: a route change does NOT re-hydrate.
+    // The store already holds the server-confirmed collections and every
+    // mutation refreshes exactly what it changed (refreshOrders etc. +
+    // signalDataChanged for auth-level changes). Only a forced refresh, the
+    // initial mount, or a session change performs a full hydration. This
+    // removes 3–6 redundant API calls per navigation.
+    if (!force && hasHydrated.current) return;
     syncing.current = true;
+    hasHydrated.current = true;
     setStatus('loading');
     let admin = false;
     try {
@@ -53,12 +62,14 @@ export function DataProvider({ children }) {
     }
   };
 
-  // Hydrate on mount, on route change, and whenever auth/data signals fire.
+  // Hydrate on mount and whenever an explicit refresh signal fires
+  // (auth change, mutation-induced signalDataChanged, manual retry).
+  // Plain route navigation no longer re-hydrates (Phase 17).
   useEffect(() => {
-    const timer = setTimeout(sync, 0);
+    const timer = setTimeout(() => sync({ force: true }), 0);
     const onRefresh = () => {
       clearTimeout(timer);
-      sync();
+      sync({ force: true });
     };
     window.addEventListener('fa:refresh', onRefresh);
     return () => {
@@ -66,7 +77,7 @@ export function DataProvider({ children }) {
       window.removeEventListener('fa:refresh', onRefresh);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname, tick]);
+  }, [tick]);
 
   const value = useMemo(
     () => ({

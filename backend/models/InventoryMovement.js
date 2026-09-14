@@ -33,6 +33,8 @@ const movementSchema = new mongoose.Schema(
 );
 
 movementSchema.index({ createdAt: -1 });
+// Per-product movement history (inventory detail views + audits).
+movementSchema.index({ productSlug: 1, createdAt: -1 });
 
 const InventoryMovement = mongoose.model('InventoryMovement', movementSchema);
 export default InventoryMovement;

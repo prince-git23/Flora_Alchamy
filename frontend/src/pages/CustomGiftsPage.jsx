@@ -267,7 +267,9 @@ export default function CustomGiftsPage() {
                         }`}
                       >
                         <div className="aspect-square w-full rounded-xl overflow-hidden mb-2 bg-white">
-                          <img src={base.image} alt={base.title} className="w-full h-full object-cover" />
+                          <img
+                            loading="lazy"
+                            decoding="async" src={base.image} alt={base.title} className="w-full h-full object-cover" />
                         </div>
                         <div className="space-y-1">
                           <p className="font-serif text-[15px] font-medium text-[#180f0a] leading-tight">
@@ -511,7 +513,9 @@ export default function CustomGiftsPage() {
 
               {/* Live Preview Visual */}
               <div className="relative rounded-2xl bg-gradient-to-br from-[#faf7f2] to-[#f0ede9] border border-[#e5e2dd] overflow-hidden aspect-[4/3]">
-                <img src={selectedBase.image} alt={selectedBase.title} className="w-full h-full object-cover opacity-90" />
+                <img
+                  loading="lazy"
+                  decoding="async" src={selectedBase.image} alt={selectedBase.title} className="w-full h-full object-cover opacity-90" />
                 {/* Palette overlay */}
                 <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/50 to-transparent">
                   <div className="flex items-center gap-2">
@@ -631,4 +635,4 @@ function SummaryRow({ label, value, onEdit }) {
       )}
     </div>
   );
-}
+}

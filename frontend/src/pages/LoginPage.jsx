@@ -97,6 +97,8 @@ export default function LoginPage() {
           <div className="text-center space-y-2">
             <Link to="/" className="inline-block">
               <img
+                loading="lazy"
+                decoding="async"
                 src="/assets/images/flora-asset-27.jpg"
                 alt="Flora Alchemy"
                 className="h-8 w-auto mx-auto"

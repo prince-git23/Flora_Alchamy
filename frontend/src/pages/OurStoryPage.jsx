@@ -44,7 +44,9 @@ export default function OurStoryPage() {
             </div>
             <div className="relative">
               <div className="aspect-[4/5] rounded-3xl overflow-hidden bg-[#f6f3ee] border border-[#e5e2dd]">
-                <img src="/assets/images/flora-asset-03.jpg" alt="Handcrafted botanical arrangement" className="w-full h-full object-cover" />
+                <img
+                  loading="lazy"
+                  decoding="async" src="/assets/images/flora-asset-03.jpg" alt="Handcrafted botanical arrangement" className="w-full h-full object-cover" />
               </div>
               <div className="absolute -bottom-4 -left-4 bg-white rounded-2xl p-4 shadow-lg border border-[#e5e2dd]">
                 <p className="text-[12px] font-bold text-[#964735] uppercase tracking-wider">Since 2024</p>

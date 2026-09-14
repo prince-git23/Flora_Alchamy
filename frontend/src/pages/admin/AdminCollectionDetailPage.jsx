@@ -189,7 +189,9 @@ export default function AdminCollectionDetailPage() {
                   {members.map((p) => (
                     <div key={p.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-[#f6f3ee] border border-[#e5e2dd]">
                       <div className="w-10 h-10 rounded-lg overflow-hidden bg-white shrink-0">
-                        <img src={p.images?.[0] || ''} alt="" className="w-full h-full object-cover" />
+                        <img
+                          loading="lazy"
+                          decoding="async" src={p.images?.[0] || ''} alt="" className="w-full h-full object-cover" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-[12px] font-semibold text-[#180f0a] truncate">{p.shortName || p.name}</p>
@@ -218,7 +220,9 @@ export default function AdminCollectionDetailPage() {
                     <button key={p.id} type="button" onClick={() => addMember(p.id)}
                       className="flex items-center gap-3 p-2.5 rounded-xl border border-[#e5e2dd] hover:bg-[#f6f3ee] text-left transition-colors">
                       <div className="w-10 h-10 rounded-lg overflow-hidden bg-[#f6f3ee] shrink-0">
-                        <img src={p.images?.[0] || ''} alt="" className="w-full h-full object-cover" />
+                        <img
+                          loading="lazy"
+                          decoding="async" src={p.images?.[0] || ''} alt="" className="w-full h-full object-cover" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-[12px] font-semibold text-[#180f0a] truncate">{p.shortName || p.name}</p>
@@ -259,7 +263,9 @@ export default function AdminCollectionDetailPage() {
           <>
             <div className="bg-white rounded-xl border border-[#e5e2dd] overflow-hidden shadow-xs">
               <div className="aspect-[3/1] bg-[#f6f3ee]">
-                <img src={collection.coverImage} alt="" className="w-full h-full object-cover" />
+                <img
+                  loading="lazy"
+                  decoding="async" src={collection.coverImage} alt="" className="w-full h-full object-cover" />
               </div>
               <div className="p-6">
                 <p className="text-[14px] text-[#4e4540] leading-relaxed">{collection.description || 'No description yet — use Edit Collection to add one.'}</p>

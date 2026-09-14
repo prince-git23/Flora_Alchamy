@@ -79,7 +79,9 @@ export default function HowItsMadePage() {
               >
                 <div className={`${idx % 2 === 1 ? 'lg:order-2' : ''}`}>
                   <div className="aspect-[4/3] rounded-3xl overflow-hidden bg-[#f6f3ee] border border-[#e5e2dd]">
-                    <img src={step.image} alt={step.title} className="w-full h-full object-cover" />
+                    <img
+                      loading="lazy"
+                      decoding="async" src={step.image} alt={step.title} className="w-full h-full object-cover" />
                   </div>
                 </div>
                 <div className={`space-y-4 ${idx % 2 === 1 ? 'lg:order-1' : ''}`}>

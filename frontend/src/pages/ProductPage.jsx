@@ -189,6 +189,8 @@ export default function ProductPage() {
             >
               {!galleryImgError ? (
                 <img
+                  loading="lazy"
+                  decoding="async"
                   src={images[galleryIndex]}
                   alt={product.name}
                   className="w-full h-full object-cover transition-all duration-300"
@@ -247,7 +249,9 @@ export default function ProductPage() {
                       galleryIndex === idx ? 'border-[#964735] ring-2 ring-[#ffdad3]' : 'border-[#e5e2dd] opacity-75 hover:opacity-100'
                     }`}
                   >
-                    <img src={imgUrl} alt="" className="w-full h-full object-cover" />
+                    <img
+                      loading="lazy"
+                      decoding="async" src={imgUrl} alt="" className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>

@@ -190,7 +190,9 @@ export default function AdminCustomRequestDetailPage() {
             {request.imageUrl ? (
               <div className="bg-white rounded-xl border border-[#e5e2dd] p-6 shadow-xs">
                 <p className="text-[10px] uppercase font-bold tracking-wider text-[#80756f] mb-3">Reference Image</p>
-                <img src={request.imageUrl} alt={`Reference for custom request by ${customerName}`} className="rounded-xl max-h-96 w-full object-contain bg-[#f6f3ee]" />
+                <img
+                  loading="lazy"
+                  decoding="async" src={request.imageUrl} alt={`Reference for custom request by ${customerName}`} className="rounded-xl max-h-96 w-full object-contain bg-[#f6f3ee]" />
               </div>
             ) : null}
           </div>

@@ -184,7 +184,9 @@ export default function OrderSuccessPage() {
                     {/* Thumbnail — real product image, tinted fallback tile when absent */}
                     <div className="w-16 h-16 rounded-2xl overflow-hidden bg-[#f6f3ee] border border-[#f0ede9] shrink-0 flex items-center justify-center">
                       {item.image ? (
-                        <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                        <img
+                          loading="lazy"
+                          decoding="async" src={item.image} alt={item.name} className="w-full h-full object-cover" />
                       ) : (
                         <span className="text-2xl">🌸</span>
                       )}
@@ -312,4 +314,4 @@ export default function OrderSuccessPage() {
       </div>
     </div>
   );
-}
+}

@@ -94,6 +94,16 @@ export async function bootTestServer({ port, db, extraEnv = {}, label = 'suite' 
       PORT: String(port),
       MONGO_URI: testUri,
       SEED_ON_START: 'true',
+      // Deterministic provider config: test servers never inherit live
+      // ImageKit credentials from backend/.env — invalid/expired keys made
+      // multipart upload tests depend on a third-party service (the suite
+      // 403'd against live ImageKit mid-run). With empty creds the upload
+      // controller takes its real local-storage path, which is fully
+      // verifiable on disk. Live-provider verification belongs to an
+      // external check, not the deterministic suite.
+      IMAGEKIT_PRIVATE_KEY: '',
+      IMAGEKIT_PUBLIC_KEY: '',
+      IMAGEKIT_URL_ENDPOINT: '',
       ...extraEnv,
     },
     stdio: ['ignore', 'pipe', 'pipe'],

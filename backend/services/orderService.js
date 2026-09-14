@@ -111,6 +111,15 @@ export async function createOrder({ customer, items, paymentMethod = 'Sample', s
 
     const normalized = [];
     let subtotal = 0;
+    // Batch-resolve all referenced catalogue products in ONE query instead of
+    // one findOne per item (Phase 17 N+1 fix). Duplicate slugs in the payload
+    // share the same resolved product; server-authoritative pricing unchanged.
+    const slugs = [...new Set(items.filter((i) => i.productSlug).map((i) => i.productSlug))];
+    const productDocs = slugs.length
+      ? await Product.find({ slug: { $in: slugs } }).session(session).lean()
+      : [];
+    const productBySlug = new Map(productDocs.map((p) => [p.slug, p]));
+
     for (const item of items) {
       const quantity = Math.floor(Number(item.quantity));
       if (!quantity || quantity < 1) {
@@ -118,7 +127,7 @@ export async function createOrder({ customer, items, paymentMethod = 'Sample', s
       }
 
       if (item.productSlug) {
-        const product = await Product.findOne({ slug: item.productSlug }).session(session);
+        const product = productBySlug.get(item.productSlug);
         if (!product) {
           throw new ApiError(404, `Product "${item.productSlug}" no longer exists.`, 'PRODUCT_NOT_FOUND');
         }
