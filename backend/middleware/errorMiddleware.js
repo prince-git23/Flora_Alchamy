@@ -55,6 +55,17 @@ export function errorHandler(err, req, res, _next) {
     });
   }
 
+  // Malformed JSON bodies (express.json throws SyntaxError with status 400).
+  // Surface an honest 4xx — Razorpay webhooks and buggy clients must never
+  // get a 500 for a body-parsing failure.
+  if (err.type === 'entity.parse.failed' || (err instanceof SyntaxError && err.status === 400 && 'body' in err)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Malformed JSON in request body.',
+      code: 'MALFORMED_JSON',
+    });
+  }
+
   // Multer upload errors — surface honest 4xx instead of a raw 500.
   if (err.name === 'MulterError') {
     const status = err.code === 'LIMIT_FILE_SIZE' ? 413 : 422;

@@ -18,6 +18,7 @@
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import net from 'node:net';
 import dotenv from 'dotenv';
 
 export const BACKEND_DIR = path.resolve(fileURLToPath(new URL('../..', import.meta.url)));
@@ -59,7 +60,19 @@ async function isUp(base) {
 }
 
 export async function portInUse(port) {
-  return isUp(`http://127.0.0.1:${port}`);
+  // TCP-level check: ANY accepting listener counts as in use. An HTTP probe
+  // misclassifies foreign listeners (e.g. a local proxy controller answering
+  // 401) as "free" — on Windows the child then half-binds and connections
+  // silently go to the other process.
+  return new Promise((resolve) => {
+    const socket = new net.Socket();
+    const done = (inUse) => { socket.destroy(); resolve(inUse); };
+    socket.setTimeout(400);
+    socket.once('connect', () => done(true));
+    socket.once('timeout', () => done(false));
+    socket.once('error', () => done(false));
+    socket.connect(port, '127.0.0.1');
+  });
 }
 
 /**
@@ -113,8 +126,10 @@ export async function bootTestServer({ port, db, extraEnv = {}, label = 'suite' 
   child.stdout.on('data', (d) => { childOutput += d; });
   child.stderr.on('data', (d) => { childOutput += d; });
 
-  // Wait for health (up to ~25s — Atlas cold connects can be slow).
-  for (let i = 0; i < 50; i += 1) {
+  // Wait for health (up to ~60s — Atlas cold connect + a FULL first seed
+  // with bcrypt-12 fixture hashing can take ~30s+; healthy servers return
+  // immediately regardless).
+  for (let i = 0; i < 120; i += 1) {
     if (await isUp(base)) {
       return { child, base };
     }
@@ -124,7 +139,7 @@ export async function bootTestServer({ port, db, extraEnv = {}, label = 'suite' 
     await sleep(500);
   }
   child.kill();
-  throw new Error(`[${label}] backend did not become healthy within 25s:\n${childOutput.slice(-800)}`);
+  throw new Error(`[${label}] backend did not become healthy within 60s:\n${childOutput.slice(-800)}`);
 }
 
 /** Kill the spawned server, tolerating repeat calls. */

@@ -77,6 +77,15 @@ try {
   const product = products[0];
   check('products available', products.length > 0);
 
+  // Stock headroom (Phase 18): sample-payment orders permanently consume
+  // stock in this suite's persistent test DB — without a top-up the suite
+  // breaks once cumulative runs exhaust the fixture stock. Same pattern as
+  // the payment suite.
+  await req('POST', `/inventory/${product.slug}/adjust`, {
+    token: ADMIN_TOKEN,
+    body: { type: 'restock', quantity: 50, reason: 'conversation smoke headroom' },
+  });
+
   r = await req('POST', '/orders', {
     token: TOKEN_A,
     body: {
