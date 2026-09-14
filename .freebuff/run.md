@@ -58,6 +58,7 @@ powershell -ExecutionPolicy Bypass -File .freebuff/start-server.ps1
 3. **Backend deps** — `cd backend && npm install`.
 4. **Frontend deps** — `cd frontend && npm install`.
 5. **Seed** — runs automatically on API boot when `SEED_ON_START=true` (fixtures only; flagged `isFixture`, never auto-authenticated). Manual re-run: `cd backend && npm run seed`.
+6. **Security env (Phase 15)** — all optional with sensible defaults; see the “Security (Phase 15)” block in `backend/.env.example`. In production set `NODE_ENV=production` and `CORS_ORIGIN` to your real domain(s); set `TRUST_PROXY=true` only behind a reverse proxy.
 
 ## Run order
 
@@ -66,10 +67,12 @@ Start mongod (or rely on Atlas) → backend (waits for DB) → frontend.
 ## Verify
 
 - API health: `curl http://localhost:4000/api/health`
-- API smoke suite (needs backend up): `cd backend && npm run test:api` (119 assertions — auth, products, orders, lifecycle, inventory, analytics, settings, wishlist ownership, addresses)
+- API smoke suite (needs backend up): `cd backend && npm run test:api` (120 assertions — auth, products, orders, lifecycle, inventory, analytics, settings, wishlist ownership, addresses)
 - Payment suite: `cd backend && npm run test:payment` (45 tests)
 - Conversation suite: `cd backend && npm run test:conversation` (34 tests)
 - Pricing suite: `cd backend && npm run test:pricing` (22 tests)
+- Integration suite: `cd backend && npm run test:integration` (33 tests)
+- Security suite: `cd backend && npm run test:security` (56 tests — run LAST; its brute-force test intentionally exhausts the login limiter for this IP until the 15-minute window resets, so restart the backend after a full run if you need to log in again)
 - Storefront: open http://localhost:3000 — fresh visitors are **GUEST**; demo quick-fill helpers exist on /login and /admin/login but authenticate only on explicit action against the real backend (bcrypt + JWT).
 
 ## Architecture

@@ -28,6 +28,11 @@ export async function protect(req, _res, next) {
     if (!user) {
       throw new ApiError(401, 'Account no longer exists. Please sign in again.', 'UNAUTHORIZED');
     }
+    // Suspended operators lose access on the very next protected request —
+    // no waiting for token expiry.
+    if (user.status === 'SUSPENDED') {
+      throw new ApiError(403, 'This account has been suspended. Contact an administrator.', 'ACCOUNT_SUSPENDED');
+    }
     req.user = user;
     next();
   } catch (err) {

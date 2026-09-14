@@ -51,15 +51,20 @@ export async function adjust(req, res, next) {
       throw new ApiError(422, 'Quantity must be a positive number.', 'VALIDATION_ERROR');
     }
 
+    // Strict type validation — unknown types are REJECTED, not silently
+    // coerced to a default, so malformed requests can never cause an
+    // unintended stock direction.
+    const VALID_TYPES = ['restock', 'remove', 'adjustment', 'sale', 'return', 'correction', 'correction-down'];
+    if (!VALID_TYPES.includes(type)) {
+      throw new ApiError(422, `Invalid adjustment type "${type}".`, 'VALIDATION_ERROR');
+    }
     const direction = type === 'remove' || type === 'sale' || type === 'correction-down' ? -1 : 1;
     const delta = direction * qty;
 
     const inv = await adjustStock({
       productSlug: productId,
       delta,
-      type: ['restock', 'adjustment', 'sale', 'return', 'correction'].includes(type)
-        ? type
-        : 'adjustment',
+      type: type === 'remove' ? 'adjustment' : type,
       reason,
       createdBy: req.user.name || req.user.email,
     });

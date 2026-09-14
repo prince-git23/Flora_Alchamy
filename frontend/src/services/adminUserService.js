@@ -27,6 +27,13 @@ export async function updateOperatorRole(id, role) {
   return res.data;
 }
 
+/** Suspend or reactivate an operator (ACTIVE | SUSPENDED). */
+export async function updateOperatorStatus(id, status) {
+  const res = await api.patch(`/admin/users/${id}/status`, { status }, { scope: 'admin' });
+  if (!res.ok) throw new Error(res.message || 'Could not update status.');
+  return res.data;
+}
+
 export async function deleteOperator(id) {
   const res = await api.delete(`/admin/users/${id}`, { scope: 'admin' });
   if (!res.ok) throw new Error(res.message || 'Could not delete operator.');

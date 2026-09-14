@@ -2,6 +2,7 @@ import Product from '../models/Product.js';
 import Inventory from '../models/Inventory.js';
 import jwt from 'jsonwebtoken';
 import { ApiError } from '../middleware/errorMiddleware.js';
+import { escapeRegExp, safeString } from '../utils/querySafety.js';
 
 // Optional auth for public reads: a valid staff token reveals hidden products.
 async function isStaffRequest(req) {
@@ -63,16 +64,18 @@ function validateProductPayload(body, partial = false) {
 export async function listProducts(req, res, next) {
   try {
     const staff = await isStaffRequest(req);
-    const { category, q, visibility } = req.query;
+    const category = safeString(req.query.category, 100);
+    const q = safeString(req.query.q, 200);
+    const { visibility } = req.query;
     const match = {};
     if (!staff) match.visibility = 'Visible';
     if (staff && visibility) match.visibility = visibility;
-    if (category) match.category = { $regex: `^${String(category)}$`, $options: 'i' };
+    if (category) match.category = { $regex: `^${escapeRegExp(category)}$`, $options: 'i' };
     if (q) {
       match.$or = [
-        { name: { $regex: String(q), $options: 'i' } },
-        { category: { $regex: String(q), $options: 'i' } },
-        { sku: { $regex: String(q), $options: 'i' } },
+        { name: { $regex: escapeRegExp(q), $options: 'i' } },
+        { category: { $regex: escapeRegExp(q), $options: 'i' } },
+        { sku: { $regex: escapeRegExp(q), $options: 'i' } },
       ];
     }
     const products = await Product.find(match).sort({ createdAt: 1 }).limit(500);

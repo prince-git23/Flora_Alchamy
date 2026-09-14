@@ -1,9 +1,10 @@
 import Customer from '../models/Customer.js';
 import { ApiError } from '../middleware/errorMiddleware.js';
+import { escapeRegExp, safeString } from '../utils/querySafety.js';
 
 export async function listCustomers(req, res, next) {
   try {
-    const q = String(req.query.q || '').trim().toLowerCase();
+    const q = escapeRegExp(safeString(req.query.q, 200)).toLowerCase();
     const match = q
       ? {
           $or: [

@@ -4,14 +4,16 @@ import User from '../models/User.js';
 import { ApiError } from '../middleware/errorMiddleware.js';
 import { assertValidTransition, createOrder } from '../services/orderService.js';
 import { createNotification } from './notificationController.js';
+import { escapeRegExp, safeString } from '../utils/querySafety.js';
 
 export async function listOrders(req, res, next) {
   try {
-    const { status, q } = req.query;
+    const status = safeString(req.query.status, 50);
+    const q = safeString(req.query.q, 200);
     const match = {};
     if (status && status !== 'All') match.orderStatus = status;
     if (q) {
-      const regex = { $regex: String(q), $options: 'i' };
+      const regex = { $regex: escapeRegExp(q), $options: 'i' };
       match.$or = [
         { orderId: regex },
         { customerName: regex },

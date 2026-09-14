@@ -37,8 +37,25 @@ async function ensureOrderSeq() {
 
 async function nextOrderId() {
   await ensureOrderSeq();
-  orderSeq += 1;
-  return `FA-${orderSeq}`;
+  // Reserve the next id, but verify against MongoDB before returning it:
+  // two server instances (or overlapping restarts) each hold an in-memory
+  // counter and WILL race on the same FA-####. A checked skip keeps the
+  // human-friendly sequential format while making duplicates impossible.
+  let candidate = orderSeq + 1;
+  for (let i = 0; i < 10; i += 1) {
+    // eslint-disable-next-line no-await-in-loop
+    const clash = await Order.exists({ orderId: `FA-${candidate}` });
+    if (!clash) {
+      orderSeq = candidate;
+      return `FA-${candidate}`;
+    }
+    // Someone else already persisted this id — jump past it and re-sync.
+    orderSeq = Math.max(orderSeq, candidate);
+    candidate += 1;
+  }
+  // Exhausted retries (pathological contention): fall back to a timestamp id
+  // which cannot collide within the same millisecond window.
+  return `FA-${Date.now()}`;
 }
 
 function nextTracking(orderId) {

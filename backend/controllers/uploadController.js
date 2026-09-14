@@ -36,7 +36,17 @@ const storage = multer.diskStorage({
     cb(null, UPLOAD_DIR);
   },
   filename(_req, file, cb) {
-    const ext = path.extname(file.originalname || '').toLowerCase() || '.jpg';
+    // Extension is derived from the ALREADY MIME-VALIDATED file and
+    // restricted to a whitelist — original filename is never used for the
+    // stored name, so path traversal / double-extension tricks are moot.
+    const mimeToExt = {
+      'image/jpeg': '.jpg',
+      'image/png': '.png',
+      'image/webp': '.webp',
+      'image/gif': '.gif',
+      'image/avif': '.avif',
+    };
+    const ext = mimeToExt[file.mimetype] || '.jpg';
     cb(null, `product-${Date.now()}-${crypto.randomBytes(6).toString('hex')}${ext}`);
   },
 });

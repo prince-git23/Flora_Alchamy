@@ -37,6 +37,17 @@ const userSchema = new mongoose.Schema(
       default: null,
       index: true,
     },
+    // Operator account status. Suspended accounts are rejected at login AND
+    // on every protected request (authMiddleware checks it server-side).
+    status: {
+      type: String,
+      enum: ['ACTIVE', 'SUSPENDED'],
+      default: 'ACTIVE',
+    },
+    statusChangedAt: {
+      type: Date,
+      default: null,
+    },
     isFixture: {
       type: Boolean,
       default: false,

@@ -1,6 +1,7 @@
 import User from '../models/User.js';
 import bcrypt from 'bcryptjs';
 import { ApiError } from '../middleware/errorMiddleware.js';
+import { escapeRegExp, safeString } from '../utils/querySafety.js';
 
 /**
  * Admin Operator Management — real backend-backed user CRUD.
@@ -11,13 +12,14 @@ import { ApiError } from '../middleware/errorMiddleware.js';
 
 export async function listOperators(req, res, next) {
   try {
-    const { role, status, q } = req.query;
+    const { role, status } = req.query;
+    const q = safeString(req.query.q, 200);
     const match = { role: { $in: ['admin', 'handler'] } };
     if (role && role !== 'ALL') {
       match.role = role === 'ADMINISTRATOR' ? 'admin' : 'handler';
     }
     if (q) {
-      const regex = new RegExp(String(q), 'i');
+      const regex = new RegExp(escapeRegExp(q), 'i');
       match.$or = [{ name: regex }, { email: regex }];
     }
     const users = await User.find(match)
@@ -37,7 +39,7 @@ export async function listOperators(req, res, next) {
       title: u.role === 'admin' ? 'Administrator' : 'Handler',
       role: u.role === 'admin' ? 'ADMINISTRATOR' : 'HANDLER',
       email: u.email,
-      status: u.isFixture ? 'ACTIVE' : 'ACTIVE',
+      status: u.status || 'ACTIVE',
       lastActivity: u.updatedAt
         ? formatRelativeTime(u.updatedAt)
         : 'Unknown',
@@ -99,6 +101,49 @@ export async function createOperator(req, res, next) {
   }
 }
 
+/**
+ * PATCH /api/admin/users/:id/status — suspend or reactivate an operator.
+ *
+ * Suspension is enforced server-side: login rejects suspended accounts and
+ * every protected request re-checks status from the database, so an existing
+ * token stops working immediately.
+ */
+export async function updateOperatorStatus(req, res, next) {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      throw new ApiError(404, 'Operator not found.', 'NOT_FOUND');
+    }
+    if (user._id.toString() === req.user._id.toString()) {
+      throw new ApiError(422, 'You cannot change your own account status.', 'VALIDATION_ERROR');
+    }
+    const { status } = req.body || {};
+    if (!['ACTIVE', 'SUSPENDED'].includes(status)) {
+      throw new ApiError(422, 'Status must be ACTIVE or SUSPENDED.', 'VALIDATION_ERROR');
+    }
+    // Guard: never disable the last active administrator.
+    if (user.role === 'admin' && status === 'SUSPENDED') {
+      const activeAdmins = await User.countDocuments({ role: 'admin', status: 'ACTIVE' });
+      if (activeAdmins <= 1) {
+        throw new ApiError(422, 'Cannot suspend the last active administrator.', 'VALIDATION_ERROR');
+      }
+    }
+    user.status = status;
+    user.statusChangedAt = new Date();
+    await user.save();
+    res.json({
+      success: true,
+      operator: {
+        id: user._id.toString(),
+        name: user.name,
+        status: user.status,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function updateOperatorRole(req, res, next) {
   try {
     const user = await User.findById(req.params.id);
@@ -111,6 +156,13 @@ export async function updateOperatorRole(req, res, next) {
     const { role } = req.body;
     if (!['admin', 'handler'].includes(role)) {
       throw new ApiError(422, 'Role must be admin or handler.', 'VALIDATION_ERROR');
+    }
+    // Guard: demoting the last active admin would lock out administration.
+    if (user.role === 'admin' && role !== 'admin') {
+      const activeAdmins = await User.countDocuments({ role: 'admin', status: 'ACTIVE' });
+      if (activeAdmins <= 1) {
+        throw new ApiError(422, 'Cannot demote the last active administrator.', 'VALIDATION_ERROR');
+      }
     }
     user.role = role;
     await user.save();

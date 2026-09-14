@@ -6,11 +6,13 @@ import {
   handlePaymentWebhook,
 } from '../controllers/paymentController.js';
 import { protect, adminOrHandler } from '../middleware/authMiddleware.js';
+import { webhookLimiter } from '../middleware/securityMiddleware.js';
 
 const router = Router();
 
 // Provider callback — verified by HMAC webhook signature, NOT a user session.
-router.post('/webhook', handlePaymentWebhook);
+// Rate limited separately: forged floods are cheap to reject before HMAC work.
+router.post('/webhook', webhookLimiter, handlePaymentWebhook);
 
 // Authenticated customer/staff payment operations.
 router.use(protect);

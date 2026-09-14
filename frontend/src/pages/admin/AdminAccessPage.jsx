@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout.jsx';
 import AdminSettingsTabs from '../../components/admin/AdminSettingsTabs.jsx';
+import { useAdminSession } from '../../context/AdminSessionContext.jsx';
 import {
   getOperators,
   createOperator,
   updateOperatorRole,
+  updateOperatorStatus,
   deleteOperator,
 } from '../../services/adminUserService.js';
 
 export default function AdminAccessPage() {
+  const { session } = useAdminSession();
+  const currentUserId = session?.id || null;
   const [users, setUsers] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState(null);
@@ -80,6 +84,16 @@ export default function AdminAccessPage() {
       triggerToast(`Updated ${userName} role to ${newRole}.`);
     } catch (err) {
       triggerToast(err.message || 'Could not update role.');
+    }
+  };
+
+  const handleStatusChange = async (userId, newStatus, userName) => {
+    try {
+      await updateOperatorStatus(userId, newStatus);
+      await loadUsers();
+      triggerToast(newStatus === 'SUSPENDED' ? `Suspended ${userName}.` : `Reactivated ${userName}.`);
+    } catch (err) {
+      triggerToast(err.message || 'Could not update status.');
     }
   };
 
@@ -301,10 +315,17 @@ export default function AdminAccessPage() {
                         </td>
                         <td className="py-3.5 px-4 text-[#4e4540] font-mono text-[12px]">{u.email}</td>
                         <td className="py-3.5 px-4">
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#d8e7cd] text-[#131f0e] text-[11px] font-bold">
-                            <span className="h-1.5 w-1.5 rounded-full bg-[#081405]"></span>
-                            Active
-                          </span>
+                          {u.status === 'SUSPENDED' ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#ffdad6] text-[#7a1a12] text-[11px] font-bold">
+                              <span className="h-1.5 w-1.5 rounded-full bg-[#ba1a1a]"></span>
+                              Suspended
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#d8e7cd] text-[#131f0e] text-[11px] font-bold">
+                              <span className="h-1.5 w-1.5 rounded-full bg-[#081405]"></span>
+                              Active
+                            </span>
+                          )}
                         </td>
                         <td className="py-3.5 px-4 text-[#4e4540]">{u.lastActivity}</td>
                         <td className="py-3.5 px-4 text-right">
@@ -321,6 +342,16 @@ export default function AdminAccessPage() {
                             >
                               <span className="material-symbols-outlined text-[18px]">swap_horiz</span>
                             </button>
+                            {u.id !== currentUserId && (
+                              <button
+                                type="button"
+                                onClick={() => handleStatusChange(u.id, u.status === 'SUSPENDED' ? 'ACTIVE' : 'SUSPENDED', u.name)}
+                                className="p-1 rounded hover:bg-[#ebe8e3] text-[#80756f] hover:text-[#180f0a] transition-colors"
+                                title={u.status === 'SUSPENDED' ? 'Reactivate Operator' : 'Suspend Operator'}
+                              >
+                                <span className="material-symbols-outlined text-[18px]">{u.status === 'SUSPENDED' ? 'play_circle' : 'pause_circle'}</span>
+                              </button>
+                            )}
                             {!u.isFixture && (
                               <button
                                 type="button"

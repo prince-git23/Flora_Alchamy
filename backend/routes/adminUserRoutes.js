@@ -3,6 +3,7 @@ import {
   listOperators,
   createOperator,
   updateOperatorRole,
+  updateOperatorStatus,
   deleteOperator,
 } from '../controllers/adminUserController.js';
 import { protect, requireRole } from '../middleware/authMiddleware.js';
@@ -15,6 +16,7 @@ router.use(protect, requireRole('admin'));
 router.get('/', listOperators);
 router.post('/', createOperator);
 router.patch('/:id/role', updateOperatorRole);
+router.patch('/:id/status', updateOperatorStatus);
 router.delete('/:id', deleteOperator);
 
 export default router;

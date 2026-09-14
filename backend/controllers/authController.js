@@ -27,8 +27,11 @@ export async function register(req, res, next) {
   try {
     const { name, email, password, phone } = req.body || {};
 
-    if (!name || String(name).trim().length < 2) {
-      throw new ApiError(422, 'Please provide your full name.', 'VALIDATION_ERROR');
+    if (!name || String(name).trim().length < 2 || String(name).trim().length > 100) {
+      throw new ApiError(422, 'Please provide your full name (2–100 characters).', 'VALIDATION_ERROR');
+    }
+    if (phone && String(phone).replace(/\D/g, '').length > 15) {
+      throw new ApiError(422, 'Please provide a valid phone number.', 'VALIDATION_ERROR');
     }
     if (!email || !EMAIL_RE.test(String(email))) {
       throw new ApiError(422, 'Please provide a valid email address.', 'VALIDATION_ERROR');
@@ -108,6 +111,11 @@ export async function login(req, res, next) {
     const ok = await bcrypt.compare(String(password), user.passwordHash);
     if (!ok) {
       throw new ApiError(401, 'Invalid email or password.', 'INVALID_CREDENTIALS');
+    }
+
+    // Suspended operators are blocked at login even with valid credentials.
+    if (user.status === 'SUSPENDED') {
+      throw new ApiError(403, 'This account has been suspended. Contact an administrator.', 'ACCOUNT_SUSPENDED');
     }
 
     let customer = null;
