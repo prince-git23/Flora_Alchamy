@@ -4,7 +4,6 @@ import { Search, Heart, ShoppingBag, User, Menu, X, ChevronDown, Gift, Sparkles,
 import { useStore } from '../context/StoreContext.jsx';
 import { getActiveCustomer } from '../services/customerService.js';
 import SearchOverlay from './SearchOverlay.jsx';
-import { OCCASION_OPTIONS } from '../services/giftFinderService.js';
 
 const SHOP_ITEMS = [
   { label: 'All Gifts', to: '/shop' },
@@ -14,8 +13,6 @@ const SHOP_ITEMS = [
   { label: 'Hampers', to: '/shop?category=hampers' },
   { label: 'Custom Gifts', to: '/custom-gifts' },
 ];
-
-const OCCASION_ITEMS = OCCASION_OPTIONS.map((o) => ({ label: o.label, to: `/shop?occasion=${o.id}`, icon: o.icon }));
 
 /**
  * Accessible desktop dropdown.
@@ -28,14 +25,13 @@ const OCCASION_ITEMS = OCCASION_OPTIONS.map((o) => ({ label: o.label, to: `/shop
  */
 function NavMenu({ label, items, isActive, variant = 'list' }) {
   const [open, setOpen] = useState(false);
-  const [pinned, setPinned] = useState(false); // true when opened via click
+  const [pinned, setPinned] = useState(false);
   const containerRef = useRef(null);
   const triggerRef = useRef(null);
   const menuRef = useRef(null);
   const leaveTimer = useRef(null);
   const itemRefs = useRef([]);
 
-  // ── Close on outside click / Escape / route change ──
   useEffect(() => {
     if (!open) return undefined;
     const onDocClick = (e) => {
@@ -59,7 +55,6 @@ function NavMenu({ label, items, isActive, variant = 'list' }) {
     };
   }, [open]);
 
-  // ── Hover handlers (pointer only) ──
   const handleMouseEnter = () => {
     clearTimeout(leaveTimer.current);
     leaveTimer.current = null;
@@ -67,7 +62,6 @@ function NavMenu({ label, items, isActive, variant = 'list' }) {
   };
 
   const handleMouseLeave = () => {
-    // If pinned (click-opened), don't close on mouse-leave.
     if (pinned) return;
     leaveTimer.current = setTimeout(() => {
       setOpen(false);
@@ -75,13 +69,10 @@ function NavMenu({ label, items, isActive, variant = 'list' }) {
     }, 150);
   };
 
-  // Clean up timer on unmount
   useEffect(() => () => clearTimeout(leaveTimer.current), []);
 
-  // ── Click toggle (pins the dropdown open) ──
   const handleTriggerClick = () => {
     if (open && pinned) {
-      // Clicking again while pinned → close
       setOpen(false);
       setPinned(false);
     } else {
@@ -92,57 +83,30 @@ function NavMenu({ label, items, isActive, variant = 'list' }) {
     }
   };
 
-  // ── Keyboard navigation inside the menu ──
   const handleMenuKeyDown = (e) => {
     const count = items.length;
     if (!count) return;
     const focused = document.activeElement;
     const idx = itemRefs.current.indexOf(focused);
-
     let next = -1;
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      next = idx < count - 1 ? idx + 1 : 0;
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      next = idx > 0 ? idx - 1 : count - 1;
-    } else if (e.key === 'Home') {
-      e.preventDefault();
-      next = 0;
-    } else if (e.key === 'End') {
-      e.preventDefault();
-      next = count - 1;
-    } else if (e.key === 'Tab') {
-      // Allow natural tab but close the menu
-      setOpen(false);
-      setPinned(false);
-      return;
-    }
-    if (next >= 0 && itemRefs.current[next]) {
-      itemRefs.current[next].focus();
-    }
+    if (e.key === 'ArrowDown') { e.preventDefault(); next = idx < count - 1 ? idx + 1 : 0; }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); next = idx > 0 ? idx - 1 : count - 1; }
+    else if (e.key === 'Home') { e.preventDefault(); next = 0; }
+    else if (e.key === 'End') { e.preventDefault(); next = count - 1; }
+    else if (e.key === 'Tab') { setOpen(false); setPinned(false); return; }
+    if (next >= 0 && itemRefs.current[next]) itemRefs.current[next].focus();
   };
 
   return (
-    <div
-      ref={containerRef}
-      className="relative"
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-    >
+    <div ref={containerRef} className="relative" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
       <button
         ref={triggerRef}
         type="button"
         aria-haspopup="true"
         aria-expanded={open}
         onClick={handleTriggerClick}
-        onKeyDown={(e) => {
-          if (e.key === 'ArrowDown' && open) {
-            e.preventDefault();
-            itemRefs.current[0]?.focus();
-          }
-        }}
-        className={`flex items-center gap-1 px-4 py-2 rounded-full text-[13px] font-semibold tracking-wide transition-all ${
+        onKeyDown={(e) => { if (e.key === 'ArrowDown' && open) { e.preventDefault(); itemRefs.current[0]?.focus(); } }}
+        className={`flex items-center gap-1 px-4 py-2 rounded-full text-[13px] font-semibold tracking-wide transition-all duration-200 ${
           isActive ? 'bg-[#ebe8e3] text-[#1c1c19]' : 'text-[#4e4540] hover:text-[#1c1c19] hover:bg-[#f0ede9]'
         }`}
       >
@@ -158,9 +122,8 @@ function NavMenu({ label, items, isActive, variant = 'list' }) {
           onKeyDown={handleMenuKeyDown}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
-          className={`absolute left-0 top-full pt-1 bg-white rounded-2xl shadow-xl border border-[#e5e2dd] p-2 z-50 ${
-            variant === 'grid' ? 'w-[420px]' : 'w-64'
-          }`}
+          className="absolute left-0 top-full pt-2 bg-white rounded-2xl shadow-xl border border-[#e5e2dd] p-2 z-50 opacity-0 animate-[fadeIn_0.15s_ease-out_forwards]"
+          style={{ animation: 'fadeIn 0.15s ease-out forwards' }}
         >
           <div className={variant === 'grid' ? 'grid grid-cols-2 gap-1' : 'flex flex-col'}>
             {items.map((item, i) => (
@@ -189,8 +152,8 @@ export default function Navbar() {
   const { cartCount, cartSubtotal, wishlist } = useStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
-  // Auth-aware account entry: guests go to /login, customers to /account.
   const activeCustomer = getActiveCustomer();
   const isAuthed = !!activeCustomer;
 
@@ -201,13 +164,19 @@ export default function Navbar() {
     return false;
   };
 
-  // Any navigation closes the mobile drawer and the search overlay.
   useEffect(() => {
     setMobileMenuOpen(false);
     setSearchOpen(false);
   }, [location.pathname, location.search]);
 
-  // ⌘K / Ctrl+K opens the search entry experience.
+  // Scroll compression: shrink navbar on scroll
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 40);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   useEffect(() => {
     const onKey = (e) => {
       if ((e.metaKey || e.ctrlKey) && String(e.key).toLowerCase() === 'k') {
@@ -219,12 +188,20 @@ export default function Navbar() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  const utilityButton = 'relative flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#f0ede9] text-[#4e4540] hover:text-[#1c1c19] hover:bg-[#ebe8e3] transition-colors';
+  const utilityButton = 'relative flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#f0ede9] text-[#4e4540] hover:text-[#1c1c19] hover:bg-[#ebe8e3] transition-all duration-200';
 
   return (
     <>
-      <header className="sticky top-0 left-0 right-0 w-full z-50 bg-[#fcf9f4]/90 backdrop-blur-md border-b border-[#e5e2dd] shadow-[0_1px_8px_rgba(0,0,0,0.03)]">
-        <div className="h-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
+      <header
+        className={`sticky top-0 left-0 right-0 w-full z-50 transition-all duration-300 border-b border-[#e5e2dd] ${
+          scrolled
+            ? 'bg-[#fcf9f4]/95 backdrop-blur-xl shadow-[0_2px_20px_rgba(0,0,0,0.06)]'
+            : 'bg-[#fcf9f4]/90 backdrop-blur-md shadow-[0_1px_8px_rgba(0,0,0,0.03)]'
+        }`}
+      >
+        <div className={`transition-all duration-300 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4 ${
+          scrolled ? 'h-16' : 'h-20'
+        }`}>
           {/* Brand Logo */}
           <Link to="/" className="flex items-center gap-3 group shrink-0" aria-label="Flora Alchemy home">
             <img
@@ -232,9 +209,12 @@ export default function Navbar() {
               decoding="async"
               src="/assets/images/flora-asset-27.jpg"
               alt=""
-              className="h-8 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
+              className="w-auto object-contain transition-all duration-300 group-hover:scale-105"
+              style={{ height: scrolled ? '24px' : '32px' }}
             />
-            <span className="font-serif text-[22px] tracking-tight font-medium text-[#180f0a] group-hover:text-[#964735] transition-colors">
+            <span className={`font-serif tracking-tight font-medium text-[#180f0a] group-hover:text-[#964735] transition-all duration-300 ${
+              scrolled ? 'text-[18px]' : 'text-[22px]'
+            }`}>
               Flora Alchemy
             </span>
           </Link>
@@ -242,15 +222,9 @@ export default function Navbar() {
           {/* Desktop Main Navigation */}
           <nav className="hidden lg:flex items-center gap-1" aria-label="Main">
             <NavMenu label="Shop" items={SHOP_ITEMS} isActive={isActive('/shop')} />
-            <NavMenu
-              label="Occasions"
-              items={OCCASION_ITEMS}
-              isActive={location.search.includes('occasion=')}
-              variant="grid"
-            />
             <Link
               to="/custom-gifts"
-              className={`px-4 py-2 rounded-full text-[13px] font-semibold tracking-wide transition-all ${
+              className={`px-4 py-2 rounded-full text-[13px] font-semibold tracking-wide transition-all duration-200 ${
                 isActive('/custom-gifts') ? 'bg-[#ebe8e3] text-[#1c1c19]' : 'text-[#4e4540] hover:text-[#1c1c19] hover:bg-[#f0ede9]'
               }`}
             >
@@ -258,7 +232,7 @@ export default function Navbar() {
             </Link>
             <Link
               to="/gift-finder"
-              className={`px-4 py-2 rounded-full text-[13px] font-semibold tracking-wide transition-all ${
+              className={`px-4 py-2 rounded-full text-[13px] font-semibold tracking-wide transition-all duration-200 ${
                 isActive('/gift-finder') ? 'bg-[#ebe8e3] text-[#1c1c19]' : 'text-[#4e4540] hover:text-[#1c1c19] hover:bg-[#f0ede9]'
               }`}
             >
@@ -277,7 +251,6 @@ export default function Navbar() {
 
           {/* Action Utilities */}
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Search — opens the entry overlay */}
             <button
               type="button"
               onClick={() => setSearchOpen(true)}
@@ -289,10 +262,9 @@ export default function Navbar() {
               <span className="text-[11px] font-bold uppercase tracking-widest text-[#4e4540]/80 hidden sm:inline">⌘K</span>
             </button>
 
-            {/* Saved Gifts */}
             <Link
               to="/wishlist"
-              className="relative p-2 rounded-full hover:bg-[#f0ede9] text-[#4e4540] hover:text-[#1c1c19] transition-all flex items-center justify-center"
+              className="relative p-2 rounded-full hover:bg-[#f0ede9] text-[#4e4540] hover:text-[#1c1c19] transition-all duration-200 flex items-center justify-center"
               title="Saved Gifts"
               aria-label="Saved Gifts"
             >
@@ -304,10 +276,9 @@ export default function Navbar() {
               )}
             </Link>
 
-            {/* Shopping Bag */}
             <Link
               to="/cart"
-              className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#f0ede9] hover:bg-[#ebe8e3] text-[#1c1c19] transition-colors"
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#f0ede9] hover:bg-[#ebe8e3] text-[#1c1c19] transition-all duration-200"
               title="Shopping Bag"
               aria-label={`Shopping Bag, ${cartCount} items`}
             >
@@ -317,10 +288,9 @@ export default function Navbar() {
               </span>
             </Link>
 
-            {/* Account Button — auth-aware */}
             <Link
               to={isAuthed ? '/account' : '/login'}
-              className="flex items-center gap-2 pl-2 pr-3 py-1 rounded-full bg-[#180f0a] hover:bg-[#964735] text-white transition-colors"
+              className="flex items-center gap-2 pl-2 pr-3 py-1 rounded-full bg-[#180f0a] hover:bg-[#964735] text-white transition-all duration-200"
               title={isAuthed ? 'My Account' : 'Sign In'}
             >
               <span className="flex items-center justify-center w-6 h-6 rounded-full bg-white/15 text-[11px] font-bold">
@@ -331,7 +301,6 @@ export default function Navbar() {
               </span>
             </Link>
 
-            {/* Mobile Menu Hamburger */}
             <button
               type="button"
               className="lg:hidden p-2 rounded-full hover:bg-[#f0ede9] text-[#1c1c19]"
@@ -348,7 +317,6 @@ export default function Navbar() {
         {mobileMenuOpen && (
           <div className="lg:hidden bg-[#fcf9f4] border-b border-[#e5e2dd] max-h-[calc(100vh-5rem)] overflow-y-auto shadow-lg">
             <div className="px-5 py-5 space-y-6">
-              {/* Quick utilities */}
               <div className="grid grid-cols-3 gap-2">
                 <button
                   type="button"
@@ -371,7 +339,6 @@ export default function Navbar() {
                 </Link>
               </div>
 
-              {/* Shop */}
               <div className="space-y-2">
                 <p className="text-[11px] uppercase font-bold tracking-widest text-[#80756f]">Shop</p>
                 <div className="grid grid-cols-2 gap-1.5">
@@ -387,24 +354,6 @@ export default function Navbar() {
                 </div>
               </div>
 
-              {/* Occasions */}
-              <div className="space-y-2">
-                <p className="text-[11px] uppercase font-bold tracking-widest text-[#80756f]">Shop by Occasion</p>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {OCCASION_ITEMS.map((item) => (
-                    <Link
-                      key={item.to}
-                      to={item.to}
-                      className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white border border-[#e5e2dd] text-[13px] font-medium text-[#4e4540]"
-                    >
-                      <span aria-hidden="true">{item.icon}</span>
-                      {item.label}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-
-              {/* Gifting */}
               <div className="space-y-2">
                 <p className="text-[11px] uppercase font-bold tracking-widest text-[#80756f]">Gifting</p>
                 <Link
@@ -427,7 +376,6 @@ export default function Navbar() {
                 </Link>
               </div>
 
-              {/* Explore */}
               <div className="space-y-2">
                 <p className="text-[11px] uppercase font-bold tracking-widest text-[#80756f]">Explore</p>
                 <div className="flex flex-col gap-1.5">
@@ -438,7 +386,7 @@ export default function Navbar() {
                     Our Story
                   </Link>
                   <Link to="/how-its-made" className="px-3.5 py-2.5 rounded-xl text-[13px] font-medium text-[#4e4540] hover:bg-[#f0ede9]">
-                    How It's Made
+                    How It&apos;s Made
                   </Link>
                   <Link to="/our-creations" className="px-3.5 py-2.5 rounded-xl text-[13px] font-medium text-[#4e4540] hover:bg-[#f0ede9]">
                     Our Creations
@@ -449,7 +397,6 @@ export default function Navbar() {
                 </div>
               </div>
 
-              {/* Account */}
               <div className="pt-3 border-t border-[#e5e2dd]">
                 <Link
                   to={isAuthed ? '/account' : '/login'}
@@ -465,6 +412,9 @@ export default function Navbar() {
       </header>
 
       <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
+
+      {/* Global keyframe for dropdown fade-in */}
+      <style>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }`}</style>
     </>
   );
 }
