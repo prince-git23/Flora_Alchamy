@@ -1,6 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ShieldCheck, CreditCard, QrCode, Lock, UserRound, ArrowRight, ArrowLeft, Wallet, AlertCircle } from 'lucide-react';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+gsap.registerPlugin(ScrollTrigger);
+const prefersReduced = typeof window !== 'undefined' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 import { useStore } from '../context/StoreContext.jsx';
 import { createOrder } from '../services/orderService.js';
 import { isCatalogueProduct } from '../services/productService.js';
@@ -69,6 +74,9 @@ export default function CheckoutPage() {
   // failed/cancelled payment never creates a duplicate order or a second
   // inventory deduction.
   const [pendingPaymentOrder, setPendingPaymentOrder] = useState(null);
+  const pageRef = useRef(null);
+  const headerRef = useRef(null);
+  const stepContentRef = useRef(null);
 
   const settings = getSettings();
   const shippingCost = getShippingCost(cartSubtotal);
@@ -308,10 +316,13 @@ export default function CheckoutPage() {
       : `Standard Pan-India Dispatch (₹${settings?.standardShippingRate ?? 150})`);
 
   return (
-    <div className="w-full bg-[#fcf9f4] min-h-screen py-10 lg:py-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div ref={pageRef} className="w-full bg-[#fcf9f4] min-h-screen py-10 lg:py-16">
+      {/* Ambient glow orbs for spatial depth */}
+      <div className="absolute top-0 right-0 w-96 h-96 rounded-full bg-[#ffdad3]/15 blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-80 h-80 rounded-full bg-[#d8e7cd]/10 blur-3xl pointer-events-none" />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         {/* Title */}
-        <div className="space-y-1 mb-6">
+        <div ref={headerRef} className="space-y-1 mb-6">
           <span className="text-[11px] uppercase font-bold tracking-widest text-[#964735]">
             Secure Checkout
           </span>
@@ -343,11 +354,12 @@ export default function CheckoutPage() {
 
         {!isAuthed ? (
           /* AUTHENTICATION GATE — no guest checkout */
-          <div className="bg-white rounded-3xl p-10 sm:p-14 border border-[#e5e2dd] text-center space-y-5 shadow-sm max-w-xl mx-auto my-8">
-            <div className="w-14 h-14 rounded-full bg-[#f6f3ee] flex items-center justify-center mx-auto">
+          <div className="relative bg-white rounded-3xl p-10 sm:p-14 border border-[#e5e2dd] text-center space-y-5 shadow-sm max-w-xl mx-auto my-8 overflow-hidden">
+            <div className="absolute -top-16 -right-16 w-48 h-48 rounded-full bg-[#ffdad3]/20 blur-3xl pointer-events-none" />
+            <div className="relative w-14 h-14 rounded-full bg-[#f6f3ee] flex items-center justify-center mx-auto">
               <UserRound className="w-6 h-6 text-[#964735]" />
             </div>
-            <div className="space-y-1">
+            <div className="relative space-y-1">
               <h2 className="font-serif text-[28px] text-[#180f0a]">Sign in to continue</h2>
               <p className="text-[14px] text-[#4e4540] max-w-sm mx-auto">
                 Create an account or sign in to continue with checkout. Your bag is safe — we&rsquo;ll
@@ -369,14 +381,15 @@ export default function CheckoutPage() {
                 Create Account
               </Link>
             </div>
-            <div>
+            <div className="relative">
               <Link to="/cart" className="text-[12px] font-semibold text-[#964735] hover:underline">
                 ← Back to Cart
               </Link>
             </div>
           </div>
         ) : cart.length === 0 ? (
-          <div className="bg-white rounded-3xl p-10 sm:p-14 border border-[#e5e2dd] text-center space-y-4 shadow-sm max-w-xl mx-auto my-8">
+          <div className="relative bg-white rounded-3xl p-10 sm:p-14 border border-[#e5e2dd] text-center space-y-4 shadow-sm max-w-xl mx-auto my-8 overflow-hidden">
+            <div className="absolute -bottom-12 -left-12 w-40 h-40 rounded-full bg-[#d8e7cd]/15 blur-3xl pointer-events-none" />
             <p className="font-serif text-[24px] text-[#180f0a]">Your shopping bag is currently empty.</p>
             <p className="text-[14px] text-[#4e4540]">
               Your bag is empty. Browse our handcrafted pieces and add your favorites before checking out.
@@ -408,7 +421,7 @@ export default function CheckoutPage() {
               <div className="lg:col-span-7 space-y-8">
                 {/* STEP 1 — ACCOUNT */}
                 {step === 0 && (
-                  <div className="bg-white rounded-3xl p-8 sm:p-10 border border-[#e5e2dd] shadow-xs space-y-6">
+                  <div ref={stepContentRef} className="bg-white rounded-3xl p-8 sm:p-10 border border-[#e5e2dd] shadow-xs space-y-6 hover:shadow-sm transition-shadow duration-300">
                     <div className="flex items-start gap-4">
                       <div className="w-12 h-12 rounded-full bg-[#f6f3ee] flex items-center justify-center shrink-0">
                         <UserRound className="w-5 h-5 text-[#964735]" />
@@ -922,7 +935,7 @@ export default function CheckoutPage() {
 
               {/* Right Summary Col (5 cols) */}
               <div className="lg:col-span-5 sticky top-24 space-y-6">
-                <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#e5e2dd] shadow-lg space-y-6">
+                <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#e5e2dd] shadow-lg space-y-6 hover:shadow-xl transition-shadow duration-300">
                   <div className="border-b border-[#e5e2dd] pb-4 flex items-center justify-between">
                     <h3 className="font-serif text-[22px] text-[#180f0a]">Order Summary</h3>
                     <div className="flex items-center gap-3">

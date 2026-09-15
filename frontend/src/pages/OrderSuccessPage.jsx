@@ -1,7 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { CheckCircle2, ArrowRight, Package, MapPin, Phone, Truck, Feather, MessageSquare, Home } from 'lucide-react';
 import { getOrderById, formatINR, formatDate, getStatusStage, getCustomerFacingStatus } from '../services/orderService.js';
+
+/* ── GSAP ── */
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+gsap.registerPlugin(ScrollTrigger);
+
+const prefersReduced = typeof window !== 'undefined' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // Description line for an ordered keepsake — assembled from the real
 // customization fields the customer selected (palette, ribbon, extras).
@@ -22,6 +30,9 @@ export default function OrderSuccessPage() {
   const navigate = useNavigate();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
+  const pageRef = useRef(null);
+  const heroRef = useRef(null);
+  const detailsRef = useRef(null);
 
   useEffect(() => {
     async function fetchOrder() {
@@ -39,10 +50,51 @@ export default function OrderSuccessPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderId]);
 
+  /* ── GSAP entrance animation ── */
+  useEffect(() => {
+    if (prefersReduced || loading || !order || !pageRef.current) return;
+    const ctx = gsap.context(() => {
+      // Hero card entrance
+      if (heroRef.current) {
+        gsap.from(heroRef.current, {
+          y: 40,
+          opacity: 0,
+          scale: 0.97,
+          duration: 0.8,
+          ease: 'power3.out',
+        });
+      }
+      // Details sections stagger
+      if (detailsRef.current) {
+        const sections = detailsRef.current.querySelectorAll('[data-order-section]');
+        if (sections.length) {
+          gsap.from(sections, {
+            y: 30,
+            opacity: 0,
+            duration: 0.6,
+            ease: 'power3.out',
+            stagger: 0.1,
+            scrollTrigger: {
+              trigger: detailsRef.current,
+              start: 'top 85%',
+              once: true,
+            },
+          });
+        }
+      }
+    }, pageRef);
+    return () => ctx.revert();
+  }, [loading, order]);
+
   if (loading) {
     return (
       <div className="w-full min-h-[60vh] flex items-center justify-center bg-[#fcf9f4]">
-        <p className="font-serif text-[20px] text-[#180f0a]">Loading your order...</p>
+        <div className="text-center space-y-3">
+          <div className="w-12 h-12 rounded-full bg-[#ffdad3]/40 mx-auto flex items-center justify-center animate-pulse">
+            <CheckCircle2 className="w-6 h-6 text-[#964735]" />
+          </div>
+          <p className="font-serif text-[20px] text-[#180f0a]">Loading your order...</p>
+        </div>
       </div>
     );
   }
@@ -50,15 +102,18 @@ export default function OrderSuccessPage() {
   if (!order) {
     return (
       <div className="w-full min-h-[60vh] flex flex-col items-center justify-center bg-[#fcf9f4] px-4 text-center space-y-4">
-        <p className="font-serif text-[22px] text-[#180f0a]">Order reference not found.</p>
+        <div className="relative">
+          <div className="absolute -top-12 -right-12 w-40 h-40 rounded-full bg-[#ffdad3]/15 blur-3xl pointer-events-none" />
+          <p className="relative font-serif text-[22px] text-[#180f0a]">Order reference not found.</p>
+        </div>
         <p className="text-[14px] text-[#4e4540] max-w-md">
           We couldn't locate this order keepsake. You can check your recent orders in your account or explore the shop.
         </p>
         <div className="flex gap-3 pt-2">
-          <Link to="/account" className="px-6 py-2.5 rounded-full bg-[#180f0a] text-white text-[13px] font-semibold">
+          <Link to="/account" className="px-6 py-2.5 rounded-full bg-[#180f0a] text-white text-[13px] font-semibold hover:bg-[#964735] transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0">
             View Account
           </Link>
-          <Link to="/shop" className="px-6 py-2.5 rounded-full bg-white border border-[#e5e2dd] text-[#180f0a] text-[13px] font-semibold">
+          <Link to="/shop" className="px-6 py-2.5 rounded-full bg-white border border-[#e5e2dd] text-[#180f0a] text-[13px] font-semibold hover:bg-[#f6f3ee] hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0">
             Browse Shop
           </Link>
         </div>
@@ -84,16 +139,23 @@ export default function OrderSuccessPage() {
     : <span className="px-2 py-0.5 rounded-full bg-[#ebe8e3] text-[#4e4540] text-[10px] font-bold uppercase tracking-wide">{paymentStatus}</span>;
 
   return (
-    <div className="w-full bg-[#fcf9f4] min-h-screen py-10 lg:py-14">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div ref={pageRef} className="w-full bg-[#fcf9f4] min-h-screen py-10 lg:py-14 relative overflow-hidden">
+      {/* Ambient glow orbs */}
+      <div className="absolute top-20 left-10 w-72 h-72 rounded-full bg-[#ffdad3]/15 blur-3xl pointer-events-none" />
+      <div className="absolute bottom-20 right-10 w-60 h-60 rounded-full bg-[#d8e7cd]/10 blur-3xl pointer-events-none" />
+
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         {/* ── Order Success Hero Card ── */}
-        <div className="rounded-3xl border border-[#e5e2dd] shadow-[0_16px_40px_-12px_rgba(46,36,30,0.12)] bg-gradient-to-b from-[#fffdf9] via-[#fffaf4] to-[#fdeee8] p-8 sm:p-12 text-center space-y-5 mb-8">
+        <div ref={heroRef} className="rounded-3xl border border-[#e5e2dd] shadow-[0_16px_40px_-12px_rgba(46,36,30,0.12)] bg-gradient-to-b from-[#fffdf9] via-[#fffaf4] to-[#fdeee8] p-8 sm:p-12 text-center space-y-5 mb-8 overflow-hidden relative">
+          {/* Inner glow */}
+          <div className="absolute -top-20 -right-20 w-60 h-60 rounded-full bg-[#ffdad3]/20 blur-3xl pointer-events-none" />
+
           {/* Confirmation Badge */}
-          <div className="w-16 h-16 rounded-full bg-[#ffdad3] border border-[#e8b3a6] shadow-inner mx-auto flex items-center justify-center">
+          <div className="relative w-16 h-16 rounded-full bg-[#ffdad3] border border-[#e8b3a6] shadow-inner mx-auto flex items-center justify-center">
             <CheckCircle2 className="w-8 h-8 text-[#964735]" />
           </div>
 
-          <div className="space-y-2">
+          <div className="relative space-y-2">
             <span className="text-[11px] font-bold uppercase tracking-widest text-[#964735]">
               Order Confirmed
             </span>
@@ -109,7 +171,7 @@ export default function OrderSuccessPage() {
           </div>
 
           {/* Details Bar */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 p-5 sm:p-6 rounded-2xl bg-[#f0eae1] border border-[#e5ddd2] text-left mt-2">
+          <div className="relative grid grid-cols-2 lg:grid-cols-4 gap-4 p-5 sm:p-6 rounded-2xl bg-[#f0eae1] border border-[#e5ddd2] text-left mt-2">
             <div className="space-y-1">
               <p className="text-[10px] uppercase font-bold tracking-wider text-[#80756f]">Order</p>
               <p className="text-[15px] font-bold text-[#180f0a] font-mono">{order.id}</p>
@@ -134,17 +196,17 @@ export default function OrderSuccessPage() {
           </div>
 
           {/* Actions */}
-          <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
+          <div className="relative flex flex-wrap items-center justify-center gap-3 pt-1">
             <Link
               to={`/order-tracking/${order.id}`}
-              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-white text-[#180f0a] border-2 border-[#180f0a] hover:bg-[#f6f3ee] transition-all text-[13px] font-semibold shadow-sm"
+              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-white text-[#180f0a] border-2 border-[#180f0a] hover:bg-[#f6f3ee] transition-all duration-300 text-[13px] font-semibold shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0"
             >
               <Truck className="w-4 h-4" />
               <span>Track Order {order.id}</span>
             </Link>
             <Link
               to="/account"
-              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-[#964735] text-white hover:bg-[#7d3a2b] transition-all text-[13px] font-semibold shadow-md"
+              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-[#964735] text-white hover:bg-[#7d3a2b] transition-all duration-300 text-[13px] font-semibold shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
             >
               <Home className="w-4 h-4" />
               <span>View Account &amp; Order History</span>
@@ -152,7 +214,7 @@ export default function OrderSuccessPage() {
             {order?.id && (
               <Link
                 to={`/order/${order.id}/conversation`}
-                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-white text-[#180f0a] border-2 border-[#c17c74] hover:bg-[#fdf6f4] transition-all text-[13px] font-semibold shadow-sm"
+                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-white text-[#180f0a] border-2 border-[#c17c74] hover:bg-[#fdf6f4] transition-all duration-300 text-[13px] font-semibold shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0"
               >
                 <MessageSquare className="w-4 h-4" />
                 <span>Message Flora Alchemy</span>
@@ -160,17 +222,17 @@ export default function OrderSuccessPage() {
             )}
           </div>
 
-          <p className="text-[12px] text-[#80756f] max-w-lg mx-auto leading-relaxed">
+          <p className="relative text-[12px] text-[#80756f] max-w-lg mx-auto leading-relaxed">
             Need to adjust your handwritten card wording or delivery window? Use the message button above to reach the Flora Alchemy team directly about this order.
           </p>
         </div>
 
         {/* ── Lower Two-Column Section ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div ref={detailsRef} className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Left Column — Keepsakes + Transcript */}
           <div className="lg:col-span-7 space-y-6">
             {/* Ordered Keepsakes */}
-            <div className="bg-white rounded-3xl border border-[#e5e2dd] shadow-sm p-6 sm:p-7">
+            <div data-order-section className="bg-white rounded-3xl border border-[#e5e2dd] shadow-sm p-6 sm:p-7 hover:shadow-md transition-shadow duration-300">
               <div className="flex items-center justify-between mb-5">
                 <h2 className="font-serif text-[22px] text-[#180f0a]">Ordered Keepsakes</h2>
                 <span className="text-[13px] text-[#80756f]">
@@ -206,7 +268,7 @@ export default function OrderSuccessPage() {
 
             {/* Personalized Deckled Card Transcript — only when a real message was ordered */}
             {cardMessage && (
-              <div className="bg-white rounded-3xl border border-[#e5e2dd] shadow-sm p-6 sm:p-7">
+              <div data-order-section className="bg-white rounded-3xl border border-[#e5e2dd] shadow-sm p-6 sm:p-7 hover:shadow-md transition-shadow duration-300">
                 <div className="flex items-center gap-2 mb-4">
                   <Feather className="w-4 h-4 text-[#964735]" />
                   <span className="text-[11px] font-bold uppercase tracking-widest text-[#964735]">
@@ -228,7 +290,7 @@ export default function OrderSuccessPage() {
           {/* Right Column — Delivery + Conversation */}
           <div className="lg:col-span-5 space-y-6">
             {/* Delivery Destination */}
-            <div className="bg-white rounded-3xl border border-[#e5e2dd] shadow-sm p-6 sm:p-7">
+            <div data-order-section className="bg-white rounded-3xl border border-[#e5e2dd] shadow-sm p-6 sm:p-7 hover:shadow-md transition-shadow duration-300">
               <h2 className="font-serif text-[22px] text-[#180f0a] mb-4">Delivery Destination</h2>
               {delivery.name ? (
                 <>
@@ -260,56 +322,31 @@ export default function OrderSuccessPage() {
             </div>
 
             {/* Order Conversation — live order-linked chat */}
-            <div className="rounded-3xl bg-[#2c2622] text-white p-6 sm:p-7 shadow-md">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="w-2 h-2 rounded-full bg-[#7e947b] animate-pulse" />
-                <span className="text-[10px] font-bold uppercase tracking-widest text-[#e8b3a6]">
-                  Order Support — Live
-                </span>
-              </div>
-              <h2 className="font-serif text-[22px] text-white mb-2">Order Conversation</h2>
-              <p className="text-[13px] text-[#d4c3ba] leading-relaxed">
-                A direct messaging channel for inquiring about craft status, card wording, or parcel dispatch.
-                Your order status is always available on the tracking page as well.
-              </p>
-              <Link
-                to={`/order/${order.id}/conversation`}
-                className="mt-5 inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white text-[#180f0a] hover:bg-[#f6f3ee] text-[12px] font-semibold transition-colors"
-              >
-                <MessageSquare className="w-4 h-4" />
-                <span>Message About Order {order.id}</span>
-              </Link>
-            </div>
-
-            {/* Continue Shopping */}
-            <Link
-              to="/shop"
-              className="flex items-center justify-between gap-3 rounded-3xl bg-white border border-[#e5e2dd] shadow-sm px-6 py-5 hover:border-[#964735] hover:shadow-md transition-all group"
-            >
-              <span className="flex items-center gap-3">
-                <span className="w-10 h-10 rounded-full bg-[#ffdad3] flex items-center justify-center text-[18px]">🎁</span>
-                <span>
-                  <span className="block font-serif text-[16px] text-[#180f0a] group-hover:text-[#964735] transition-colors">
-                    Keep exploring the atelier
+            <div data-order-section className="rounded-3xl bg-[#2c2622] text-white p-6 sm:p-7 shadow-md relative overflow-hidden">
+              {/* Subtle depth glow */}
+              <div className="absolute -top-16 -right-16 w-40 h-40 rounded-full bg-[#964735]/10 blur-3xl pointer-events-none" />
+              <div className="relative">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="w-2 h-2 rounded-full bg-[#7e947b] animate-pulse" />
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#e8b3a6]">
+                    Order Support — Live
                   </span>
-                  <span className="block text-[12px] text-[#80756f]">Continue shopping in the Botanical Archive</span>
-                </span>
-              </span>
-              <ArrowRight className="w-4 h-4 text-[#964735] shrink-0" />
-            </Link>
+                </div>
+                <h2 className="font-serif text-[22px] text-white mb-2">Order Conversation</h2>
+                <p className="text-[13px] text-[#d4c3ba] leading-relaxed">
+                  A direct messaging channel for inquiring about craft status, card wording, or parcel dispatch.
+                  Your order status is always available on the tracking page as well.
+                </p>
+                <Link
+                  to={`/order/${order.id}/conversation`}
+                  className="mt-5 inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white text-[#180f0a] hover:bg-[#f6f3ee] text-[12px] font-semibold transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0"
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  Open Conversation
+                </Link>
+              </div>
+            </div>
           </div>
-        </div>
-
-        {/* Bottom meta line */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-10 pb-2 text-[11px] text-[#80756f]">
-          <span className="flex items-center gap-1.5">
-            <Package className="w-3.5 h-3.5" />
-            All items are handcrafted to order in small batches.
-          </span>
-          <span className="flex items-center gap-1.5">
-            <MapPin className="w-3.5 h-3.5" />
-            Pan-India handcrafted delivery
-          </span>
         </div>
       </div>
     </div>

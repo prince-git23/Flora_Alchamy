@@ -1,13 +1,25 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingBag, Trash2, ArrowRight, Gift, Truck, Sparkles } from 'lucide-react';
 import { useStore } from '../context/StoreContext.jsx';
 import { PACKAGING_ADD_ON } from '../services/api.js';
 import { getSettings, getShippingCost } from '../services/settingsService.js';
 
+/* ── GSAP (static import — stable across HMR) ── */
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+gsap.registerPlugin(ScrollTrigger);
+
+const prefersReduced = typeof window !== 'undefined' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 export default function CartPage() {
   const navigate = useNavigate();
   const { cart, cartSubtotal, updateItemQuantity, removeItemFromCart, addItemToCart } = useStore();
+  const pageRef = useRef(null);
+  const headerRef = useRef(null);
+  const itemsRef = useRef(null);
+  const summaryRef = useRef(null);
 
   const settings = getSettings();
 
@@ -34,11 +46,61 @@ export default function CartPage() {
 
   const standardDays = settings?.shippingConfiguration?.standardDays;
 
+  /* ── GSAP entrance animations ── */
+  useEffect(() => {
+    if (prefersReduced || !pageRef.current) return;
+    const ctx = gsap.context(() => {
+      // Header reveal
+      if (headerRef.current) {
+        gsap.from(headerRef.current.children, {
+          y: 30,
+          opacity: 0,
+          duration: 0.7,
+          ease: 'power3.out',
+          stagger: 0.1,
+        });
+      }
+      // Cart items stagger
+      if (itemsRef.current) {
+        const rows = itemsRef.current.querySelectorAll('[data-cart-item]');
+        if (rows.length) {
+          gsap.from(rows, {
+            y: 24,
+            opacity: 0,
+            duration: 0.6,
+            ease: 'power3.out',
+            stagger: 0.08,
+            scrollTrigger: {
+              trigger: itemsRef.current,
+              start: 'top 85%',
+              once: true,
+            },
+          });
+        }
+      }
+      // Summary panel reveal
+      if (summaryRef.current) {
+        gsap.from(summaryRef.current, {
+          y: 30,
+          opacity: 0,
+          duration: 0.7,
+          ease: 'power3.out',
+          scrollTrigger: {
+            trigger: summaryRef.current,
+            start: 'top 85%',
+            once: true,
+          },
+        });
+      }
+    }, pageRef);
+    return () => ctx.revert();
+  }, [cart.length]);
+
   return (
-    <div className="w-full bg-[#fcf9f4] min-h-screen py-10 lg:py-16">
+    <div ref={pageRef} className="w-full bg-[#fcf9f4] min-h-screen py-10 lg:py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header Title */}
-        <div className="space-y-1 mb-8">
+        <div ref={headerRef} className="space-y-1 mb-8">
           <span className="text-[11px] uppercase font-bold tracking-widest text-[#964735]">
             Artisanal Bag
           </span>
@@ -48,31 +110,34 @@ export default function CartPage() {
         </div>
 
         {cart.length === 0 ? (
-          <div className="bg-white rounded-3xl p-12 lg:p-16 text-center border border-[#e5e2dd] max-w-xl mx-auto space-y-4">
-            <div className="w-16 h-16 rounded-full bg-[#f6f3ee] mx-auto flex items-center justify-center text-3xl" aria-hidden="true">
+          <div className="relative bg-white rounded-3xl p-12 lg:p-16 text-center border border-[#e5e2dd] max-w-xl mx-auto space-y-4 overflow-hidden">
+            {/* Ambient glow orbs */}
+            <div className="absolute -top-20 -right-20 w-60 h-60 rounded-full bg-[#ffdad3]/30 blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-16 -left-16 w-48 h-48 rounded-full bg-[#d8e7cd]/25 blur-3xl pointer-events-none" />
+            <div className="relative w-16 h-16 rounded-full bg-[#f6f3ee] mx-auto flex items-center justify-center text-3xl" aria-hidden="true">
               🛍️
             </div>
-            <h2 className="font-serif text-[26px] text-[#180f0a]">Your bag is waiting for something special</h2>
-            <p className="text-[14px] text-[#4e4540]">
+            <h2 className="relative font-serif text-[26px] text-[#180f0a]">Your bag is waiting for something special</h2>
+            <p className="relative text-[14px] text-[#4e4540]">
               Discover our everlasting blooms, deckled botanical cards, and bespoke gift boxes.
             </p>
-            <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
+            <div className="relative pt-2 flex flex-wrap items-center justify-center gap-3">
               <Link
                 to="/shop"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#180f0a] text-white hover:bg-[#964735] transition-colors text-[13px] font-semibold"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#180f0a] text-white hover:bg-[#964735] transition-colors text-[13px] font-semibold shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
               >
                 <span>Browse Gifts</span>
                 <ArrowRight className="w-4 h-4" aria-hidden="true" />
               </Link>
               <Link
                 to="/gift-finder"
-                className="px-6 py-3 rounded-full bg-white border border-[#e5e2dd] text-[#180f0a] hover:bg-[#f6f3ee] transition-colors text-[13px] font-semibold"
+                className="px-6 py-3 rounded-full bg-white border border-[#e5e2dd] text-[#180f0a] hover:bg-[#f6f3ee] hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-all text-[13px] font-semibold"
               >
                 Find a Gift
               </Link>
               <Link
                 to="/custom-gifts"
-                className="px-6 py-3 rounded-full bg-white border border-[#e5e2dd] text-[#180f0a] hover:bg-[#f6f3ee] transition-colors text-[13px] font-semibold"
+                className="px-6 py-3 rounded-full bg-white border border-[#e5e2dd] text-[#180f0a] hover:bg-[#f6f3ee] hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-all text-[13px] font-semibold"
               >
                 Create a Custom Gift
               </Link>
@@ -81,7 +146,7 @@ export default function CartPage() {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
             {/* Cart Items List (7 cols) */}
-            <div className="lg:col-span-7 space-y-4">
+            <div ref={itemsRef} className="lg:col-span-7 space-y-4">
               {/* Complimentary shipping progress — only when a real threshold
                   is configured in store settings. */}
               {freeShippingThreshold && (
@@ -102,7 +167,7 @@ export default function CartPage() {
                 {productItems.map((item) => {
                   const idx = cart.indexOf(item);
                   return (
-                    <div key={`${item.id}-${item.palette || ''}-${item.ribbon || ''}-${idx}`} className="pt-4 first:pt-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div key={`${item.id}-${item.palette || ''}-${item.ribbon || ''}-${idx}`} data-cart-item className="pt-4 first:pt-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                       <div className="flex items-center gap-4">
                         <div className="w-20 h-20 rounded-2xl overflow-hidden bg-[#f6f3ee] shrink-0 border border-[#e5e2dd]">
                           {item.image ? (
@@ -170,7 +235,7 @@ export default function CartPage() {
                           type="button"
                           onClick={() => removeItemFromCart(idx)}
                           aria-label={`Remove ${item.name} from bag`}
-                          className="text-[#80756f] hover:text-[#964735] p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#964735] rounded-full"
+                          className="text-[#80756f] hover:text-[#964735] p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#964735] rounded-full transition-colors"
                         >
                           <Trash2 className="w-4 h-4" aria-hidden="true" />
                         </button>
@@ -182,7 +247,7 @@ export default function CartPage() {
 
               {/* Selected add-ons — real cart lines, carried through checkout */}
               {addOnItems.length > 0 && (
-                <div className="bg-white rounded-3xl p-4 sm:p-6 border border-[#e5e2dd] space-y-3">
+                <div data-cart-item className="bg-white rounded-3xl p-4 sm:p-6 border border-[#e5e2dd] space-y-3">
                   <p className="text-[11px] uppercase font-bold tracking-wider text-[#80756f]">Gift add-ons</p>
                   {addOnItems.map((item) => {
                     const idx = cart.indexOf(item);
@@ -205,7 +270,7 @@ export default function CartPage() {
                             type="button"
                             onClick={() => removeItemFromCart(idx)}
                             aria-label={`Remove ${item.name} from bag`}
-                            className="text-[#80756f] hover:text-[#964735] p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#964735] rounded-full"
+                            className="text-[#80756f] hover:text-[#964735] p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#964735] rounded-full transition-colors"
                           >
                             <Trash2 className="w-4 h-4" aria-hidden="true" />
                           </button>
@@ -218,7 +283,7 @@ export default function CartPage() {
 
               {/* Studio Packaging Add-on — toggles a real cart line so it survives
                   checkout → order → admin order detail. */}
-              <div className="p-4 rounded-2xl bg-white border border-[#e5e2dd] flex items-center justify-between">
+              <div data-cart-item className="p-4 rounded-2xl bg-white border border-[#e5e2dd] flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <input
                     type="checkbox"
@@ -247,7 +312,7 @@ export default function CartPage() {
 
             {/* Order Summary Col (5 cols) */}
             <div className="lg:col-span-5 space-y-6">
-              <div className="bg-white rounded-3xl p-6 border border-[#e5e2dd] shadow-sm space-y-6">
+              <div ref={summaryRef} className="bg-white rounded-3xl p-6 border border-[#e5e2dd] shadow-sm space-y-6 hover:shadow-md transition-shadow duration-300">
                 <h3 className="font-serif text-[22px] text-[#180f0a] border-b border-[#e5e2dd] pb-4">
                   Order Summary
                 </h3>
@@ -298,7 +363,7 @@ export default function CartPage() {
                 <button
                   type="button"
                   onClick={() => navigate('/checkout')}
-                  className="w-full py-4 rounded-full bg-[#180f0a] hover:bg-[#964735] text-white text-[13px] font-semibold tracking-wide flex items-center justify-center gap-2 shadow-md transition-all active:translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#964735] focus-visible:ring-offset-2"
+                  className="w-full py-4 rounded-full bg-[#180f0a] hover:bg-[#964735] text-white text-[13px] font-semibold tracking-wide flex items-center justify-center gap-2 shadow-md transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#964735] focus-visible:ring-offset-2"
                 >
                   <ShoppingBag className="w-4 h-4" aria-hidden="true" />
                   <span>Proceed to Checkout · ₹{grandTotal.toLocaleString('en-IN')}</span>
