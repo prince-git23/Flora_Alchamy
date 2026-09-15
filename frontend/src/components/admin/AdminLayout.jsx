@@ -6,7 +6,9 @@ export default function AdminLayout({ children }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[#fcf9f4] text-[#1c1c19] flex flex-col">
+    <div className="min-h-screen bg-[#fcf9f4] text-[#1c1c19] flex flex-col relative overflow-x-hidden">
+      {/* Ambient page depth */}
+      <div className="fixed top-0 right-0 w-[500px] h-[300px] rounded-full bg-[#ffdad3]/6 blur-3xl pointer-events-none z-0" />
       {/* Sidebar (Desktop Persistent + Mobile Drawer) */}
       <AdminSidebar
         isOpen={mobileMenuOpen}
@@ -19,7 +21,7 @@ export default function AdminLayout({ children }) {
         <AdminHeader onOpenMobileMenu={() => setMobileMenuOpen(true)} />
 
         {/* Scrollable Page Content */}
-        <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-6">
+        <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-6 relative">
           {children}
         </main>
 

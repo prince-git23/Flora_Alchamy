@@ -1,10 +1,17 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout.jsx';
 import { getOrders, getStatusCounts, ORDER_STATUS_STYLES, ORDER_STATUSES, formatINR, formatDate } from '../../services/orderService.js';
 import { getLowStockItems } from '../../services/inventoryService.js';
 import { getUnreadCount } from '../../services/conversationService.js';
 import { isRevenue } from '../../services/analyticsService.js';
+import { AdminOrderStatusPill } from '../../components/admin/AdminStatusPill.jsx';
+
+/* ── GSAP ── */
+import gsap from 'gsap';
+
+const prefersReduced = typeof window !== 'undefined' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 function getStatusStyle(key) {
   const styles = ORDER_STATUS_STYLES || {};
@@ -15,6 +22,21 @@ export default function AdminDashboardPage() {
   const [revenuePeriod, setRevenuePeriod] = useState('7d'); // '7d' | '30d' | '3m'
   const [orderFilterStage, setOrderFilterStage] = useState(null);
   const [unreadConversations, setUnreadConversations] = useState(0);
+  const pageRef = useRef(null);
+
+  /* ── GSAP: operational entrance — fast, restrained ── */
+  useEffect(() => {
+    if (prefersReduced || !pageRef.current) return;
+    const ctx = gsap.context(() => {
+      gsap.from('[data-dash-kpi]', {
+        y: 16, opacity: 0, duration: 0.45, ease: 'power2.out', stagger: 0.06, delay: 0.05,
+      });
+      gsap.from('[data-dash-panel]', {
+        y: 20, opacity: 0, duration: 0.5, ease: 'power2.out', stagger: 0.08, delay: 0.2,
+      });
+    }, pageRef);
+    return () => ctx.revert();
+  }, []);
 
   useEffect(() => {
     getUnreadCount().then((r) => setUnreadConversations(r.count || 0)).catch(() => {});
@@ -132,12 +154,12 @@ export default function AdminDashboardPage() {
 
   return (
     <AdminLayout>
-      <div className="max-w-7xl mx-auto space-y-8 pb-12">
+      <div ref={pageRef} className="max-w-7xl mx-auto space-y-8 pb-12">
         {/* Welcome & Action Bar */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
             <h1 className="font-serif text-3xl sm:text-4xl text-[#180f0a] tracking-tight font-normal">
-              Good morning, Flora Alchemy
+              Operations Overview
             </h1>
             <p className="text-[15px] text-[#4e4540] mt-1">
               Here’s what needs your attention today.
@@ -178,7 +200,7 @@ export default function AdminDashboardPage() {
             {/* 5-Card KPI Metrics Row */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
               {/* KPI 1: Total Orders */}
-              <div className="p-4 bg-white rounded-2xl shadow-[0_4px_20px_-2px_rgba(46,36,30,0.04)] border border-[#e5e2dd] flex flex-col justify-between">
+              <div data-dash-kpi className="p-4 bg-white rounded-2xl shadow-[0_4px_20px_-2px_rgba(46,36,30,0.04)] border border-[#e5e2dd] flex flex-col justify-between hover:shadow-[0_10px_30px_-8px_rgba(46,36,30,0.12)] hover:-translate-y-0.5 transition-all duration-300">
                 <div className="flex items-center justify-between text-[#80756f]">
                   <span className="text-[11px] font-bold uppercase tracking-wider">Total Orders</span>
                   <span className="material-symbols-outlined text-[19px] text-[#5b6d54]">local_florist</span>
@@ -195,7 +217,7 @@ export default function AdminDashboardPage() {
               </div>
 
               {/* KPI 2: Pending Orders */}
-              <div className="p-4 bg-white rounded-2xl shadow-[0_4px_20px_-2px_rgba(46,36,30,0.04)] border border-[#e5e2dd] flex flex-col justify-between">
+              <div data-dash-kpi className="p-4 bg-white rounded-2xl shadow-[0_4px_20px_-2px_rgba(46,36,30,0.04)] border border-[#e5e2dd] flex flex-col justify-between hover:shadow-[0_10px_30px_-8px_rgba(46,36,30,0.12)] hover:-translate-y-0.5 transition-all duration-300">
                 <div className="flex items-center justify-between text-[#80756f]">
                   <span className="text-[11px] font-bold uppercase tracking-wider">New / Confirmed</span>
                   <span className="material-symbols-outlined text-[19px] text-[#964735]">pending_actions</span>
@@ -212,7 +234,7 @@ export default function AdminDashboardPage() {
               </div>
 
               {/* KPI 3: In Production */}
-              <div className="p-4 bg-white rounded-2xl shadow-[0_4px_20px_-2px_rgba(46,36,30,0.04)] border border-[#e5e2dd] flex flex-col justify-between">
+              <div data-dash-kpi className="p-4 bg-white rounded-2xl shadow-[0_4px_20px_-2px_rgba(46,36,30,0.04)] border border-[#e5e2dd] flex flex-col justify-between hover:shadow-[0_10px_30px_-8px_rgba(46,36,30,0.12)] hover:-translate-y-0.5 transition-all duration-300">
                 <div className="flex items-center justify-between text-[#80756f]">
                   <span className="text-[11px] font-bold uppercase tracking-wider">In Production</span>
                   <span className="material-symbols-outlined text-[19px] text-[#180f0a]">precision_manufacturing</span>
@@ -229,7 +251,7 @@ export default function AdminDashboardPage() {
               </div>
 
               {/* KPI 4: Ready to Dispatch */}
-              <div className="p-4 bg-white rounded-2xl shadow-[0_4px_20px_-2px_rgba(46,36,30,0.04)] border border-[#e5e2dd] flex flex-col justify-between">
+              <div data-dash-kpi className="p-4 bg-white rounded-2xl shadow-[0_4px_20px_-2px_rgba(46,36,30,0.04)] border border-[#e5e2dd] flex flex-col justify-between hover:shadow-[0_10px_30px_-8px_rgba(46,36,30,0.12)] hover:-translate-y-0.5 transition-all duration-300">
                 <div className="flex items-center justify-between text-[#80756f]">
                   <span className="text-[11px] font-bold uppercase tracking-wider">Ready to Dispatch</span>
                   <span className="material-symbols-outlined text-[19px] text-[#964735]">package_2</span>
@@ -246,7 +268,7 @@ export default function AdminDashboardPage() {
               </div>
 
               {/* KPI 5: Total Revenue */}
-              <div className="p-4 bg-white rounded-2xl shadow-[0_4px_20px_-2px_rgba(46,36,30,0.04)] border border-[#e5e2dd] flex flex-col justify-between col-span-2 sm:col-span-1">
+              <div data-dash-kpi className="p-4 bg-white rounded-2xl shadow-[0_4px_20px_-2px_rgba(46,36,30,0.04)] border border-[#e5e2dd] flex flex-col justify-between col-span-2 sm:col-span-1 hover:shadow-[0_10px_30px_-8px_rgba(46,36,30,0.12)] hover:-translate-y-0.5 transition-all duration-300">
                 <div className="flex items-center justify-between text-[#80756f]">
                   <span className="text-[11px] font-bold uppercase tracking-wider">Total Revenue</span>
                   <span className="material-symbols-outlined text-[19px] text-[#5b6d54]">payments</span>
@@ -264,7 +286,7 @@ export default function AdminDashboardPage() {
             </div>
 
             {/* Order Pipeline (Canonical Workflow) */}
-            <div className="p-6 bg-white rounded-2xl shadow-[0_4px_20px_-2px_rgba(46,36,30,0.04)] border border-[#e5e2dd]">
+            <div data-dash-panel className="p-6 bg-white rounded-2xl shadow-[0_4px_20px_-2px_rgba(46,36,30,0.04)] border border-[#e5e2dd] hover:shadow-[0_10px_30px_-8px_rgba(46,36,30,0.08)] transition-shadow duration-300">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
                 <div>
                   <h2 className="font-serif text-xl sm:text-2xl text-[#180f0a] font-medium">
@@ -445,7 +467,7 @@ export default function AdminDashboardPage() {
               {/* LEFT COLUMN: Recent Orders & Revenue (7 cols) */}
               <div className="lg:col-span-7 space-y-8 min-w-0">
                 {/* SECTION A: RECENT ORDERS TABLE */}
-                <div className="bg-white rounded-2xl shadow-[0_4px_20px_-2px_rgba(46,36,30,0.04)] border border-[#e5e2dd] p-6">
+                <div data-dash-panel className="bg-white rounded-2xl shadow-[0_4px_20px_-2px_rgba(46,36,30,0.04)] border border-[#e5e2dd] p-6">
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <h2 className="font-serif text-xl text-[#180f0a] font-medium">
@@ -486,9 +508,7 @@ export default function AdminDashboardPage() {
                             </td>
                             <td className="py-3 px-2 font-semibold text-right text-[#180f0a]">{order.amount}</td>
                             <td className="py-3 px-2">
-                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${order.statusStyle}`}>
-                                {order.status}
-                              </span>
+                              <AdminOrderStatusPill status={order.status} />
                             </td>
                             <td className="py-3 px-2 text-[12px] text-[#80756f]">{order.date}</td>
                             <td className="py-3 px-2 text-center">
@@ -508,7 +528,7 @@ export default function AdminDashboardPage() {
                 </div>
 
                 {/* SECTION B: REVENUE OVERVIEW (Chart Card) */}
-                <div className="bg-white rounded-2xl shadow-[0_4px_20px_-2px_rgba(46,36,30,0.04)] border border-[#e5e2dd] p-6">
+                <div data-dash-panel className="bg-white rounded-2xl shadow-[0_4px_20px_-2px_rgba(46,36,30,0.04)] border border-[#e5e2dd] p-6">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
                     <div>
                       <h2 className="font-serif text-xl text-[#180f0a] font-medium">
@@ -602,7 +622,7 @@ export default function AdminDashboardPage() {
               {/* RIGHT COLUMN: Tasks, Alerts & Shortcuts (5 cols) */}
               <div className="lg:col-span-5 space-y-8 min-w-0">
                 {/* CARD 1: TODAY'S CRAFTING QUEUE */}
-                <div className="bg-white rounded-2xl shadow-[0_4px_20px_-2px_rgba(46,36,30,0.04)] border border-[#e5e2dd] p-6">
+                <div data-dash-panel className="bg-white rounded-2xl shadow-[0_4px_20px_-2px_rgba(46,36,30,0.04)] border border-[#e5e2dd] p-6">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
                       <span className="material-symbols-outlined text-[20px] text-[#180f0a]">draw</span>
@@ -665,7 +685,7 @@ export default function AdminDashboardPage() {
                 </div>
 
                 {/* CARD 2: LOW STOCK ALERTS */}
-                <div className="bg-white rounded-2xl shadow-[0_4px_20px_-2px_rgba(46,36,30,0.04)] border border-[#e5e2dd] p-6">
+                <div data-dash-panel className="bg-white rounded-2xl shadow-[0_4px_20px_-2px_rgba(46,36,30,0.04)] border border-[#e5e2dd] p-6">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
                       <span className="material-symbols-outlined text-[20px] text-[#ba1a1a]">warning</span>
@@ -708,7 +728,7 @@ export default function AdminDashboardPage() {
                 </div>
 
                 {/* CARD 3: OPERATIONS SHORTCUTS */}
-                <div className="bg-white rounded-2xl shadow-[0_4px_20px_-2px_rgba(46,36,30,0.04)] border border-[#e5e2dd] p-6">
+                <div data-dash-panel className="bg-white rounded-2xl shadow-[0_4px_20px_-2px_rgba(46,36,30,0.04)] border border-[#e5e2dd] p-6">
                   <h2 className="font-serif text-xl text-[#180f0a] font-medium mb-3">
                     Operations Shortcuts
                   </h2>

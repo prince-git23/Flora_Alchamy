@@ -99,10 +99,13 @@ export default function AdminSidebar({ isOpen, onClose }) {
   ];
 
   const sidebarContent = (
-    <div className="h-full flex flex-col justify-between bg-[#f6f3ee] border-r border-[#e5e2dd] select-none">
-      <div className="flex flex-col flex-1 min-h-0">
+    <div className="h-full flex flex-col justify-between bg-[#f6f3ee] border-r border-[#e5e2dd] select-none relative overflow-hidden">
+      {/* Ambient depth glow */}
+      <div className="absolute -top-16 -right-16 w-48 h-48 rounded-full bg-[#ffdad3]/10 blur-3xl pointer-events-none" />
+      <div className="absolute bottom-24 -left-12 w-40 h-40 rounded-full bg-[#d8e7cd]/10 blur-3xl pointer-events-none" />
+      <div className="flex flex-col flex-1 min-h-0 relative">
         {/* Brand Header */}
-        <div className="h-16 px-4 flex items-center justify-between border-b border-[#e5e2dd]/70 bg-[#f6f3ee]">
+        <div className="h-16 px-4 flex items-center justify-between border-b border-[#e5e2dd]/70 bg-[#f6f3ee]/80 backdrop-blur-sm">
           <Link to="/admin/dashboard" className="flex items-center gap-2.5">
             {/* Custom Botanical Emblem */}
             <div className="w-8 h-8 rounded-full bg-[#180f0a] flex items-center justify-center text-white shadow-sm shrink-0">
@@ -149,16 +152,20 @@ export default function AdminSidebar({ isOpen, onClose }) {
                       key={item.name}
                       to={item.path}
                       onClick={onClose}
-                      className={`flex items-center justify-between px-2.5 py-2 rounded-xl text-[13px] font-medium transition-all ${
+                      className={`group relative flex items-center justify-between px-2.5 py-2 rounded-xl text-[13px] font-medium transition-all duration-300 ${
                         isActive
-                          ? 'bg-[#180f0a] text-white font-semibold shadow-sm'
-                          : 'text-[#4e4540] hover:bg-[#ebe8e3] hover:text-[#1c1c19]'
+                          ? 'bg-[#180f0a] text-white font-semibold shadow-md shadow-[#180f0a]/20'
+                          : 'text-[#4e4540] hover:bg-[#ebe8e3] hover:text-[#1c1c19] hover:translate-x-0.5'
                       }`}
                     >
+                      {/* Active depth rail */}
+                      {isActive && (
+                        <span className="absolute -left-3 top-1/2 -translate-y-1/2 w-1 h-5 rounded-full bg-[#964735] shadow-sm" aria-hidden="true" />
+                      )}
                       <div className="flex items-center gap-2.5">
                         <span
-                          className={`material-symbols-outlined text-[19px] ${
-                            isActive ? 'text-white' : 'text-[#80756f]'
+                          className={`material-symbols-outlined text-[19px] transition-colors ${
+                            isActive ? 'text-[#ffdad3]' : 'text-[#80756f] group-hover:text-[#964735]'
                           }`}
                         >
                           {item.icon}
@@ -166,7 +173,7 @@ export default function AdminSidebar({ isOpen, onClose }) {
                         <span>{item.name}</span>
                       </div>
                       {isActive && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#ffdad3]"></span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#ffdad3] animate-pulse"></span>
                       )}
                     </NavLink>
                   );
@@ -179,12 +186,12 @@ export default function AdminSidebar({ isOpen, onClose }) {
 
 
       {/* Bottom Actions */}
-      <div className="p-3 border-t border-[#e5e2dd] space-y-1 bg-[#f6f3ee]">
+      <div className="p-3 border-t border-[#e5e2dd] space-y-1 bg-[#f6f3ee]/80 backdrop-blur-sm relative">
         <Link
           to="/"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-between px-2.5 py-2 rounded-xl text-[13px] font-medium text-[#4e4540] hover:bg-[#ebe8e3] hover:text-[#1c1c19] transition-all"
+          className="flex items-center justify-between px-2.5 py-2 rounded-xl text-[13px] font-medium text-[#4e4540] hover:bg-[#ebe8e3] hover:text-[#1c1c19] hover:-translate-y-0.5 transition-all duration-300"
         >
           <span className="flex items-center gap-2.5">
             <span className="material-symbols-outlined text-[18px]">storefront</span>
@@ -195,7 +202,7 @@ export default function AdminSidebar({ isOpen, onClose }) {
         <button
           type="button"
           onClick={handleSignOut}
-          className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-[13px] font-medium text-[#4e4540] hover:text-[#ba1a1a] hover:bg-[#ffdad6]/40 transition-all"
+          className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-[13px] font-medium text-[#4e4540] hover:text-[#ba1a1a] hover:bg-[#ffdad6]/40 hover:-translate-y-0.5 transition-all duration-300"
         >
           <span className="material-symbols-outlined text-[18px]">logout</span>
           <span>Sign Out</span>
@@ -207,7 +214,7 @@ export default function AdminSidebar({ isOpen, onClose }) {
   return (
     <>
       {/* Desktop Persistent Sidebar */}
-      <aside className="hidden md:flex flex-col fixed left-0 top-0 h-full w-[260px] z-30 shadow-[0_1px_8px_rgba(46,36,30,0.04)]">
+      <aside className="hidden md:flex flex-col fixed left-0 top-0 h-full w-[260px] z-30 shadow-[4px_0_24px_-8px_rgba(46,36,30,0.08)]">
         {sidebarContent}
       </aside>
 

@@ -1,17 +1,38 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout.jsx';
-import { getOrderById as getOrderFromService, updateOrderStatus, ORDER_STATUSES, ORDER_STATUS_STYLES, formatINR, formatDate } from '../../services/orderService.js';
+import { getOrderById as getOrderFromService, updateOrderStatus, ORDER_STATUSES, ORDER_STATUS_STYLES, formatINR, formatDate, getStatusLabel, getCustomerFacingStatus } from '../../services/orderService.js';
 import { getCustomerById } from '../../services/customerService.js';
+import { AdminOrderStatusPill, AdminPaymentStatusPill } from '../../components/admin/AdminStatusPill.jsx';
+
+/* ── GSAP ── */
+import gsap from 'gsap';
+
+const prefersReduced = typeof window !== 'undefined' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export default function AdminOrderDetailPage() {
   const { orderId } = useParams();
   const [statusModalOpen, setStatusModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
+  const pageRef = useRef(null);
 
   const [orderData, setOrderData] = useState(() => getOrderFromService(orderId));
   const order = orderData;
   const customer = order ? getCustomerById(order.customerId) : null;
+
+  /* ── GSAP: entrance for panels + history entries (after data ready) ── */
+  useEffect(() => {
+    if (prefersReduced || !order || !pageRef.current) return;
+    const ctx = gsap.context(() => {
+      gsap.from('[data-od-panel]', { y: 16, opacity: 0, duration: 0.45, ease: 'power2.out', stagger: 0.07, delay: 0.05 });
+      const entries = pageRef.current.querySelectorAll('[data-history-entry]');
+      if (entries.length) {
+        gsap.from(entries, { x: -12, opacity: 0, duration: 0.4, ease: 'power2.out', stagger: 0.06, delay: 0.25 });
+      }
+    }, pageRef);
+    return () => ctx.revert();
+  }, [order && order.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const triggerToast = (msg) => {
     setToastMessage(msg);
@@ -57,7 +78,7 @@ export default function AdminOrderDetailPage() {
 
   return (
     <AdminLayout>
-      <div className="max-w-7xl mx-auto space-y-6 pb-12">
+      <div ref={pageRef} className="max-w-7xl mx-auto space-y-6 pb-12">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -106,7 +127,7 @@ export default function AdminOrderDetailPage() {
           {/* Left: Order Items & Shipping */}
           <div className="lg:col-span-2 space-y-6">
             {/* Order Items */}
-            <div className="bg-white rounded-xl border border-[#e5e2dd] p-6 shadow-xs">
+            <div data-od-panel className="bg-white rounded-xl border border-[#e5e2dd] p-6 shadow-xs">
               <h2 className="font-serif text-lg text-[#180f0a] font-medium mb-4">Order Items</h2>
               <div className="divide-y divide-[#f0ede9]">
                 {order.items.map((item, idx) => (
@@ -173,7 +194,7 @@ export default function AdminOrderDetailPage() {
             </div>
 
             {/* Shipping Address */}
-            <div className="bg-white rounded-xl border border-[#e5e2dd] p-6 shadow-xs">
+            <div data-od-panel className="bg-white rounded-xl border border-[#e5e2dd] p-6 shadow-xs">
               <h2 className="font-serif text-lg text-[#180f0a] font-medium mb-4">Shipping Address</h2>
               <div className="space-y-1.5 text-[13px] text-[#4e4540]">
                 <p className="font-semibold text-[#180f0a]">{order.shippingAddress.name}</p>
@@ -187,7 +208,7 @@ export default function AdminOrderDetailPage() {
           {/* Right: Customer & Metadata */}
           <div className="space-y-6">
             {/* Customer Card */}
-            <div className="bg-white rounded-xl border border-[#e5e2dd] p-6 shadow-xs">
+            <div data-od-panel className="bg-white rounded-xl border border-[#e5e2dd] p-6 shadow-xs">
               <h2 className="font-serif text-lg text-[#180f0a] font-medium mb-4">Customer</h2>
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
@@ -208,31 +229,12 @@ export default function AdminOrderDetailPage() {
             </div>
 
             {/* Order Metadata */}
-            <div className="bg-white rounded-xl border border-[#e5e2dd] p-6 shadow-xs">
+            <div data-od-panel className="bg-white rounded-xl border border-[#e5e2dd] p-6 shadow-xs">
               <h2 className="font-serif text-lg text-[#180f0a] font-medium mb-4">Order Information</h2>
               <div className="space-y-3 text-[13px]">
                 <div className="flex items-center justify-between">
                   <span className="text-[#80756f]">Payment Status</span>
-                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${
-                    order.paymentStatus === 'Paid'
-                      ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                      : order.paymentStatus === 'Failed'
-                        ? 'bg-red-50 text-red-700 border border-red-200'
-                        : order.paymentStatus === 'Refunded'
-                          ? 'bg-stone-100 text-stone-700 border border-stone-200'
-                          : 'bg-amber-50 text-amber-800 border border-amber-200'
-                  }`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${
-                      order.paymentStatus === 'Paid'
-                        ? 'bg-emerald-600'
-                        : order.paymentStatus === 'Failed'
-                          ? 'bg-red-500'
-                          : order.paymentStatus === 'Refunded'
-                            ? 'bg-stone-500'
-                            : 'bg-amber-600'
-                    }`}></span>
-                    {order.paymentStatus}
-                  </span>
+                  <AdminPaymentStatusPill status={order.paymentStatus} />
                 </div>
                 {order.paymentProvider && (
                   <div className="pt-2 border-t border-[#f0ede9] space-y-2 mt-1">
@@ -299,6 +301,40 @@ export default function AdminOrderDetailPage() {
                 )}
               </div>
             </div>
+
+            {/* Status History — real backend timeline (order.statusHistory) */}
+            {Array.isArray(order.statusHistory) && order.statusHistory.length > 0 && (
+              <div data-od-panel className="bg-white rounded-xl border border-[#e5e2dd] p-6 shadow-xs">
+                <h2 className="font-serif text-lg text-[#180f0a] font-medium mb-4">Status History</h2>
+                <ol className="relative border-l border-[#e5e2dd] ml-2 space-y-4">
+                  {[...order.statusHistory].reverse().map((entry, idx) => {
+                    const at = entry.at || entry.changedAt || entry.createdAt;
+                    const when = at ? new Date(at) : null;
+                    const valid = when && !Number.isNaN(when.getTime());
+                    return (
+                      <li key={idx} data-history-entry className="ml-4 pl-1">
+                        <span
+                          className={`absolute -left-[5px] w-2.5 h-2.5 rounded-full ${idx === 0 ? 'bg-[#964735] ring-4 ring-[#ffdad3]/40' : 'bg-[#d9d3cc]'}`}
+                          aria-hidden="true"
+                        />
+                        <div className="flex flex-wrap items-baseline gap-x-2">
+                          <span className={`text-[13px] font-semibold ${idx === 0 ? 'text-[#964735]' : 'text-[#180f0a]'}`}>
+                            {getStatusLabel(entry.status) || entry.status}
+                          </span>
+                          {valid && (
+                            <time dateTime={when.toISOString()} className="text-[11px] text-[#b0a89f]">
+                              {when.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                            </time>
+                          )}
+                        </div>
+                        {entry.note && <p className="text-[12px] text-[#80756f] mt-0.5">{entry.note}</p>}
+                        {entry.changedBy && <p className="text-[11px] text-[#b0a89f] mt-0.5">by {entry.changedBy}</p>}
+                      </li>
+                    );
+                  })}
+                </ol>
+              </div>
+            )}
           </div>
         </div>
 

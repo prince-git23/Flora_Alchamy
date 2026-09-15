@@ -4,17 +4,10 @@ import AdminLayout from '../../components/admin/AdminLayout.jsx';
 import { getAllCustomRequests } from '../../services/customRequestService.js';
 import { getCustomers } from '../../services/customerService.js';
 import { formatDate } from '../../services/orderService.js';
+import { AdminRequestStatusPill } from '../../components/admin/AdminStatusPill.jsx';
 
 // Backend enum (backend/models/CustomRequest.js). Do not invent statuses.
 const STATUS_FILTERS = ['All', 'pending', 'reviewing', 'quoted', 'accepted', 'declined'];
-
-const STATUS_BADGE = {
-  pending: 'bg-[#fdf6e3] text-[#8a6d1a] border-[#e9d8a6]',
-  reviewing: 'bg-[#eef3fb] text-[#3a5a8c] border-[#c9d9ef]',
-  quoted: 'bg-[#f3eefb] text-[#6b4fa1] border-[#ddd0f0]',
-  accepted: 'bg-[#e8f0e6] text-[#3f5a3a] border-[#c4d6bf]',
-  declined: 'bg-[#fdecea] text-[#8a2a18] border-[#f5c6bd]',
-};
 
 export default function AdminCustomRequestsPage() {
   const [requests, setRequests] = useState([]);
@@ -170,9 +163,7 @@ export default function AdminCustomRequestsPage() {
                       <td className="px-4 py-3 text-[13px] text-[#4e4540]">{r.desiredDate ? formatDate(r.desiredDate) : '—'}</td>
                       <td className="px-4 py-3 text-[13px] text-[#80756f]">{formatDate(r.createdAt)}</td>
                       <td className="px-4 py-3">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold capitalize border ${STATUS_BADGE[r.status] || 'bg-[#f6f3ee] text-[#4e4540] border-[#e5e2dd]'}`}>
-                          {r.status}
-                        </span>
+                        <AdminRequestStatusPill status={r.status} />
                       </td>
                       <td className="px-4 py-3 text-right">
                         <Link
@@ -194,9 +185,7 @@ export default function AdminCustomRequestsPage() {
                 <Link key={r._id || r.id} to={`/admin/custom-requests/${r._id || r.id}`} className="block p-4 hover:bg-[#faf8f5] transition-colors">
                   <div className="flex items-start justify-between gap-3">
                     <p className="text-[13px] font-semibold text-[#180f0a] line-clamp-2">{r.description}</p>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold capitalize border shrink-0 ${STATUS_BADGE[r.status] || 'bg-[#f6f3ee] text-[#4e4540] border-[#e5e2dd]'}`}>
-                      {r.status}
-                    </span>
+                    <AdminRequestStatusPill status={r.status} className="shrink-0" />
                   </div>
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-[12px] text-[#80756f]">
                     <span className="font-medium text-[#4e4540]">{customerNames[String(r.customerId)] || 'Customer'}</span>

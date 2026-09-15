@@ -1,7 +1,14 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout.jsx';
 import { getOrders, ORDER_STATUSES, ORDER_STATUS_STYLES, getStatusCounts, formatINR, formatDate } from '../../services/orderService.js';
+import { AdminOrderStatusPill, AdminPaymentStatusPill } from '../../components/admin/AdminStatusPill.jsx';
+
+/* ── GSAP ── */
+import gsap from 'gsap';
+
+const prefersReduced = typeof window !== 'undefined' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export default function AdminOrdersPage() {
   const [statusFilter, setStatusFilter] = useState('all');
@@ -9,6 +16,17 @@ export default function AdminOrdersPage() {
   const [dateFilter, setDateFilter] = useState('all');
   const [paymentFilter, setPaymentFilter] = useState('all');
   const [selectedOrders, setSelectedOrders] = useState([]);
+  const pageRef = useRef(null);
+
+  /* ── GSAP: operational reveal — one entrance, no per-row animation ── */
+  useEffect(() => {
+    if (prefersReduced || !pageRef.current) return;
+    const ctx = gsap.context(() => {
+      gsap.from('[data-orders-kpi]', { y: 14, opacity: 0, duration: 0.4, ease: 'power2.out', stagger: 0.05, delay: 0.05 });
+      gsap.from('[data-orders-toolbar]', { y: 16, opacity: 0, duration: 0.45, ease: 'power2.out', delay: 0.15 });
+    }, pageRef);
+    return () => ctx.revert();
+  }, []);
 
   const orders = useMemo(() => getOrders(), []);
   const counts = getStatusCounts();
@@ -70,7 +88,7 @@ export default function AdminOrdersPage() {
 
   return (
     <AdminLayout>
-      <div className="max-w-7xl mx-auto space-y-6 pb-12">
+      <div ref={pageRef} className="max-w-7xl mx-auto space-y-6 pb-12">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -93,7 +111,7 @@ export default function AdminOrdersPage() {
 
         {/* KPI Strip */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
-          <div className="bg-white p-4 rounded-xl border border-[#e5e2dd] shadow-xs hover:border-[#d1c4bd] transition">
+          <div data-orders-kpi className="bg-white p-4 rounded-xl border border-[#e5e2dd] shadow-xs hover:border-[#d1c4bd] hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
             <div className="flex items-center justify-between text-[#80756f] mb-1.5">
               <span className="text-[11px] uppercase tracking-wider font-semibold">Total Orders</span>
               <span className="material-symbols-outlined text-[16px]">shopping_bag</span>
@@ -101,7 +119,7 @@ export default function AdminOrdersPage() {
             <div className="text-3xl font-serif font-medium text-[#180f0a] leading-none">{counts.total}</div>
             <p className="text-[11px] text-[#80756f] mt-2">All customer orders</p>
           </div>
-          <div className="bg-white p-4 rounded-xl border border-[#e5e2dd] shadow-xs hover:border-[#d1c4bd] transition">
+          <div data-orders-kpi className="bg-white p-4 rounded-xl border border-[#e5e2dd] shadow-xs hover:border-[#d1c4bd] hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
             <div className="flex items-center justify-between text-[#80756f] mb-1.5">
               <span className="text-[11px] uppercase tracking-wider font-semibold">New Orders</span>
               <span className="material-symbols-outlined text-[16px] text-[#964735]">schedule</span>
@@ -112,7 +130,7 @@ export default function AdminOrdersPage() {
               Requires attention
             </p>
           </div>
-          <div className="bg-white p-4 rounded-xl border border-[#e5e2dd] shadow-xs hover:border-[#d1c4bd] transition">
+          <div data-orders-kpi className="bg-white p-4 rounded-xl border border-[#e5e2dd] shadow-xs hover:border-[#d1c4bd] hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
             <div className="flex items-center justify-between text-[#80756f] mb-1.5">
               <span className="text-[11px] uppercase tracking-wider font-semibold">In Production</span>
               <span className="material-symbols-outlined text-[16px] text-[#180f0a]">precision_manufacturing</span>
@@ -123,7 +141,7 @@ export default function AdminOrdersPage() {
               Currently being crafted
             </p>
           </div>
-          <div className="bg-white p-4 rounded-xl border border-[#e5e2dd] shadow-xs hover:border-[#d1c4bd] transition">
+          <div data-orders-kpi className="bg-white p-4 rounded-xl border border-[#e5e2dd] shadow-xs hover:border-[#d1c4bd] hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
             <div className="flex items-center justify-between text-[#80756f] mb-1.5">
               <span className="text-[11px] uppercase tracking-wider font-semibold">Ready to Dispatch</span>
               <span className="material-symbols-outlined text-[16px] text-[#5b6d54]">inventory_2</span>
@@ -134,7 +152,7 @@ export default function AdminOrdersPage() {
               Awaiting dispatch
             </p>
           </div>
-          <div className="bg-white p-4 rounded-xl border border-[#e5e2dd] shadow-xs hover:border-[#d1c4bd] transition">
+          <div data-orders-kpi className="bg-white p-4 rounded-xl border border-[#e5e2dd] shadow-xs hover:border-[#d1c4bd] hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
             <div className="flex items-center justify-between text-[#80756f] mb-1.5">
               <span className="text-[11px] uppercase tracking-wider font-semibold">Delivered</span>
               <span className="material-symbols-outlined text-[16px]">check_circle</span>
@@ -145,7 +163,7 @@ export default function AdminOrdersPage() {
         </div>
 
         {/* Filter Toolbar */}
-        <div className="bg-white rounded-xl border border-[#e5e2dd] p-3.5 shadow-xs space-y-3">
+        <div data-orders-toolbar className="bg-white rounded-xl border border-[#e5e2dd] p-3.5 shadow-xs space-y-3">
           {/* Status Tabs */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 border-b border-[#f0ede9] -mx-1 px-1 scrollbar-none">
             {statusTabs.map(tab => (
@@ -239,32 +257,10 @@ export default function AdminOrdersPage() {
                         </td>
                         <td className="py-3.5 px-4 whitespace-nowrap font-mono font-semibold text-[#180f0a]">{formatINR(order.total)}</td>
                         <td className="py-3.5 px-4 whitespace-nowrap">
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${
-                            order.paymentStatus === 'Paid'
-                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                              : order.paymentStatus === 'Failed'
-                                ? 'bg-red-50 text-red-700 border border-red-200'
-                                : order.paymentStatus === 'Refunded'
-                                  ? 'bg-stone-100 text-stone-700 border border-stone-200'
-                                  : 'bg-amber-50 text-amber-800 border border-amber-200'
-                          }`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${
-                              order.paymentStatus === 'Paid'
-                                ? 'bg-emerald-600'
-                                : order.paymentStatus === 'Failed'
-                                  ? 'bg-red-500'
-                                  : order.paymentStatus === 'Refunded'
-                                    ? 'bg-stone-500'
-                                    : 'bg-amber-600'
-                            }`}></span>
-                            {order.paymentStatus}
-                          </span>
+                          <AdminPaymentStatusPill status={order.paymentStatus} />
                         </td>
                         <td className="py-3.5 px-4 whitespace-nowrap">
-                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${style.bg} ${style.text} border ${style.border}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${style.dot} ${order.orderStatus === 'in_production' ? 'animate-pulse' : ''}`}></span>
-                            {statusObj?.label || order.orderStatus}
-                          </span>
+                          <AdminOrderStatusPill status={order.orderStatus} />
                         </td>
                         <td className="py-3.5 px-4 whitespace-nowrap text-[11px] text-[#80756f]">{formatDate(order.createdAt)}</td>
                         <td className="py-3.5 px-4 whitespace-nowrap text-right">

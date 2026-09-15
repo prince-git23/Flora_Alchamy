@@ -4,11 +4,7 @@ import AdminLayout from '../../components/admin/AdminLayout.jsx';
 import { listConversations } from '../../services/conversationService.js';
 import { getOrders, formatDate, formatINR } from '../../services/orderService.js';
 import { getCustomers } from '../../services/customerService.js';
-
-const STATUS_BADGE = {
-  open: 'bg-[#e8f0e6] text-[#3f5a3a] border-[#c4d6bf]',
-  closed: 'bg-[#f0ede9] text-[#80756f] border-[#d8d2cc]',
-};
+import { AdminConversationStatusPill } from '../../components/admin/AdminStatusPill.jsx';
 
 export default function AdminConversationsPage() {
   const navigate = useNavigate();
@@ -152,7 +148,9 @@ export default function AdminConversationsPage() {
                   onClick={() =>
                     navigate(`/admin/orders/${conv.orderId}/conversation`)
                   }
-                  className="w-full text-left px-5 py-4 hover:bg-[#f6f3ee] transition-colors flex items-center gap-4"
+                  className={`w-full text-left px-5 py-4 transition-colors flex items-center gap-4 ${
+                    conv.unreadCount > 0 ? 'bg-[#fdf6f4] hover:bg-[#f9ebe8]' : 'hover:bg-[#f6f3ee]'
+                  }`}
                 >
                   {/* Customer initial */}
                   <div className="w-10 h-10 rounded-full bg-[#180f0a] text-white flex items-center justify-center text-[14px] font-bold shrink-0">
@@ -188,15 +186,9 @@ export default function AdminConversationsPage() {
 
                   {/* Status + unread */}
                   <div className="flex items-center gap-3 shrink-0">
-                    <span
-                      className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
-                        STATUS_BADGE[conv.status] || STATUS_BADGE.open
-                      }`}
-                    >
-                      {conv.status || 'open'}
-                    </span>
+                    <AdminConversationStatusPill status={conv.status || 'open'} />
                     {conv.unreadCount > 0 && (
-                      <span className="w-5 h-5 rounded-full bg-[#964735] text-white text-[10px] font-bold flex items-center justify-center">
+                      <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-[#964735] text-white text-[10px] font-bold flex items-center justify-center" aria-label={`${conv.unreadCount} unread messages`}>
                         {conv.unreadCount}
                       </span>
                     )}
