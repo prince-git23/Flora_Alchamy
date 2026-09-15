@@ -37,6 +37,7 @@ const GiftFinderPage = lazy(() => import('./pages/GiftFinderPage.jsx'));
 const LoginPage = lazy(() => import('./pages/LoginPage.jsx'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage.jsx'));
 const ConversationPage = lazy(() => import('./pages/ConversationPage.jsx'));
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage.jsx'));
 
 // Admin / Handler Pages — never downloaded by storefront visitors.
 const AdminDashboardPage = lazy(() => import('./pages/admin/AdminDashboardPage.jsx'));
@@ -151,6 +152,7 @@ export default function App() {
             <Route path="/custom-request" element={<CustomRequestPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/order/:orderId/conversation" element={<ConversationPage />} />
+            <Route path="/notifications" element={<NotificationsPage />} />
 
             {/* Admin / Handler Portal Routes */}
             <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />

@@ -4,6 +4,7 @@ import { Search, Heart, ShoppingBag, User, Menu, X, ChevronDown, Gift, Sparkles,
 import { useStore } from '../context/StoreContext.jsx';
 import { getActiveCustomer } from '../services/customerService.js';
 import SearchOverlay from './SearchOverlay.jsx';
+import NotificationBell from './NotificationBell.jsx';
 
 const SHOP_ITEMS = [
   { label: 'All Gifts', to: '/shop' },
@@ -261,6 +262,8 @@ export default function Navbar() {
               <Search className="w-4 h-4 text-[#4e4540]" aria-hidden="true" />
               <span className="text-[11px] font-bold uppercase tracking-widest text-[#4e4540]/80 hidden sm:inline">⌘K</span>
             </button>
+
+            <NotificationBell />
 
             <Link
               to="/wishlist"

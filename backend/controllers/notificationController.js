@@ -1,6 +1,21 @@
 import Notification from '../models/Notification.js';
 
 /**
+ * Ownership filter for the authenticated user.
+ *
+ * Customer-facing notifications are created against the linked Customer
+ * record (order.customerId / request.customerId / conversation.customerId),
+ * while staff notifications use the User _id. Both ids belong to the same
+ * authenticated account, so accepting the pair here fixes the historical
+ * field mismatch without ever trusting a client-supplied identifier.
+ */
+function ownerFilter(user) {
+  const ids = [user._id];
+  if (user.customerId) ids.push(user.customerId);
+  return { userId: { $in: ids } };
+}
+
+/**
  * GET /api/notifications
  * List notifications for the current user. Supports ?unread=true filter.
  * Projection: only fields the UI renders — skips entityType/entityId/link
@@ -11,14 +26,14 @@ const LIST_PROJECTION = 'type title message read readAt createdAt link';
 export async function listNotifications(req, res) {
   try {
     const { unread } = req.query;
-    const filter = { userId: req.user._id };
+    const filter = ownerFilter(req.user);
     if (unread === 'true') filter.read = false;
     const notifications = await Notification.find(filter)
       .select(LIST_PROJECTION)
       .sort({ createdAt: -1 })
       .limit(50)
       .lean();
-    const unreadCount = await Notification.countDocuments({ userId: req.user._id, read: false });
+    const unreadCount = await Notification.countDocuments({ ...filter, read: false });
     res.json({ notifications, unreadCount });
   } catch (err) {
     console.error('listNotifications error:', err);
@@ -32,7 +47,7 @@ export async function listNotifications(req, res) {
  */
 export async function unreadCount(req, res) {
   try {
-    const count = await Notification.countDocuments({ userId: req.user._id, read: false });
+    const count = await Notification.countDocuments({ ...ownerFilter(req.user), read: false });
     res.json({ unreadCount: count });
   } catch (err) {
     console.error('unreadCount error:', err);
@@ -47,12 +62,12 @@ export async function unreadCount(req, res) {
 export async function markRead(req, res) {
   try {
     const notification = await Notification.findOneAndUpdate(
-      { _id: req.params.id, userId: req.user._id },
+      { _id: req.params.id, ...ownerFilter(req.user) },
       { read: true, readAt: new Date() },
       { new: true },
     );
     if (!notification) return res.status(404).json({ message: 'Notification not found.' });
-    const unreadCount = await Notification.countDocuments({ userId: req.user._id, read: false });
+    const unreadCount = await Notification.countDocuments({ ...ownerFilter(req.user), read: false });
     res.json({ notification, unreadCount });
   } catch (err) {
     console.error('markRead error:', err);
@@ -67,7 +82,7 @@ export async function markRead(req, res) {
 export async function markAllRead(req, res) {
   try {
     await Notification.updateMany(
-      { userId: req.user._id, read: false },
+      { ...ownerFilter(req.user), read: false },
       { read: true, readAt: new Date() },
     );
     res.json({ unreadCount: 0 });

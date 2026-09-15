@@ -6,6 +6,12 @@ import { getOrderById, formatINR, getStatusLabel, getStatusStage } from '../serv
 import { getToken } from '../services/apiClient.js';
 import api from '../services/apiClient.js';
 
+/* ── GSAP (customer view only) ── */
+import gsap from 'gsap';
+
+const prefersReduced = typeof window !== 'undefined' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 /**
  * ConversationPage — order-linked customer ↔ handler text chat.
  *
@@ -78,6 +84,7 @@ export default function ConversationPage() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [initialized, setInitialized] = useState(false);
@@ -171,13 +178,15 @@ export default function ConversationPage() {
     if (!newMessage.trim() || sending || !conversation) return;
 
     setSending(true);
+    setSendError('');
     try {
       const msg = await sendMessage(conversation.id || conversation._id, newMessage.trim(), { scope: admin ? 'admin' : 'customer' });
       setMessages((prev) => [...prev, msg]);
       setNewMessage('');
       textareaRef.current?.focus();
     } catch (err) {
-      setError(err.message || 'Failed to send message.');
+      // The typed message stays in the composer — never silently lose input.
+      setSendError(err.message || 'Your message could not be sent. Please try again.');
     } finally {
       setSending(false);
     }
@@ -189,6 +198,27 @@ export default function ConversationPage() {
       handleSend();
     }
   };
+
+  /* ── GSAP: thread entrance + message reveal (customer view only) ── */
+  const threadRef = useRef(null);
+  useEffect(() => {
+    if (admin || prefersReduced || !threadRef.current) return;
+    const ctx = gsap.context(() => {
+      gsap.from(threadRef.current.querySelector('[data-conv-header]'), {
+        y: 18, opacity: 0, duration: 0.55, ease: 'power3.out',
+      });
+      const bubbles = threadRef.current.querySelectorAll('[data-msg]');
+      if (bubbles.length) {
+        gsap.from(bubbles, { y: 10, opacity: 0, duration: 0.4, ease: 'power2.out', stagger: 0.05, clearProps: 'all' });
+      }
+      gsap.from(threadRef.current.querySelector('[data-composer]'), {
+        y: 14, opacity: 0, duration: 0.5, delay: 0.15, ease: 'power3.out',
+      });
+    }, threadRef);
+    return () => ctx.revert();
+    // Only animate on first load of a conversation, not on every poll tick.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialized, conversation && (conversation.id || conversation._id)]);
 
   const handleStartConversation = async () => {
     try {
@@ -265,9 +295,9 @@ export default function ConversationPage() {
 
   return (
     <div className={`${admin ? '' : 'min-h-screen bg-[#fcf9f4]'}`}>
-      <div className={`${admin ? 'max-w-4xl mx-auto py-8' : 'max-w-3xl mx-auto px-4 py-8'}`}>
+      <div ref={threadRef} className={`${admin ? 'max-w-4xl mx-auto py-8' : 'max-w-3xl mx-auto px-4 py-8'}`}>
         {/* Header */}
-        <div className="bg-white rounded-3xl border border-[#e5e2dd] shadow-sm mb-4 overflow-hidden">
+        <div data-conv-header className="bg-white rounded-3xl border border-[#e5e2dd] shadow-sm mb-4 overflow-hidden">
           <div className="px-6 py-4 border-b border-[#f0ede9]">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -287,7 +317,7 @@ export default function ConversationPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                <span className="w-2 h-2 rounded-full bg-emerald-500" aria-hidden="true" />
                 <span className="text-[12px] text-[#80756f]">Messages stored with your order</span>
               </div>
             </div>
@@ -305,20 +335,29 @@ export default function ConversationPage() {
               </div>
             ) : (
               <>
-                {messages.map((msg, idx) => (
-                  <MessageBubble
-                    key={msg._id || idx}
-                    message={msg}
-                    isOwn={isOwnMessage(msg)}
-                  />
-                ))}
+                <div aria-live="polite" aria-label="Conversation messages">
+                  {messages.map((msg, idx) => (
+                    <div key={msg._id || idx} data-msg>
+                      <MessageBubble
+                        message={msg}
+                        isOwn={isOwnMessage(msg)}
+                      />
+                    </div>
+                  ))}
+                </div>
                 <div ref={messagesEndRef} />
               </>
             )}
           </div>
 
           {/* Composer */}
-          <div className="border-t border-[#f0ede9] px-6 py-4">
+          <div data-composer className="border-t border-[#f0ede9] px-6 py-4">
+            {sendError && (
+              <div role="alert" className="mb-3 flex items-start gap-2 px-3.5 py-2.5 rounded-xl bg-red-50 border border-red-200 text-[12px] text-red-700">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
+                <span>{sendError} Your draft is preserved — press send to retry.</span>
+              </div>
+            )}
             {conversation?.status === 'closed' ? (
               <div className="text-center py-3">
                 <p className="text-[13px] text-[#80756f]">This conversation is closed.</p>

@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, Navigate } from 'react-router-dom';
-import { User, Package, MapPin, Mail, Phone, Edit2, LogOut, Plus, Check, Trash2, Star, Heart, ShoppingBag, MessageSquare, Truck, ArrowRight, Settings } from 'lucide-react';
+import { User, Package, MapPin, Mail, Phone, Edit2, LogOut, Plus, Check, Trash2, Star, Heart, ShoppingBag, MessageSquare, Truck, ArrowRight, Settings, Bell, CheckCheck, Loader2 } from 'lucide-react';
 import { getAccount, apiLogout, getActiveCustomerId, getActiveCustomer, updateCustomer, addAddress, updateAddress, deleteAddress } from '../services/customerService.js';
 import { getOrdersByCustomer, getStatusLabel, formatDate, getCustomerFacingStatus } from '../services/orderService.js';
 import { getConversations } from '../services/conversationService.js';
 import { getMyCustomRequests } from '../services/customRequestService.js';
+import { fetchNotifications, markNotificationRead, markAllNotificationsRead } from '../services/notificationService.js';
+import { OrderStatusPill, RequestStatusPill } from '../components/StatusPill.jsx';
 import { useStore } from '../context/StoreContext.jsx';
 
 /* ── GSAP ── */
@@ -25,6 +27,8 @@ export default function AccountPage() {
   const [orders, setOrders] = useState([]);
   const [conversations, setConversations] = useState([]);
   const [customRequests, setCustomRequests] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
   const [activeTab, setActiveTab] = useState('overview');
   const [loaded, setLoaded] = useState(false);
 
@@ -51,14 +55,17 @@ export default function AccountPage() {
       setProfileForm({ name: (live && live.name) || (acc && acc.name) || '', phone: (live && live.phone) || (acc && acc.phone) || '' });
       const customerId = acc ? acc.customerId || acc.id : getActiveCustomerId();
       if (customerId) {
-        const [ords, convs, reqs] = await Promise.all([
+        const [ords, convs, reqs, notifData] = await Promise.all([
           getOrdersByCustomer(customerId),
           getConversations().catch(() => []),
           getMyCustomRequests().catch(() => []),
+          fetchNotifications().catch(() => ({ notifications: [], unreadCount: 0 })),
         ]);
         setOrders(ords);
         setConversations(convs);
         setCustomRequests(reqs);
+        setNotifications(notifData.notifications || []);
+        setUnreadNotifCount(notifData.unreadCount ?? 0);
       }
       setLoaded(true);
     }
@@ -212,9 +219,36 @@ export default function AccountPage() {
     { key: 'overview', label: 'Overview', icon: User },
     { key: 'orders', label: 'Orders', icon: Package, count: orders.length },
     { key: 'saved', label: 'Saved Gifts', icon: Heart, count: wishlist.length },
+    { key: 'notifications', label: 'Activity', icon: Bell, count: unreadNotifCount > 0 ? unreadNotifCount : undefined },
     { key: 'addresses', label: 'Addresses', icon: MapPin, count: addresses.length },
     { key: 'profile', label: 'Profile', icon: Settings },
   ];
+
+  const handleOpenNotification = async (n) => {
+    if (!n.read) {
+      // Optimistic read + rollback on failure (backend PATCH /notifications/:id/read).
+      setNotifications((prev) => prev.map((x) => (x._id === n._id ? { ...x, read: true } : x)));
+      setUnreadNotifCount((c) => Math.max(0, c - 1));
+      try {
+        const res = await markNotificationRead(n._id);
+        if (res && typeof res.unreadCount === 'number') setUnreadNotifCount(res.unreadCount);
+      } catch {
+        setNotifications((prev) => prev.map((x) => (x._id === n._id ? { ...x, read: false } : x)));
+        setUnreadNotifCount((c) => c + 1);
+      }
+    }
+    if (n.link) navigate(n.link);
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      await markAllNotificationsRead();
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      setUnreadNotifCount(0);
+    } catch {
+      showToast('Could not mark notifications as read.', 'error');
+    }
+  };
 
   return (
     <div ref={pageRef} className="w-full bg-[#fcf9f4] min-h-screen py-10 lg:py-16 relative overflow-hidden">
@@ -357,6 +391,37 @@ export default function AccountPage() {
               )}
             </section>
 
+            {/* Notifications Snapshot */}
+            <section data-account-section>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-serif text-[20px] text-[#180f0a]">Studio Updates</h3>
+                <Link to="/notifications" className="text-[12px] font-semibold text-[#964735] hover:underline">View All →</Link>
+              </div>
+              {notifications.length === 0 ? (
+                <div className="bg-white rounded-3xl p-8 border border-[#e5e2dd] text-center space-y-2">
+                  <p className="text-[14px] text-[#80756f]">No updates yet. Order and request news will appear here.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {notifications.slice(0, 3).map((n) => (
+                    <button
+                      key={n._id}
+                      type="button"
+                      onClick={() => handleOpenNotification(n)}
+                      className={`w-full text-left flex items-start gap-3 bg-white rounded-2xl p-4 border transition-all duration-300 ${!n.read ? 'border-[#c17c74]/40 shadow-sm hover:shadow-md' : 'border-[#e5e2dd] hover:shadow-sm'}`}
+                    >
+                      <span className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${!n.read ? 'bg-[#964735]' : 'bg-[#d9d3cc]'}`} aria-label={n.read ? 'Read' : 'Unread'} />
+                      <span className="min-w-0 flex-1">
+                        <span className={`block text-[13px] leading-snug ${!n.read ? 'font-semibold text-[#180f0a]' : 'text-[#4e4540]'}`}>{n.title}</span>
+                        <span className="block text-[11px] text-[#80756f] mt-0.5 line-clamp-1">{n.message}</span>
+                      </span>
+                      <ArrowRight className="w-4 h-4 text-[#b0a89f] shrink-0 mt-0.5" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </section>
+
             {/* Conversations */}
             <section data-account-section>
               <h3 className="font-serif text-[20px] text-[#180f0a] mb-4">Recent Conversations</h3>
@@ -400,7 +465,7 @@ export default function AccountPage() {
                         <p className="text-[13px] font-semibold text-[#180f0a] line-clamp-1">{req.description}</p>
                         <p className="text-[11px] text-[#80756f]">Submitted {new Date(req.createdAt).toLocaleDateString()}{req.occasion ? ` · ${req.occasion}` : ''}</p>
                       </div>
-                      <span className="px-2.5 py-1 rounded-full bg-[#f0ede9] text-[#4e4540] text-[11px] font-bold uppercase self-start sm:self-auto">{req.status}</span>
+                      <RequestStatusPill status={req.status} className="self-start sm:self-auto" />
                     </div>
                   ))}
                 </div>
@@ -480,6 +545,71 @@ export default function AccountPage() {
                   </div>
                 </div>
               ))
+            )}
+          </div>
+        )}
+
+        {/* Activity (Notifications) Tab */}
+        {activeTab === 'notifications' && (
+          <div ref={contentRef} className="space-y-5">
+            <div data-account-section className="flex items-center justify-between">
+              <div>
+                <h3 className="font-serif text-[22px] text-[#180f0a]">Activity</h3>
+                <p className="text-[12px] text-[#80756f]">Order updates, custom request news and studio messages — saved to your account.</p>
+              </div>
+              {unreadNotifCount > 0 && (
+                <button
+                  type="button"
+                  onClick={handleMarkAllRead}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-[#e5e2dd] bg-white text-[12px] font-semibold text-[#180f0a] hover:bg-[#f6f3ee] transition-all duration-300 hover:shadow-sm"
+                >
+                  <CheckCheck className="w-3.5 h-3.5" />
+                  Mark all read
+                </button>
+              )}
+            </div>
+
+            {notifications.length === 0 ? (
+              <div data-account-section className="relative bg-white rounded-3xl p-10 border border-[#e5e2dd] text-center space-y-3 overflow-hidden">
+                <div className="absolute -top-12 -right-12 w-36 h-36 rounded-full bg-[#ffdad3]/10 blur-3xl pointer-events-none" />
+                <div className="relative w-14 h-14 rounded-full bg-[#f6f3ee] mx-auto flex items-center justify-center">
+                  <Bell className="w-6 h-6 text-[#964735]" />
+                </div>
+                <p className="relative font-serif text-[20px] text-[#180f0a]">No activity yet</p>
+                <p className="relative text-[13px] text-[#80756f]">Order updates and studio messages will land here as they happen.</p>
+                <div className="relative pt-1">
+                  <Link to="/shop" className="inline-block px-6 py-2.5 rounded-full bg-[#180f0a] text-white text-[12px] font-semibold hover:bg-[#964735] transition-all duration-300">Browse Gifts</Link>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3" aria-live="polite">
+                {notifications.map((n) => (
+                  <div key={n._id} data-account-section>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenNotification(n)}
+                      className={`w-full text-left bg-white rounded-2xl p-5 border transition-all duration-300 group ${!n.read ? 'border-[#c17c74]/40 shadow-sm hover:shadow-md' : 'border-[#e5e2dd] shadow-xs hover:shadow-sm'}`}
+                    >
+                      <div className="flex items-start gap-4">
+                        <span className={`mt-1.5 w-2.5 h-2.5 rounded-full shrink-0 ${!n.read ? 'bg-[#964735]' : 'bg-[#d9d3cc]'}`} aria-label={n.read ? 'Read' : 'Unread'} title={n.read ? 'Read' : 'Unread'} />
+                        <div className="min-w-0 flex-1">
+                          <p className={`text-[14px] leading-snug ${!n.read ? 'font-semibold text-[#180f0a]' : 'text-[#4e4540]'}`}>{n.title}</p>
+                          {n.message && <p className="text-[13px] text-[#80756f] mt-0.5 leading-relaxed">{n.message}</p>}
+                          <p className="text-[11px] text-[#b0a89f] mt-1.5">{new Date(n.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</p>
+                        </div>
+                        {n.link && <ArrowRight className="w-4 h-4 text-[#b0a89f] group-hover:text-[#964735] group-hover:translate-x-0.5 transition-all duration-300 shrink-0 mt-1" />}
+                      </div>
+                    </button>
+                  </div>
+                ))}
+                {notifications.length > 0 && (
+                  <div data-account-section className="text-center pt-2">
+                    <Link to="/notifications" className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#964735] hover:underline">
+                      Open full notification center <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         )}

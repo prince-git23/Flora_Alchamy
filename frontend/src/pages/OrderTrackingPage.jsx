@@ -1,13 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Search, Package, MapPin, Sparkles, Clock, UserRound, ArrowRight, MessageSquare } from 'lucide-react';
+import { Search, Package, MapPin, Sparkles, Clock, UserRound, ArrowRight, MessageSquare, History } from 'lucide-react';
 import { getOrderById, formatINR, formatDate, getCustomerFacingStatus } from '../services/orderService.js';
 import { getActiveCustomerId } from '../services/customerService.js';
 import OrderStatusTracker from '../components/OrderStatusTracker.jsx';
+import { OrderStatusPill } from '../components/StatusPill.jsx';
+
+/* ── GSAP ── */
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+gsap.registerPlugin(ScrollTrigger);
+
+const prefersReduced = typeof window !== 'undefined' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export default function OrderTrackingPage() {
   const { orderId } = useParams();
   const [searchCode, setSearchCode] = useState(orderId || '');
+  const pageRef = useRef(null);
 
   // Tracking requires an authenticated customer — orders are private records.
   // The sign-in destination preserves any order reference in the URL.
@@ -59,9 +69,29 @@ export default function OrderTrackingPage() {
     ? getCustomerFacingStatus(currentOrder.orderStatus || 'new')
     : '';
 
+  /* ── GSAP: status card entrance + timeline stagger ── */
+  useEffect(() => {
+    if (prefersReduced || !currentOrder || !pageRef.current) return;
+    const ctx = gsap.context(() => {
+      gsap.from('[data-track-card]', {
+        y: 28, opacity: 0, duration: 0.7, ease: 'power3.out', stagger: 0.1,
+      });
+      const entries = pageRef.current.querySelectorAll('[data-history-entry]');
+      if (entries.length) {
+        gsap.from(entries, {
+          x: -14, opacity: 0, duration: 0.45, ease: 'power2.out', stagger: 0.08, delay: 0.3,
+        });
+      }
+    }, pageRef);
+    return () => ctx.revert();
+  }, [currentOrder]);
+
   return (
-    <div className="w-full bg-[#fcf9f4] min-h-screen py-10 lg:py-16">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div ref={pageRef} className="w-full bg-[#fcf9f4] min-h-screen py-10 lg:py-16 relative overflow-hidden">
+      {/* Ambient glow orbs */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[560px] h-[280px] rounded-full bg-[#ffdad3]/10 blur-3xl pointer-events-none" />
+
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         {/* Title Header */}
         <div className="text-center max-w-2xl mx-auto mb-10 space-y-2">
           <span className="text-[11px] uppercase font-bold tracking-widest text-[#964735]">
@@ -135,7 +165,16 @@ export default function OrderTrackingPage() {
         {currentOrder && (
           <div className="space-y-8">
             {/* Status Card */}
-            <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#e5e2dd] shadow-sm space-y-6">
+            <div data-track-card className="bg-white rounded-3xl p-6 sm:p-8 border border-[#e5e2dd] shadow-sm space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <OrderStatusPill status={currentOrder.orderStatus || 'new'} size="lg" />
+                {currentOrder.trackingNumber && (
+                  <span className="text-[12px] text-[#80756f]">
+                    Tracking: <span className="font-mono font-bold text-[#180f0a]">{currentOrder.trackingNumber}</span>
+                  </span>
+                )}
+              </div>
+
               <OrderStatusTracker order={currentOrder} />
 
               {/* Studio Notes Feed */}
@@ -160,12 +199,48 @@ export default function OrderTrackingPage() {
                     : 'Your order has been received and is waiting to be confirmed.'}
                 </p>
               </div>
+
+              {/* Status History — real backend timeline (order.statusHistory) */}
+              {Array.isArray(currentOrder.statusHistory) && currentOrder.statusHistory.length > 0 && (
+                <div className="pt-2">
+                  <div className="flex items-center gap-2 pb-3">
+                    <History className="w-4 h-4 text-[#964735]" aria-hidden="true" />
+                    <h3 className="text-[12px] font-bold uppercase tracking-wider text-[#180f0a]">Journey Log</h3>
+                  </div>
+                  <ol className="relative border-l border-[#e5e2dd] ml-2 space-y-4">
+                    {[...currentOrder.statusHistory].reverse().map((entry, idx) => {
+                      const at = entry.at || entry.changedAt || entry.createdAt;
+                      const when = at ? new Date(at) : null;
+                      const valid = when && !Number.isNaN(when.getTime());
+                      return (
+                        <li key={idx} data-history-entry className="ml-4 pl-1">
+                          <span
+                            className={`absolute -left-[5px] w-2.5 h-2.5 rounded-full ${idx === 0 ? 'bg-[#964735] ring-4 ring-[#ffdad3]/50' : 'bg-[#d9d3cc]'}`}
+                            aria-hidden="true"
+                          />
+                          <div className="flex flex-wrap items-baseline gap-x-2">
+                            <span className={`text-[13px] font-semibold ${idx === 0 ? 'text-[#964735]' : 'text-[#180f0a]'}`}>
+                              {getCustomerFacingStatus(entry.status) || entry.status}
+                            </span>
+                            {valid && (
+                              <time dateTime={when.toISOString()} className="text-[11px] text-[#b0a89f]">
+                                {when.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                              </time>
+                            )}
+                          </div>
+                          {entry.note && <p className="text-[12px] text-[#80756f] mt-0.5">{entry.note}</p>}
+                        </li>
+                      );
+                    })}
+                  </ol>
+                </div>
+              )}
             </div>
 
             {/* Delivery & Package Details Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Delivery Address Details */}
-              <div className="bg-white rounded-3xl p-6 border border-[#e5e2dd] shadow-xs space-y-4">
+              <div data-track-card className="bg-white rounded-3xl p-6 border border-[#e5e2dd] shadow-xs space-y-4">
                 <div className="flex items-center gap-2 border-b border-[#e5e2dd] pb-3">
                   <MapPin className="w-4 h-4 text-[#964735]" />
                   <h3 className="font-serif text-[18px] text-[#180f0a]">Delivery Destination</h3>
@@ -179,7 +254,7 @@ export default function OrderTrackingPage() {
               </div>
 
               {/* Items in Package */}
-              <div className="bg-white rounded-3xl p-6 border border-[#e5e2dd] shadow-xs space-y-4">
+              <div data-track-card className="bg-white rounded-3xl p-6 border border-[#e5e2dd] shadow-xs space-y-4">
                 <div className="flex items-center gap-2 border-b border-[#e5e2dd] pb-3">
                   <Package className="w-4 h-4 text-[#964735]" />
                   <h3 className="font-serif text-[18px] text-[#180f0a]">Package Contents</h3>
