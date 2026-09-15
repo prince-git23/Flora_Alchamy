@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { User, Package, MapPin, Mail, Phone, Edit2, LogOut, Plus, Check, Trash2, Star, Heart, ShoppingBag, MessageSquare, Truck, ArrowRight, Settings } from 'lucide-react';
 import { getAccount, apiLogout, getActiveCustomerId, getActiveCustomer, updateCustomer, addAddress, updateAddress, deleteAddress } from '../services/customerService.js';
@@ -6,6 +6,14 @@ import { getOrdersByCustomer, getStatusLabel, formatDate, getCustomerFacingStatu
 import { getConversations } from '../services/conversationService.js';
 import { getMyCustomRequests } from '../services/customRequestService.js';
 import { useStore } from '../context/StoreContext.jsx';
+
+/* ── GSAP ── */
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+gsap.registerPlugin(ScrollTrigger);
+
+const prefersReduced = typeof window !== 'undefined' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const EMPTY_ADDRESS = { label: 'Home', name: '', address: '', city: '', state: '', pincode: '', phone: '' };
 
@@ -30,6 +38,10 @@ export default function AccountPage() {
   const [addressSaving, setAddressSaving] = useState(false);
   const [addressError, setAddressError] = useState('');
 
+  const pageRef = useRef(null);
+  const headerRef = useRef(null);
+  const contentRef = useRef(null);
+
   useEffect(() => {
     async function load() {
       const acc = await getAccount();
@@ -53,6 +65,28 @@ export default function AccountPage() {
     load();
   }, []);
 
+  /* ── GSAP entrance animations ── */
+  useEffect(() => {
+    if (prefersReduced || !loaded || !account || !pageRef.current) return;
+    const ctx = gsap.context(() => {
+      if (headerRef.current) {
+        gsap.from(headerRef.current, {
+          y: 30, opacity: 0, duration: 0.7, ease: 'power3.out',
+        });
+      }
+      if (contentRef.current) {
+        const sections = contentRef.current.querySelectorAll('[data-account-section]');
+        if (sections.length) {
+          gsap.from(sections, {
+            y: 24, opacity: 0, duration: 0.6, ease: 'power3.out', stagger: 0.08,
+            scrollTrigger: { trigger: contentRef.current, start: 'top 85%', once: true },
+          });
+        }
+      }
+    }, pageRef);
+    return () => ctx.revert();
+  }, [loaded, account, activeTab]);
+
   // Guests are sent to the sign-in page — the account is private.
   if (loaded && !account) {
     return <Navigate to="/login" replace />;
@@ -61,7 +95,12 @@ export default function AccountPage() {
   if (!account) {
     return (
       <div className="w-full min-h-[60vh] flex items-center justify-center bg-[#fcf9f4]">
-        <p className="font-serif text-[20px] text-[#180f0a]">Opening Keepsake Vault...</p>
+        <div className="text-center space-y-3">
+          <div className="w-12 h-12 rounded-full bg-[#ffdad3]/40 mx-auto flex items-center justify-center animate-pulse">
+            <User className="w-6 h-6 text-[#964735]" />
+          </div>
+          <p className="font-serif text-[20px] text-[#180f0a]">Opening Keepsake Vault...</p>
+        </div>
       </div>
     );
   }
@@ -178,12 +217,18 @@ export default function AccountPage() {
   ];
 
   return (
-    <div className="w-full bg-[#fcf9f4] min-h-screen py-10 lg:py-16">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div ref={pageRef} className="w-full bg-[#fcf9f4] min-h-screen py-10 lg:py-16 relative overflow-hidden">
+      {/* Ambient glow orbs */}
+      <div className="absolute top-0 right-0 w-96 h-96 rounded-full bg-[#ffdad3]/12 blur-3xl pointer-events-none" />
+      <div className="absolute bottom-40 left-0 w-80 h-80 rounded-full bg-[#d8e7cd]/10 blur-3xl pointer-events-none" />
+
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         {/* Profile Header */}
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#e5e2dd] shadow-sm mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        <div ref={headerRef} className="relative bg-white rounded-3xl p-6 sm:p-8 border border-[#e5e2dd] shadow-sm mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 overflow-hidden">
+          {/* Inner glow */}
+          <div className="absolute -top-16 -right-16 w-48 h-48 rounded-full bg-[#ffdad3]/10 blur-3xl pointer-events-none" />
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-[#180f0a] text-white flex items-center justify-center font-serif text-[24px]">
+            <div className="relative w-16 h-16 rounded-full bg-[#180f0a] text-white flex items-center justify-center font-serif text-[24px] shadow-md">
               {displayName.charAt(0)}
             </div>
             <div className="space-y-1">
@@ -199,17 +244,17 @@ export default function AccountPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="relative flex items-center gap-3">
             <Link
               to="/shop"
-              className="px-5 py-2 rounded-full bg-[#f6f3ee] text-[#180f0a] hover:bg-[#e5e2dd] text-[12px] font-semibold transition-colors"
+              className="px-5 py-2 rounded-full bg-[#f6f3ee] text-[#180f0a] hover:bg-[#e5e2dd] text-[12px] font-semibold transition-all duration-300 hover:shadow-sm hover:-translate-y-0.5 active:translate-y-0"
             >
               Browse Catalog
             </Link>
             <button
               type="button"
               onClick={handleSignOut}
-              className="px-4 py-2 rounded-full border border-[#e5e2dd] text-[#80756f] hover:text-[#180f0a] text-[12px] flex items-center gap-1.5 transition-colors"
+              className="px-4 py-2 rounded-full border border-[#e5e2dd] text-[#80756f] hover:text-[#180f0a] text-[12px] flex items-center gap-1.5 transition-all duration-300 hover:shadow-sm hover:-translate-y-0.5 active:translate-y-0"
             >
               <LogOut className="w-3.5 h-3.5" />
               <span>Sign Out</span>
@@ -218,12 +263,12 @@ export default function AccountPage() {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex items-center gap-4 border-b border-[#e5e2dd] pb-4 mb-8">
+        <div className="flex items-center gap-4 border-b border-[#e5e2dd] pb-4 mb-8 overflow-x-auto">
           {tabs.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`text-[14px] font-serif transition-colors pb-2 relative ${
+              className={`text-[14px] font-serif transition-all pb-2 relative whitespace-nowrap ${
                 activeTab === tab.key ? 'text-[#180f0a] font-semibold' : 'text-[#80756f] hover:text-[#180f0a]'
               }`}
             >
@@ -242,11 +287,14 @@ export default function AccountPage() {
 
         {/* Overview Tab */}
         {activeTab === 'overview' && (
-          <div className="space-y-8">
+          <div ref={contentRef} className="space-y-8">
             {/* Welcome */}
-            <div className="bg-gradient-to-br from-[#180f0a] to-[#2e241e] rounded-3xl p-6 sm:p-8 text-white">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-14 h-14 rounded-full bg-white/15 flex items-center justify-center font-serif text-[22px]">
+            <div data-account-section className="relative bg-gradient-to-br from-[#180f0a] to-[#2e241e] rounded-3xl p-6 sm:p-8 text-white overflow-hidden">
+              {/* Inner depth glow */}
+              <div className="absolute -top-20 -right-20 w-60 h-60 rounded-full bg-[#964735]/10 blur-3xl pointer-events-none" />
+              <div className="absolute -bottom-16 -left-16 w-48 h-48 rounded-full bg-white/5 blur-3xl pointer-events-none" />
+              <div className="relative flex items-center gap-4 mb-6">
+                <div className="w-14 h-14 rounded-full bg-white/15 flex items-center justify-center font-serif text-[22px] shadow-inner">
                   {displayName.charAt(0).toUpperCase()}
                 </div>
                 <div>
@@ -254,20 +302,20 @@ export default function AccountPage() {
                   <p className="text-[13px] text-white/60">{displayEmail}</p>
                 </div>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <button type="button" onClick={() => orders[0] && navigate(`/order-tracking/${orders[0].id || orders[0].orderId}`)} disabled={orders.length === 0} className="flex items-center gap-3 p-3 rounded-2xl bg-white/10 hover:bg-white/15 transition-colors text-left disabled:opacity-40">
+              <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <button type="button" onClick={() => orders[0] && navigate(`/order-tracking/${orders[0].id || orders[0].orderId}`)} disabled={orders.length === 0} className="flex items-center gap-3 p-3 rounded-2xl bg-white/10 hover:bg-white/15 transition-all duration-300 text-left disabled:opacity-40 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0">
                   <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center"><Package className="w-4 h-4 text-white" /></div>
                   <div className="min-w-0"><p className="text-[12px] font-semibold text-white">Track Order</p><p className="text-[11px] text-white/50 truncate">{orders.length > 0 ? `Latest: #${orders[0].id || orders[0].orderId}` : 'No orders yet'}</p></div>
                 </button>
-                <button type="button" onClick={() => setActiveTab('saved')} className="flex items-center gap-3 p-3 rounded-2xl bg-white/10 hover:bg-white/15 transition-colors text-left">
+                <button type="button" onClick={() => setActiveTab('saved')} className="flex items-center gap-3 p-3 rounded-2xl bg-white/10 hover:bg-white/15 transition-all duration-300 text-left hover:shadow-md hover:-translate-y-0.5 active:translate-y-0">
                   <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center"><Heart className="w-4 h-4 text-white" /></div>
                   <div className="min-w-0"><p className="text-[12px] font-semibold text-white">Saved Gifts</p><p className="text-[11px] text-white/50 truncate">{wishlist.length} saved</p></div>
                 </button>
-                <button type="button" onClick={() => setActiveTab('addresses')} className="flex items-center gap-3 p-3 rounded-2xl bg-white/10 hover:bg-white/15 transition-colors text-left">
+                <button type="button" onClick={() => setActiveTab('addresses')} className="flex items-center gap-3 p-3 rounded-2xl bg-white/10 hover:bg-white/15 transition-all duration-300 text-left hover:shadow-md hover:-translate-y-0.5 active:translate-y-0">
                   <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center"><MapPin className="w-4 h-4 text-white" /></div>
                   <div className="min-w-0"><p className="text-[12px] font-semibold text-white">Addresses</p><p className="text-[11px] text-white/50 truncate">{defaultAddress ? `Default: ${defaultAddress.city}` : 'Add one'}</p></div>
                 </button>
-                <button type="button" onClick={() => { if (conversations.length > 0) { navigate(`/order/${conversations[0].orderId}/conversation`); } else { setActiveTab('orders'); } }} className="flex items-center gap-3 p-3 rounded-2xl bg-white/10 hover:bg-white/15 transition-colors text-left">
+                <button type="button" onClick={() => { if (conversations.length > 0) { navigate(`/order/${conversations[0].orderId}/conversation`); } else { setActiveTab('orders'); } }} className="flex items-center gap-3 p-3 rounded-2xl bg-white/10 hover:bg-white/15 transition-all duration-300 text-left hover:shadow-md hover:-translate-y-0.5 active:translate-y-0">
                   <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center"><MessageSquare className="w-4 h-4 text-white" /></div>
                   <div className="min-w-0"><p className="text-[12px] font-semibold text-white">Conversations</p><p className="text-[11px] text-white/50 truncate">{conversations.length > 0 ? `${conversations.length} thread${conversations.length > 1 ? 's' : ''}` : 'None yet'}</p></div>
                 </button>
@@ -275,7 +323,7 @@ export default function AccountPage() {
             </div>
 
             {/* Recent Orders */}
-            <section>
+            <section data-account-section>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-serif text-[20px] text-[#180f0a]">Recent Orders</h3>
                 {orders.length > 3 && (
@@ -283,15 +331,16 @@ export default function AccountPage() {
                 )}
               </div>
               {orders.length === 0 ? (
-                <div className="bg-white rounded-3xl p-10 border border-[#e5e2dd] text-center space-y-3">
-                  <p className="font-serif text-[18px] text-[#180f0a]">No orders yet</p>
-                  <p className="text-[13px] text-[#80756f]">Your handcrafted floral orders will appear here.</p>
-                  <Link to="/shop" className="inline-block px-6 py-2.5 rounded-full bg-[#180f0a] text-white text-[12px] font-semibold hover:bg-[#964735] transition-colors">Browse Gifts</Link>
+                <div className="relative bg-white rounded-3xl p-10 border border-[#e5e2dd] text-center space-y-3 overflow-hidden">
+                  <div className="absolute -top-12 -right-12 w-36 h-36 rounded-full bg-[#ffdad3]/10 blur-3xl pointer-events-none" />
+                  <p className="relative font-serif text-[18px] text-[#180f0a]">No orders yet</p>
+                  <p className="relative text-[13px] text-[#80756f]">Your handcrafted floral orders will appear here.</p>
+                  <Link to="/shop" className="relative inline-block px-6 py-2.5 rounded-full bg-[#180f0a] text-white text-[12px] font-semibold hover:bg-[#964735] transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0">Browse Gifts</Link>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {orders.slice(0, 3).map((ord) => (
-                    <div key={ord.id || ord.orderId} className="bg-white rounded-2xl p-4 border border-[#e5e2dd] shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div key={ord.id || ord.orderId} data-account-section className="bg-white rounded-2xl p-4 border border-[#e5e2dd] shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:shadow-md transition-shadow duration-300">
                       <div className="flex items-center gap-3">
                         <span className="text-[13px] font-bold text-[#180f0a]">#{ord.id || ord.orderId}</span>
                         <span className="text-[12px] text-[#80756f]">{formatDate(ord.createdAt || ord.date)}</span>
@@ -299,8 +348,8 @@ export default function AccountPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-[13px] font-bold text-[#180f0a]">₹{ord.total?.toLocaleString('en-IN')}</span>
-                        <button type="button" onClick={() => navigate(`/order-tracking/${ord.id || ord.orderId}`)} className="px-3 py-1.5 rounded-full bg-[#180f0a] text-white text-[11px] font-semibold hover:bg-[#964735] transition-colors flex items-center gap-1"><Truck className="w-3 h-3" /> Track</button>
-                        <Link to={`/order/${ord.id || ord.orderId}/conversation`} className="px-3 py-1.5 rounded-full border border-[#e5e2dd] text-[#4e4540] text-[11px] font-semibold hover:bg-[#f6f3ee] transition-colors flex items-center gap-1"><MessageSquare className="w-3 h-3" /> Message</Link>
+                        <button type="button" onClick={() => navigate(`/order-tracking/${ord.id || ord.orderId}`)} className="px-3 py-1.5 rounded-full bg-[#180f0a] text-white text-[11px] font-semibold hover:bg-[#964735] transition-all duration-300 flex items-center gap-1 hover:shadow-md"><Truck className="w-3 h-3" /> Track</button>
+                        <Link to={`/order/${ord.id || ord.orderId}/conversation`} className="px-3 py-1.5 rounded-full border border-[#e5e2dd] text-[#4e4540] text-[11px] font-semibold hover:bg-[#f6f3ee] transition-all duration-300 flex items-center gap-1"><MessageSquare className="w-3 h-3" /> Message</Link>
                       </div>
                     </div>
                   ))}
@@ -309,7 +358,7 @@ export default function AccountPage() {
             </section>
 
             {/* Conversations */}
-            <section>
+            <section data-account-section>
               <h3 className="font-serif text-[20px] text-[#180f0a] mb-4">Recent Conversations</h3>
               {conversations.length === 0 ? (
                 <div className="bg-white rounded-3xl p-8 border border-[#e5e2dd] text-center space-y-2">
@@ -318,7 +367,7 @@ export default function AccountPage() {
               ) : (
                 <div className="space-y-2">
                   {conversations.slice(0, 3).map((conv) => (
-                    <Link key={conv._id || conv.id} to={`/order/${conv.orderId}/conversation`} className="flex items-center justify-between bg-white rounded-2xl p-4 border border-[#e5e2dd] hover:border-[#c17c74] transition-all">
+                    <Link key={conv._id || conv.id} to={`/order/${conv.orderId}/conversation`} className="flex items-center justify-between bg-white rounded-2xl p-4 border border-[#e5e2dd] hover:border-[#c17c74] hover:shadow-md transition-all duration-300">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-[#ffdad3]/50 flex items-center justify-center"><MessageSquare className="w-4 h-4 text-[#964735]" /></div>
                         <div>
@@ -334,7 +383,7 @@ export default function AccountPage() {
             </section>
 
             {/* Custom Requests */}
-            <section>
+            <section data-account-section>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-serif text-[20px] text-[#180f0a]">My Custom Requests</h3>
                 <Link to="/custom-request" className="text-[12px] font-semibold text-[#964735] hover:underline">New Request →</Link>
@@ -346,7 +395,7 @@ export default function AccountPage() {
               ) : (
                 <div className="space-y-2">
                   {customRequests.slice(0, 3).map((req) => (
-                    <div key={req._id || req.id} className="bg-white rounded-2xl p-4 border border-[#e5e2dd] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div key={req._id || req.id} className="bg-white rounded-2xl p-4 border border-[#e5e2dd] flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:shadow-md transition-shadow duration-300">
                       <div className="min-w-0">
                         <p className="text-[13px] font-semibold text-[#180f0a] line-clamp-1">{req.description}</p>
                         <p className="text-[11px] text-[#80756f]">Submitted {new Date(req.createdAt).toLocaleDateString()}{req.occasion ? ` · ${req.occasion}` : ''}</p>
@@ -359,12 +408,13 @@ export default function AccountPage() {
             </section>
 
             {/* Quick Actions */}
-            <section className="bg-[#f6f3ee] rounded-3xl p-6 border border-[#e5e2dd]">
-              <h3 className="font-serif text-[18px] text-[#180f0a] mb-3">Need another gift?</h3>
-              <div className="flex flex-wrap gap-3">
-                <Link to="/shop" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#180f0a] text-white text-[12px] font-semibold hover:bg-[#964735] transition-colors"><ShoppingBag className="w-3.5 h-3.5" /> Browse Gifts</Link>
-                <Link to="/gift-finder" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white border border-[#e5e2dd] text-[#180f0a] text-[12px] font-semibold hover:bg-[#f6f3ee] transition-colors">Find a Gift</Link>
-                <Link to="/custom-gifts" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white border border-[#e5e2dd] text-[#180f0a] text-[12px] font-semibold hover:bg-[#f6f3ee] transition-colors">Custom Gift Studio</Link>
+            <section data-account-section className="relative bg-[#f6f3ee] rounded-3xl p-6 border border-[#e5e2dd] overflow-hidden">
+              <div className="absolute -bottom-10 -right-10 w-32 h-32 rounded-full bg-[#d8e7cd]/15 blur-2xl pointer-events-none" />
+              <h3 className="relative font-serif text-[18px] text-[#180f0a] mb-3">Need another gift?</h3>
+              <div className="relative flex flex-wrap gap-3">
+                <Link to="/shop" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#180f0a] text-white text-[12px] font-semibold hover:bg-[#964735] transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0"><ShoppingBag className="w-3.5 h-3.5" /> Browse Gifts</Link>
+                <Link to="/gift-finder" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white border border-[#e5e2dd] text-[#180f0a] text-[12px] font-semibold hover:bg-[#f6f3ee] transition-all duration-300 hover:shadow-sm hover:-translate-y-0.5 active:translate-y-0">Find a Gift</Link>
+                <Link to="/custom-gifts" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white border border-[#e5e2dd] text-[#180f0a] text-[12px] font-semibold hover:bg-[#f6f3ee] transition-all duration-300 hover:shadow-sm hover:-translate-y-0.5 active:translate-y-0">Custom Gift Studio</Link>
               </div>
             </section>
           </div>
@@ -372,20 +422,21 @@ export default function AccountPage() {
 
         {/* Orders Tab */}
         {activeTab === 'orders' && (
-          <div className="space-y-6">
+          <div ref={contentRef} className="space-y-6">
             {orders.length === 0 ? (
-              <div className="bg-white rounded-3xl p-10 border border-[#e5e2dd] text-center space-y-3">
-                <p className="font-serif text-[20px] text-[#180f0a]">No orders placed yet</p>
-                <p className="text-[13px] text-[#80756f]">Your handcrafted floral orders will appear here once placed.</p>
-                <div className="pt-2">
-                  <Link to="/shop" className="inline-block px-6 py-2.5 rounded-full bg-[#180f0a] text-white text-[12px] font-semibold hover:bg-[#964735] transition-colors">
+              <div data-account-section className="relative bg-white rounded-3xl p-10 border border-[#e5e2dd] text-center space-y-3 overflow-hidden">
+                <div className="absolute -top-12 -right-12 w-36 h-36 rounded-full bg-[#ffdad3]/10 blur-3xl pointer-events-none" />
+                <p className="relative font-serif text-[20px] text-[#180f0a]">No orders placed yet</p>
+                <p className="relative text-[13px] text-[#80756f]">Your handcrafted floral orders will appear here once placed.</p>
+                <div className="relative pt-2">
+                  <Link to="/shop" className="inline-block px-6 py-2.5 rounded-full bg-[#180f0a] text-white text-[12px] font-semibold hover:bg-[#964735] transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0">
                     Explore Handcrafted Blooms
                   </Link>
                 </div>
               </div>
             ) : (
               orders.map((ord) => (
-                <div key={ord.id || ord.orderId} className="bg-white rounded-3xl p-6 border border-[#e5e2dd] shadow-xs space-y-4">
+                <div key={ord.id || ord.orderId} data-account-section className="bg-white rounded-3xl p-6 border border-[#e5e2dd] shadow-xs space-y-4 hover:shadow-md transition-shadow duration-300">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#e5e2dd] pb-4">
                     <div>
                       <span className="text-[12px] font-bold text-[#180f0a]">Order #{ord.id || ord.orderId}</span>
@@ -435,17 +486,21 @@ export default function AccountPage() {
 
         {/* Saved Gifts Tab */}
         {activeTab === 'saved' && (
-          <div className="space-y-6">
+          <div ref={contentRef} className="space-y-6">
             {wishlist.length === 0 ? (
-              <div className="bg-white rounded-3xl p-10 border border-[#e5e2dd] text-center space-y-3">
-                <p className="font-serif text-[20px] text-[#180f0a]">No saved gifts yet</p>
-                <p className="text-[13px] text-[#80756f]">Tap the heart on any bloom, card, or hamper to save it here.</p>
-                <Link to="/shop" className="inline-block px-6 py-2.5 rounded-full bg-[#180f0a] text-white text-[12px] font-semibold hover:bg-[#964735] transition-colors">Browse the Collection</Link>
+              <div data-account-section className="relative bg-white rounded-3xl p-10 border border-[#e5e2dd] text-center space-y-3 overflow-hidden">
+                <div className="absolute -top-12 -right-12 w-36 h-36 rounded-full bg-[#ffdad3]/10 blur-3xl pointer-events-none" />
+                <div className="relative w-16 h-16 rounded-full bg-[#f6f3ee] mx-auto flex items-center justify-center text-3xl">🤍</div>
+                <p className="relative font-serif text-[20px] text-[#180f0a]">No saved gifts yet</p>
+                <p className="relative text-[13px] text-[#80756f]">Tap the heart on any bloom, card, or hamper to save it here.</p>
+                <div className="relative pt-2">
+                  <Link to="/shop" className="inline-block px-6 py-2.5 rounded-full bg-[#180f0a] text-white text-[12px] font-semibold hover:bg-[#964735] transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0">Browse the Collection</Link>
+                </div>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {wishlist.map((item) => (
-                  <div key={item.id} className="bg-white rounded-2xl p-4 border border-[#e5e2dd] shadow-xs flex flex-col space-y-3 group">
+                  <div key={item.id} data-account-section className="bg-white rounded-2xl p-4 border border-[#e5e2dd] shadow-xs flex flex-col space-y-3 group hover:shadow-md transition-shadow duration-300">
                     <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-[#f6f3ee]">
                       <Link to={`/product/${item.id}`}>
                         <img
@@ -460,7 +515,7 @@ export default function AccountPage() {
                       <Link to={`/product/${item.id}`} className="font-serif text-[15px] text-[#180f0a] font-medium hover:text-[#964735] transition-colors line-clamp-1">{item.name}</Link>
                       <p className="text-[14px] font-bold text-[#180f0a]">₹{item.price.toLocaleString('en-IN')}</p>
                     </div>
-                    <button type="button" onClick={() => addItemToCart(item)} className="w-full py-2 rounded-full bg-[#180f0a] text-white hover:bg-[#964735] text-[12px] font-semibold flex items-center justify-center gap-1.5 transition-colors">
+                    <button type="button" onClick={() => addItemToCart(item)} className="w-full py-2 rounded-full bg-[#180f0a] text-white hover:bg-[#964735] text-[12px] font-semibold flex items-center justify-center gap-1.5 transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0">
                       <ShoppingBag className="w-3.5 h-3.5" /> Move to Bag
                     </button>
                   </div>
@@ -472,64 +527,67 @@ export default function AccountPage() {
 
         {/* Profile Tab */}
         {activeTab === 'profile' && (
-          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#e5e2dd] shadow-xs max-w-2xl space-y-6">
-            <div className="border-b border-[#e5e2dd] pb-3">
-              <h3 className="font-serif text-[22px] text-[#180f0a]">Profile</h3>
-              <p className="text-[12px] text-[#80756f]">
-                These details are saved to your account and used to prefill checkout.
-              </p>
+          <div ref={contentRef}>
+            <div data-account-section className="relative bg-white rounded-3xl p-6 sm:p-8 border border-[#e5e2dd] shadow-xs max-w-2xl space-y-6 overflow-hidden">
+              <div className="absolute -top-16 -right-16 w-48 h-48 rounded-full bg-[#ffdad3]/8 blur-3xl pointer-events-none" />
+              <div className="relative border-b border-[#e5e2dd] pb-3">
+                <h3 className="font-serif text-[22px] text-[#180f0a]">Profile</h3>
+                <p className="text-[12px] text-[#80756f]">
+                  These details are saved to your account and used to prefill checkout.
+                </p>
+              </div>
+              <form onSubmit={handleProfileSave} className="relative space-y-4" noValidate>
+                <div>
+                  <label className="block text-[11px] uppercase font-bold text-[#4e4540] mb-1">Full Name</label>
+                  <input
+                    type="text"
+                    value={profileForm.name}
+                    onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl bg-[#f6f3ee] text-[14px] text-[#1c1c19] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a] transition-shadow duration-200"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] uppercase font-bold text-[#4e4540] mb-1">Email Address</label>
+                  <div className="relative">
+                    <input
+                      type="email"
+                      value={displayEmail}
+                      readOnly
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#f0ede9] text-[14px] text-[#80756f] border border-[#e5e2dd] cursor-not-allowed"
+                    />
+                    <Mail className="w-4 h-4 text-[#80756f] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  </div>
+                  <p className="text-[11px] text-[#80756f] mt-1">Email is your sign-in identity and cannot be changed here.</p>
+                </div>
+                <div>
+                  <label className="block text-[11px] uppercase font-bold text-[#4e4540] mb-1">Phone Number</label>
+                  <div className="relative">
+                    <input
+                      type="tel"
+                      value={profileForm.phone}
+                      onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#f6f3ee] text-[14px] text-[#1c1c19] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a] transition-shadow duration-200"
+                    />
+                    <Phone className="w-4 h-4 text-[#80756f] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  </div>
+                </div>
+                <button
+                  type="submit"
+                  disabled={profileSaving}
+                  className="px-6 py-3 rounded-full bg-[#180f0a] hover:bg-[#964735] text-white text-[13px] font-semibold flex items-center gap-2 transition-all duration-300 disabled:opacity-50 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>{profileSaving ? 'Saving...' : 'Save Profile'}</span>
+                </button>
+              </form>
             </div>
-            <form onSubmit={handleProfileSave} className="space-y-4" noValidate>
-              <div>
-                <label className="block text-[11px] uppercase font-bold text-[#4e4540] mb-1">Full Name</label>
-                <input
-                  type="text"
-                  value={profileForm.name}
-                  onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl bg-[#f6f3ee] text-[14px] text-[#1c1c19] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a]"
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] uppercase font-bold text-[#4e4540] mb-1">Email Address</label>
-                <div className="relative">
-                  <input
-                    type="email"
-                    value={displayEmail}
-                    readOnly
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#f0ede9] text-[14px] text-[#80756f] border border-[#e5e2dd] cursor-not-allowed"
-                  />
-                  <Mail className="w-4 h-4 text-[#80756f] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                </div>
-                <p className="text-[11px] text-[#80756f] mt-1">Email is your sign-in identity and cannot be changed here.</p>
-              </div>
-              <div>
-                <label className="block text-[11px] uppercase font-bold text-[#4e4540] mb-1">Phone Number</label>
-                <div className="relative">
-                  <input
-                    type="tel"
-                    value={profileForm.phone}
-                    onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#f6f3ee] text-[14px] text-[#1c1c19] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a]"
-                  />
-                  <Phone className="w-4 h-4 text-[#80756f] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                </div>
-              </div>
-              <button
-                type="submit"
-                disabled={profileSaving}
-                className="px-6 py-3 rounded-full bg-[#180f0a] hover:bg-[#964735] text-white text-[13px] font-semibold flex items-center gap-2 transition-colors disabled:opacity-50"
-              >
-                <Check className="w-4 h-4" />
-                <span>{profileSaving ? 'Saving...' : 'Save Profile'}</span>
-              </button>
-            </form>
           </div>
         )}
 
         {/* Addresses Tab */}
         {activeTab === 'addresses' && (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
+          <div ref={contentRef} className="space-y-6">
+            <div data-account-section className="flex items-center justify-between">
               <div>
                 <h3 className="font-serif text-[22px] text-[#180f0a]">Saved Addresses</h3>
                 <p className="text-[12px] text-[#80756f]">
@@ -539,7 +597,7 @@ export default function AccountPage() {
               <button
                 type="button"
                 onClick={startAddAddress}
-                className="px-5 py-2.5 rounded-full bg-[#180f0a] hover:bg-[#964735] text-white text-[12px] font-semibold flex items-center gap-1.5 transition-colors"
+                className="px-5 py-2.5 rounded-full bg-[#180f0a] hover:bg-[#964735] text-white text-[12px] font-semibold flex items-center gap-1.5 transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0"
               >
                 <Plus className="w-4 h-4" />
                 <span>Add Address</span>
@@ -547,9 +605,10 @@ export default function AccountPage() {
             </div>
 
             {addresses.length === 0 && editingId !== 'new' ? (
-              <div className="bg-white rounded-3xl p-10 border border-[#e5e2dd] text-center space-y-3">
-                <p className="font-serif text-[20px] text-[#180f0a]">No saved addresses yet</p>
-                <p className="text-[13px] text-[#80756f]">Add a delivery address so checkout can prefill it for you.</p>
+              <div data-account-section className="relative bg-white rounded-3xl p-10 border border-[#e5e2dd] text-center space-y-3 overflow-hidden">
+                <div className="absolute -top-12 -right-12 w-36 h-36 rounded-full bg-[#d8e7cd]/10 blur-3xl pointer-events-none" />
+                <p className="relative font-serif text-[20px] text-[#180f0a]">No saved addresses yet</p>
+                <p className="relative text-[13px] text-[#80756f]">Add a delivery address so checkout can prefill it for you.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -557,7 +616,7 @@ export default function AccountPage() {
                   const id = addr._id || addr.id;
                   const isEditing = editingId === id;
                   return (
-                    <div key={id} className="bg-white rounded-3xl p-6 border border-[#e5e2dd] shadow-xs space-y-3">
+                    <div key={id} data-account-section className="bg-white rounded-3xl p-6 border border-[#e5e2dd] shadow-xs space-y-3 hover:shadow-md transition-shadow duration-300">
                       {isEditing ? (
                         <AddressForm
                           form={addressForm}
@@ -620,7 +679,7 @@ export default function AccountPage() {
                 })}
 
                 {editingId === 'new' && (
-                  <div className="bg-white rounded-3xl p-6 border border-[#e5e2dd] shadow-xs">
+                  <div data-account-section className="bg-white rounded-3xl p-6 border border-[#e5e2dd] shadow-xs hover:shadow-md transition-shadow duration-300">
                     <AddressForm
                       form={addressForm}
                       setForm={setAddressForm}
@@ -649,40 +708,40 @@ function AddressForm({ form, setForm, onSave, onCancel, saving, error, isNew }) 
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-[10px] uppercase font-bold text-[#4e4540] mb-1">Label</label>
-          <input type="text" value={form.label} onChange={set('label')} className="w-full px-3 py-2 rounded-lg bg-[#f6f3ee] text-[13px] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a]" />
+          <input type="text" value={form.label} onChange={set('label')} className="w-full px-3 py-2 rounded-lg bg-[#f6f3ee] text-[13px] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a] transition-shadow duration-200" />
         </div>
         <div>
           <label className="block text-[10px] uppercase font-bold text-[#4e4540] mb-1">Recipient Name</label>
-          <input type="text" value={form.name} onChange={set('name')} className="w-full px-3 py-2 rounded-lg bg-[#f6f3ee] text-[13px] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a]" />
+          <input type="text" value={form.name} onChange={set('name')} className="w-full px-3 py-2 rounded-lg bg-[#f6f3ee] text-[13px] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a] transition-shadow duration-200" />
         </div>
       </div>
       <div>
         <label className="block text-[10px] uppercase font-bold text-[#4e4540] mb-1">Street Address</label>
-        <input type="text" value={form.address} onChange={set('address')} required className="w-full px-3 py-2 rounded-lg bg-[#f6f3ee] text-[13px] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a]" />
+        <input type="text" value={form.address} onChange={set('address')} required className="w-full px-3 py-2 rounded-lg bg-[#f6f3ee] text-[13px] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a] transition-shadow duration-200" />
       </div>
       <div className="grid grid-cols-3 gap-3">
         <div>
           <label className="block text-[10px] uppercase font-bold text-[#4e4540] mb-1">City</label>
-          <input type="text" value={form.city} onChange={set('city')} required className="w-full px-3 py-2 rounded-lg bg-[#f6f3ee] text-[13px] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a]" />
+          <input type="text" value={form.city} onChange={set('city')} required className="w-full px-3 py-2 rounded-lg bg-[#f6f3ee] text-[13px] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a] transition-shadow duration-200" />
         </div>
         <div>
           <label className="block text-[10px] uppercase font-bold text-[#4e4540] mb-1">State</label>
-          <input type="text" value={form.state} onChange={set('state')} required className="w-full px-3 py-2 rounded-lg bg-[#f6f3ee] text-[13px] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a]" />
+          <input type="text" value={form.state} onChange={set('state')} required className="w-full px-3 py-2 rounded-lg bg-[#f6f3ee] text-[13px] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a] transition-shadow duration-200" />
         </div>
         <div>
           <label className="block text-[10px] uppercase font-bold text-[#4e4540] mb-1">Pincode</label>
-          <input type="text" value={form.pincode} onChange={set('pincode')} required className="w-full px-3 py-2 rounded-lg bg-[#f6f3ee] text-[13px] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a]" />
+          <input type="text" value={form.pincode} onChange={set('pincode')} required className="w-full px-3 py-2 rounded-lg bg-[#f6f3ee] text-[13px] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a] transition-shadow duration-200" />
         </div>
       </div>
       <div>
         <label className="block text-[10px] uppercase font-bold text-[#4e4540] mb-1">Phone</label>
-        <input type="tel" value={form.phone} onChange={set('phone')} className="w-full px-3 py-2 rounded-lg bg-[#f6f3ee] text-[13px] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a]" />
+        <input type="tel" value={form.phone} onChange={set('phone')} className="w-full px-3 py-2 rounded-lg bg-[#f6f3ee] text-[13px] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a] transition-shadow duration-200" />
       </div>
       <div className="flex items-center gap-3 pt-1">
         <button
           type="submit"
           disabled={saving}
-          className="px-5 py-2.5 rounded-full bg-[#180f0a] hover:bg-[#964735] text-white text-[12px] font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-50"
+          className="px-5 py-2.5 rounded-full bg-[#180f0a] hover:bg-[#964735] text-white text-[12px] font-semibold flex items-center gap-1.5 transition-all duration-300 disabled:opacity-50 hover:shadow-md"
         >
           <Check className="w-3.5 h-3.5" />
           <span>{saving ? 'Saving...' : isNew ? 'Save Address' : 'Save Changes'}</span>
