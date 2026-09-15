@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, RotateCcw, ShoppingBag, Heart, Sparkles, Check } from 'lucide-react';
 import { useStore } from '../context/StoreContext.jsx';
@@ -14,6 +14,10 @@ import {
   optionLabel,
   recommendGifts,
 } from '../services/giftFinderService.js';
+import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+gsap.registerPlugin(ScrollTrigger);
 
 const STEPS = [
   { key: 'recipient', title: 'Who are you gifting?', hint: 'We shape the shortlist around them.', options: RECIPIENT_OPTIONS },
@@ -32,15 +36,14 @@ function GiftResultCard({ result, index }) {
 
   return (
     <article
-      className="fa-fade-in group flex flex-col bg-white rounded-3xl border border-[#f0ede9] shadow-[0_4px_20px_-2px_rgba(46,36,30,0.04)] hover:shadow-[0_12px_32px_-4px_rgba(46,36,30,0.09)] transition-all duration-300 overflow-hidden"
-      style={{ animationDelay: `${index * 60}ms` }}
+      className="group flex flex-col bg-white rounded-3xl border border-[#f0ede9] shadow-[0_4px_20px_-2px_rgba(46,36,30,0.04)] hover:shadow-[0_12px_32px_-4px_rgba(46,36,30,0.09)] transition-all duration-400 overflow-hidden"
     >
       <div className="relative aspect-[4/3] bg-[#f6f3ee] overflow-hidden">
         <Link to={`/product/${product.id}`} className="block w-full h-full">
           <img
             src={product.images ? product.images[0] : product.image}
             alt={product.name}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
             loading="lazy"
           />
         </Link>
@@ -52,9 +55,9 @@ function GiftResultCard({ result, index }) {
           onClick={() => toggleWishlist(product)}
           title={saved ? 'Remove from Saved Gifts' : 'Save to Saved Gifts'}
           aria-label={saved ? 'Remove from Saved Gifts' : 'Save to Saved Gifts'}
-          className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center text-[#4e4540] hover:text-[#964735] shadow-sm transition-all"
+          className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center text-[#4e4540] hover:text-[#964735] shadow-sm transition-all duration-200"
         >
-          <Heart className={`w-4 h-4 ${saved ? 'fill-[#964735] text-[#964735]' : ''}`} aria-hidden="true" />
+          <Heart className={`w-4 h-4 transition-all duration-200 ${saved ? 'fill-[#964735] text-[#964735] scale-110' : ''}`} aria-hidden="true" />
         </button>
       </div>
 
@@ -97,7 +100,7 @@ function GiftResultCard({ result, index }) {
             <button
               type="button"
               onClick={() => addItemToCart(product)}
-              className="px-3.5 py-1.5 rounded-full bg-[#180f0a] text-white hover:bg-[#964735] transition-all text-[12px] font-semibold flex items-center gap-1.5 shadow-sm active:translate-y-0.5"
+              className="px-3.5 py-1.5 rounded-full bg-[#180f0a] text-white hover:bg-[#964735] transition-all duration-200 text-[12px] font-semibold flex items-center gap-1.5 shadow-sm active:translate-y-0.5"
             >
               <ShoppingBag className="w-3.5 h-3.5" aria-hidden="true" />
               Add to Bag
@@ -116,13 +119,52 @@ export default function GiftFinderPage() {
   const [relaxed, setRelaxed] = useState(false);
   const [tick, setTick] = useState(0);
 
-  // The catalogue hydrates asynchronously at boot; re-render when it lands.
   useEffect(() => subscribeStore(() => setTick((n) => n + 1)), []);
 
   const catalogue = useMemo(() => getProducts(), [tick]);
 
   const current = STEPS[step];
-  const heroRef = React.useRef(null);
+  const heroRef = useRef(null);
+  const wizardRef = useRef(null);
+  const resultsGridRef = useRef(null);
+
+  // GSAP hero entrance
+  useEffect(() => {
+    const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (REDUCED || !heroRef.current) return;
+
+    gsap.fromTo(heroRef.current.children,
+      { opacity: 0, y: 20 },
+      { opacity: 1, y: 0, duration: 0.6, stagger: 0.08, ease: 'power3.out', delay: 0.1 }
+    );
+  }, []);
+
+  // GSAP wizard step transition
+  useEffect(() => {
+    if (!wizardRef.current || showResults) return;
+    const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (REDUCED) return;
+
+    gsap.fromTo(wizardRef.current,
+      { opacity: 0, x: 20 },
+      { opacity: 1, x: 0, duration: 0.35, ease: 'power2.out' }
+    );
+  }, [step, showResults]);
+
+  // GSAP results stagger
+  useEffect(() => {
+    if (!showResults || !resultsGridRef.current) return;
+    const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (REDUCED) return;
+
+    const cards = resultsGridRef.current.querySelectorAll('article');
+    if (cards.length === 0) return;
+
+    gsap.fromTo(cards,
+      { opacity: 0, y: 25, scale: 0.97 },
+      { opacity: 1, y: 0, scale: 1, duration: 0.45, stagger: 0.06, ease: 'power2.out' }
+    );
+  }, [showResults, answers]);
 
   const scrollTop = () => {
     if (heroRef.current) heroRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -184,22 +226,29 @@ export default function GiftFinderPage() {
   ].filter(Boolean);
 
   return (
-    <div className="w-full bg-[#fcf9f4] min-h-screen py-10 lg:py-16">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8" ref={heroRef}>
-        {/* Header */}
-        <div className="text-center max-w-2xl mx-auto space-y-3 mb-10">
-          <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#ffdad3]/50 text-[#964735] text-[11px] font-bold uppercase tracking-wider">
-            <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
-            <span>The Gift Finder</span>
-          </div>
-          <h1 className="font-serif text-[36px] sm:text-[46px] text-[#180f0a] tracking-tight font-normal">
-            Let&apos;s find the right gift.
-          </h1>
-          <p className="text-[15px] text-[#4e4540] leading-relaxed">
-            Five quick questions. We&apos;ll shortlist handcrafted pieces from our live atelier catalogue — with a reason for each pick.
-          </p>
-        </div>
+    <div className="w-full bg-[#fcf9f4] min-h-screen">
+      {/* ═══ EDITORIAL HERO ═══ */}
+      <div ref={heroRef} className="relative overflow-hidden pt-10 lg:pt-16 pb-8 lg:pb-12" style={{ perspective: '1200px' }}>
+        <div className="absolute -top-20 -left-20 w-80 h-80 rounded-full bg-[#ffdad3]/20 blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 -right-16 w-64 h-64 rounded-full bg-[#d8e7cd]/15 blur-3xl pointer-events-none" />
 
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="text-center max-w-2xl mx-auto space-y-3">
+            <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#ffdad3]/50 text-[#964735] text-[11px] font-bold uppercase tracking-wider">
+              <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
+              <span>The Gift Finder</span>
+            </div>
+            <h1 className="font-serif text-[38px] sm:text-[52px] lg:text-[60px] text-[#180f0a] tracking-tight font-normal leading-[1.1]">
+              Let&apos;s find the right gift.
+            </h1>
+            <p className="text-[15px] sm:text-[16px] text-[#4e4540] leading-relaxed max-w-xl mx-auto">
+              Five quick questions. We&apos;ll shortlist handcrafted pieces from our live atelier catalogue — with a reason for each pick.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
         {/* Progress */}
         <div className="mb-8">
           <div className="flex items-center justify-between gap-2 max-w-3xl mx-auto">
@@ -217,9 +266,9 @@ export default function GiftFinderPage() {
                   className={`flex-1 flex flex-col items-center gap-1.5 group ${reachable ? 'cursor-pointer' : 'cursor-default'}`}
                 >
                   <span
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold border transition-colors ${
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold border transition-all duration-200 ${
                       active
-                        ? 'bg-[#180f0a] text-white border-[#180f0a]'
+                        ? 'bg-[#180f0a] text-white border-[#180f0a] shadow-sm'
                         : done
                         ? 'bg-[#d8e7cd] text-[#3c4a36] border-[#d8e7cd]'
                         : 'bg-white text-[#80756f] border-[#e5e2dd]'
@@ -244,7 +293,7 @@ export default function GiftFinderPage() {
 
         {/* Wizard */}
         {!showResults && (
-          <div className="fa-fade-in bg-white rounded-3xl border border-[#e5e2dd] shadow-sm p-6 sm:p-10">
+          <div ref={wizardRef} className="bg-white rounded-3xl border border-[#e5e2dd] shadow-sm p-6 sm:p-10">
             <div className="flex items-start justify-between gap-4 mb-6">
               <div>
                 <p className="text-[11px] uppercase font-bold tracking-widest text-[#964735]">
@@ -278,7 +327,7 @@ export default function GiftFinderPage() {
                     type="button"
                     aria-pressed={selected}
                     onClick={() => select(current.key, option.id)}
-                    className={`flex flex-col items-start gap-1 p-4 rounded-2xl border text-left transition-all ${
+                    className={`flex flex-col items-start gap-1 p-4 rounded-2xl border text-left transition-all duration-200 ${
                       selected
                         ? 'border-[#180f0a] bg-[#f6f3ee] shadow-sm'
                         : 'border-[#e5e2dd] bg-white hover:border-[#964735] hover:shadow-sm'
@@ -371,7 +420,7 @@ export default function GiftFinderPage() {
                     <strong className="text-[#180f0a]">{optionLabel('occasion', answers.occasion)}</strong> exactly — these are the handcrafted pieces that fit your budget, so you can decide if the occasion or the price is the one to flex.
                   </div>
                 )}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div ref={resultsGridRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {results.map((result, i) => (
                     <GiftResultCard key={result.product.id} result={result} index={i} />
                   ))}
@@ -433,7 +482,7 @@ export default function GiftFinderPage() {
               </div>
               <Link
                 to="/custom-gifts"
-                className="px-8 py-3.5 rounded-full bg-[#ffdad3] text-[#180f0a] hover:bg-white text-[13px] font-semibold transition-all shrink-0 shadow-md"
+                className="px-8 py-3.5 rounded-full bg-[#ffdad3] text-[#180f0a] hover:bg-white text-[13px] font-semibold transition-all duration-200 shrink-0 shadow-md hover:shadow-lg"
               >
                 Create a Custom Gift
               </Link>

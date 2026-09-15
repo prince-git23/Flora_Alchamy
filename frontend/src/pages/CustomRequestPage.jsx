@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Send, ArrowLeft, Sparkles, CheckCircle, Clock, ImagePlus } from 'lucide-react';
 import { getActiveCustomerId, getActiveCustomer } from '../services/customerService.js';
 import { createCustomRequest } from '../services/customRequestService.js';
+import { gsap } from 'gsap';
 
 const OCCASIONS = ['Birthday', 'Anniversary', 'Wedding', 'Graduation', 'Thank You', 'Congratulations', 'Festival', 'Just Because', 'Other'];
 const BUDGETS = ['Under ₹500', '₹500 – ₹1,000', '₹1,000 – ₹2,000', '₹2,000 – ₹5,000', '₹5,000+'];
@@ -20,6 +21,45 @@ export default function CustomRequestPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
+
+  const heroRef = useRef(null);
+  const formRef = useRef(null);
+  const successRef = useRef(null);
+
+  // GSAP hero entrance
+  useEffect(() => {
+    const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (REDUCED || !heroRef.current) return;
+
+    gsap.fromTo(heroRef.current.children,
+      { opacity: 0, y: 20 },
+      { opacity: 1, y: 0, duration: 0.6, stagger: 0.08, ease: 'power3.out', delay: 0.1 }
+    );
+  }, []);
+
+  // GSAP form entrance
+  useEffect(() => {
+    if (!formRef.current || submitted) return;
+    const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (REDUCED) return;
+
+    gsap.fromTo(formRef.current,
+      { opacity: 0, y: 20 },
+      { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out', delay: 0.3 }
+    );
+  }, [submitted]);
+
+  // GSAP success animation
+  useEffect(() => {
+    if (!submitted || !successRef.current) return;
+    const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (REDUCED) return;
+
+    gsap.fromTo(successRef.current,
+      { opacity: 0, scale: 0.95 },
+      { opacity: 1, scale: 1, duration: 0.5, ease: 'power3.out' }
+    );
+  }, [submitted]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -46,7 +86,7 @@ export default function CustomRequestPage() {
   if (submitted) {
     return (
       <div className="w-full bg-[#fcf9f4] min-h-screen flex items-center justify-center px-4">
-        <div className="max-w-lg w-full text-center space-y-6 bg-white rounded-3xl p-10 border border-[#e5e2dd] shadow-lg">
+        <div ref={successRef} className="max-w-lg w-full text-center space-y-6 bg-white rounded-3xl p-10 border border-[#e5e2dd] shadow-lg">
           <div className="w-16 h-16 rounded-full bg-[#d8e7cd]/50 flex items-center justify-center mx-auto">
             <CheckCircle className="w-8 h-8 text-[#5b6d54]" />
           </div>
@@ -68,27 +108,34 @@ export default function CustomRequestPage() {
   }
 
   return (
-    <div className="w-full bg-[#fcf9f4] min-h-screen py-8 lg:py-12">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Back */}
-        <Link to="/shop" className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#80756f] hover:text-[#180f0a] mb-6 transition-colors">
-          <ArrowLeft className="w-3.5 h-3.5" /> Back to Shop
-        </Link>
+    <div className="w-full bg-[#fcf9f4] min-h-screen">
+      {/* ═══ EDITORIAL HERO ═══ */}
+      <div ref={heroRef} className="relative overflow-hidden pt-10 lg:pt-16 pb-8 lg:pb-12" style={{ perspective: '1200px' }}>
+        <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full bg-[#ffdad3]/20 blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 -left-16 w-64 h-64 rounded-full bg-[#d8e7cd]/15 blur-3xl pointer-events-none" />
 
-        {/* Header */}
-        <div className="text-center max-w-xl mx-auto mb-10 space-y-3">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#ffdad3]/50 text-[#964735] text-[11px] font-bold uppercase tracking-wider">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Custom Request</span>
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <Link to="/shop" className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#80756f] hover:text-[#180f0a] mb-6 transition-colors">
+            <ArrowLeft className="w-3.5 h-3.5" /> Back to Shop
+          </Link>
+
+          <div className="text-center max-w-xl mx-auto space-y-3">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#ffdad3]/50 text-[#964735] text-[11px] font-bold uppercase tracking-wider">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Custom Request</span>
+            </div>
+            <h1 className="font-serif text-[38px] sm:text-[52px] lg:text-[60px] text-[#180f0a] tracking-tight font-normal leading-[1.1]">
+              Have Something Specific in Mind?
+            </h1>
+            <p className="text-[15px] sm:text-[16px] text-[#4e4540] leading-relaxed max-w-lg mx-auto">
+              Describe the gift you're envisioning and our team will create a custom quote for you.
+            </p>
           </div>
-          <h1 className="font-serif text-[34px] sm:text-[44px] text-[#180f0a] tracking-tight">Have Something Specific in Mind?</h1>
-          <p className="text-[15px] text-[#4e4540] leading-relaxed">
-            Describe the gift you're envisioning and our team will create a custom quote for you.
-          </p>
         </div>
+      </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="bg-white rounded-3xl border border-[#e5e2dd] p-6 sm:p-8 shadow-sm space-y-6">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+        <form ref={formRef} onSubmit={handleSubmit} className="bg-white rounded-3xl border border-[#e5e2dd] p-6 sm:p-8 shadow-sm space-y-6">
           {/* Description */}
           <div>
             <label htmlFor="cr-desc" className="block text-[11px] uppercase font-bold text-[#4e4540] mb-1.5">
@@ -100,7 +147,7 @@ export default function CustomRequestPage() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Tell us about the gift you'd like — what it should feel like, who it's for, any references or ideas…"
-              className="w-full p-3 rounded-xl bg-[#f6f3ee] text-[13px] text-[#1c1c19] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a] resize-none"
+              className="w-full p-3 rounded-xl bg-[#f6f3ee] text-[13px] text-[#1c1c19] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a] resize-none transition-shadow"
               required
             />
             <p className="text-[11px] text-[#80756f] mt-1">{description.length} characters</p>
@@ -115,10 +162,10 @@ export default function CustomRequestPage() {
                   key={occ}
                   type="button"
                   onClick={() => setOccasion(occ === occasion ? '' : occ)}
-                  className={`px-3 py-1.5 rounded-full border text-[12px] font-semibold transition-all ${
+                  className={`px-3 py-1.5 rounded-full border text-[12px] font-semibold transition-all duration-200 ${
                     occasion === occ
                       ? 'bg-[#180f0a] text-white border-[#180f0a]'
-                      : 'bg-[#f6f3ee] text-[#4e4540] border-[#e5e2dd] hover:bg-white'
+                      : 'bg-[#f6f3ee] text-[#4e4540] border-[#e5e2dd] hover:bg-white hover:border-[#80756f]'
                   }`}
                 >
                   {occ}
@@ -136,10 +183,10 @@ export default function CustomRequestPage() {
                   key={b}
                   type="button"
                   onClick={() => setBudget(b === budget ? '' : b)}
-                  className={`px-3 py-1.5 rounded-full border text-[12px] font-semibold transition-all ${
+                  className={`px-3 py-1.5 rounded-full border text-[12px] font-semibold transition-all duration-200 ${
                     budget === b
                       ? 'bg-[#180f0a] text-white border-[#180f0a]'
-                      : 'bg-[#f6f3ee] text-[#4e4540] border-[#e5e2dd] hover:bg-white'
+                      : 'bg-[#f6f3ee] text-[#4e4540] border-[#e5e2dd] hover:bg-white hover:border-[#80756f]'
                   }`}
                 >
                   {b}
@@ -159,7 +206,7 @@ export default function CustomRequestPage() {
               value={colors}
               onChange={(e) => setColors(e.target.value)}
               placeholder="e.g. Dusty rose, sage, cream"
-              className="w-full px-4 py-2.5 rounded-xl bg-[#f6f3ee] text-[13px] text-[#1c1c19] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a]"
+              className="w-full px-4 py-2.5 rounded-xl bg-[#f6f3ee] text-[13px] text-[#1c1c19] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a] transition-shadow"
             />
           </div>
 
@@ -173,7 +220,7 @@ export default function CustomRequestPage() {
               type="date"
               value={desiredDate}
               onChange={(e) => setDesiredDate(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl bg-[#f6f3ee] text-[13px] text-[#1c1c19] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a]"
+              className="w-full px-4 py-2.5 rounded-xl bg-[#f6f3ee] text-[13px] text-[#1c1c19] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a] transition-shadow"
             />
           </div>
 
@@ -190,7 +237,7 @@ export default function CustomRequestPage() {
                 value={imageUrl}
                 onChange={(e) => setImageUrl(e.target.value)}
                 placeholder="https://..."
-                className="flex-1 px-4 py-2.5 rounded-xl bg-[#f6f3ee] text-[13px] text-[#1c1c19] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a]"
+                className="flex-1 px-4 py-2.5 rounded-xl bg-[#f6f3ee] text-[13px] text-[#1c1c19] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a] transition-shadow"
               />
             </div>
           </div>

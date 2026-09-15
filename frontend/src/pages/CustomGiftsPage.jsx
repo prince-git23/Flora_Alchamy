@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   Sparkles,
@@ -17,6 +17,7 @@ import {
   Star
 } from 'lucide-react';
 import { useStore } from '../context/StoreContext.jsx';
+import { gsap } from 'gsap';
 
 const STEPS = [
   { id: 'occasion', title: 'Choose Occasion', icon: Gift },
@@ -103,6 +104,32 @@ export default function CustomGiftsPage() {
   const [recipientName, setRecipientName] = useState('');
   const [cardMessage, setCardMessage] = useState('');
 
+  const heroRef = useRef(null);
+  const stepPanelRef = useRef(null);
+
+  // GSAP hero entrance
+  useEffect(() => {
+    const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (REDUCED || !heroRef.current) return;
+
+    gsap.fromTo(heroRef.current.children,
+      { opacity: 0, y: 20 },
+      { opacity: 1, y: 0, duration: 0.6, stagger: 0.08, ease: 'power3.out', delay: 0.1 }
+    );
+  }, []);
+
+  // GSAP step transition
+  useEffect(() => {
+    if (!stepPanelRef.current) return;
+    const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (REDUCED) return;
+
+    gsap.fromTo(stepPanelRef.current,
+      { opacity: 0, x: 20 },
+      { opacity: 1, x: 0, duration: 0.35, ease: 'power2.out' }
+    );
+  }, [step]);
+
   const toggleFlower = (id) => {
     if (selectedFlowers.includes(id)) {
       if (selectedFlowers.length > 1) {
@@ -137,7 +164,6 @@ export default function CustomGiftsPage() {
   };
 
   const handleAddToCart = () => {
-    // Send configuration IDs to the server; the server calculates the authoritative price.
     const customGiftConfig = {
       baseId: selectedBase.id,
       flowerIds: selectedFlowers,
@@ -149,7 +175,6 @@ export default function CustomGiftsPage() {
     const customItem = {
       id: `custom-${Date.now()}`,
       name: `Custom ${selectedOccasion.name} Gift — ${selectedBase.title}`,
-      // Frontend estimate for UX — server ignores this and recalculates
       price: totalPrice,
       images: [selectedBase.image],
       categoryLabel: 'Custom Gift Studio',
@@ -179,32 +204,39 @@ export default function CustomGiftsPage() {
   };
 
   return (
-    <div className="w-full bg-[#fcf9f4] min-h-screen py-8 lg:py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Title Header */}
-        <div className="text-center max-w-2xl mx-auto mb-8 space-y-2">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#ffdad3]/50 text-[#964735] text-[11px] font-bold uppercase tracking-wider">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Custom Gift Studio</span>
-          </div>
-          <h1 className="font-serif text-[34px] sm:text-[44px] text-[#180f0a] tracking-tight font-normal">
-            Build a Gift, Your Way
-          </h1>
-          <p className="text-[15px] text-[#4e4540]">
-            Choose an occasion, pick your flowers, colors and wrapping — then add a personal message.
-          </p>
-        </div>
+    <div className="w-full bg-[#fcf9f4] min-h-screen">
+      {/* ═══ EDITORIAL HERO ═══ */}
+      <div ref={heroRef} className="relative overflow-hidden pt-10 lg:pt-16 pb-8 lg:pb-12" style={{ perspective: '1200px' }}>
+        <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full bg-[#ffdad3]/20 blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 -left-16 w-64 h-64 rounded-full bg-[#d8e7cd]/15 blur-3xl pointer-events-none" />
 
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="text-center max-w-2xl mx-auto space-y-3">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#ffdad3]/50 text-[#964735] text-[11px] font-bold uppercase tracking-wider">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Custom Gift Studio</span>
+            </div>
+            <h1 className="font-serif text-[38px] sm:text-[52px] lg:text-[60px] text-[#180f0a] tracking-tight font-normal leading-[1.1]">
+              Build a Gift, Your Way
+            </h1>
+            <p className="text-[15px] sm:text-[16px] text-[#4e4540] max-w-xl mx-auto leading-relaxed">
+              Choose an occasion, pick your flowers, colors and wrapping — then add a personal message. Our artisans handcraft it to order.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
         {/* Step Indicator */}
-        <div className="max-w-3xl mx-auto mb-8 flex items-center gap-1 sm:gap-2 overflow-x-auto pb-1">
+        <div className="max-w-3xl mx-auto mb-8 flex items-center gap-1 sm:gap-2 overflow-x-auto pb-1 scrollbar-hide">
           {STEPS.map((s, i) => (
             <button
               key={s.id}
               type="button"
               onClick={() => i < step && jumpTo(i)}
-              className={`flex items-center gap-1.5 shrink-0 px-2.5 py-1.5 rounded-full border text-[11px] font-semibold transition-all ${
+              className={`flex items-center gap-1.5 shrink-0 px-2.5 py-1.5 rounded-full border text-[11px] font-semibold transition-all duration-200 ${
                 i === step
-                  ? 'bg-[#180f0a] text-white border-[#180f0a]'
+                  ? 'bg-[#180f0a] text-white border-[#180f0a] shadow-sm'
                   : i < step
                     ? 'bg-white text-[#5b6d54] border-[#cfe0c7] cursor-pointer hover:border-[#5b6d54]'
                     : 'bg-[#f6f3ee] text-[#a89c95] border-[#e5e2dd] cursor-default'
@@ -223,7 +255,7 @@ export default function CustomGiftsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Active Step Panel */}
           <div className="lg:col-span-7">
-            <div className="bg-white rounded-3xl border border-[#e5e2dd] p-5 sm:p-8 shadow-sm animate-fade-in">
+            <div ref={stepPanelRef} className="bg-white rounded-3xl border border-[#e5e2dd] p-5 sm:p-8 shadow-sm">
               {/* STEP 0: Occasion */}
               {step === 0 && (
                 <div className="space-y-5">
@@ -234,10 +266,10 @@ export default function CustomGiftsPage() {
                         key={occ.id}
                         type="button"
                         onClick={() => setSelectedOccasion(occ)}
-                        className={`p-4 rounded-2xl border text-center transition-all ${
+                        className={`p-4 rounded-2xl border text-center transition-all duration-200 ${
                           selectedOccasion.id === occ.id
-                            ? 'bg-[#faf4ee] border-[#180f0a] ring-1 ring-[#180f0a]'
-                            : 'bg-[#f6f3ee] border-[#e5e2dd] hover:bg-white'
+                            ? 'bg-[#faf4ee] border-[#180f0a] ring-1 ring-[#180f0a] shadow-sm'
+                            : 'bg-[#f6f3ee] border-[#e5e2dd] hover:bg-white hover:border-[#80756f]'
                         }`}
                       >
                         <span className="text-[22px] block mb-1.5">{occ.emoji}</span>
@@ -260,10 +292,10 @@ export default function CustomGiftsPage() {
                         tabIndex={0}
                         onClick={() => setSelectedBase(base)}
                         onKeyDown={(e) => e.key === 'Enter' && setSelectedBase(base)}
-                        className={`cursor-pointer rounded-2xl p-3 border transition-all flex flex-col justify-between ${
+                        className={`cursor-pointer rounded-2xl p-3 border transition-all duration-200 flex flex-col justify-between ${
                           selectedBase.id === base.id
                             ? 'bg-white border-[#180f0a] shadow-sm ring-1 ring-[#180f0a]'
-                            : 'bg-[#f6f3ee] border-[#e5e2dd] hover:bg-white'
+                            : 'bg-[#f6f3ee] border-[#e5e2dd] hover:bg-white hover:border-[#80756f]'
                         }`}
                       >
                         <div className="aspect-square w-full rounded-xl overflow-hidden mb-2 bg-white">
@@ -298,16 +330,16 @@ export default function CustomGiftsPage() {
                           key={stem.id}
                           type="button"
                           onClick={() => toggleFlower(stem.id)}
-                          className={`p-3 rounded-2xl border text-left flex items-center justify-between transition-all ${
+                          className={`p-3 rounded-2xl border text-left flex items-center justify-between transition-all duration-200 ${
                             isChecked
                               ? 'bg-white border-[#180f0a] shadow-xs'
-                              : 'bg-[#f6f3ee] border-[#e5e2dd] hover:bg-white'
+                              : 'bg-[#f6f3ee] border-[#e5e2dd] hover:bg-white hover:border-[#80756f]'
                           }`}
                         >
                           <span className="text-[13px] font-medium text-[#1c1c19]">{stem.name}</span>
                           <span
-                            className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
-                              isChecked ? 'bg-[#964735] text-white' : 'border border-[#d1c4bd]'
+                            className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] transition-all duration-200 ${
+                              isChecked ? 'bg-[#964735] text-white scale-110' : 'border border-[#d1c4bd]'
                             }`}
                           >
                             {isChecked && <Check className="w-3 h-3" />}
@@ -329,10 +361,10 @@ export default function CustomGiftsPage() {
                         key={pal.id}
                         type="button"
                         onClick={() => setSelectedPalette(pal)}
-                        className={`p-3 rounded-2xl border text-left flex items-center gap-3 transition-all ${
+                        className={`p-3 rounded-2xl border text-left flex items-center gap-3 transition-all duration-200 ${
                           selectedPalette.id === pal.id
                             ? 'bg-white border-[#180f0a] shadow-xs'
-                            : 'bg-[#f6f3ee] border-[#e5e2dd] hover:bg-white'
+                            : 'bg-[#f6f3ee] border-[#e5e2dd] hover:bg-white hover:border-[#80756f]'
                         }`}
                       >
                         <div className="flex -space-x-1.5 shrink-0">
@@ -356,10 +388,10 @@ export default function CustomGiftsPage() {
                         key={rib.id}
                         type="button"
                         onClick={() => setSelectedRibbon(rib)}
-                        className={`p-3 rounded-2xl border text-left flex flex-col justify-between transition-all ${
+                        className={`p-3 rounded-2xl border text-left flex flex-col justify-between transition-all duration-200 ${
                           selectedRibbon.id === rib.id
                             ? 'bg-white border-[#180f0a] shadow-xs'
-                            : 'bg-[#f6f3ee] border-[#e5e2dd] hover:bg-white'
+                            : 'bg-[#f6f3ee] border-[#e5e2dd] hover:bg-white hover:border-[#80756f]'
                         }`}
                       >
                         <span className="text-[13px] font-semibold text-[#180f0a]">{rib.name}</span>
@@ -375,10 +407,10 @@ export default function CustomGiftsPage() {
                           key={ws.id}
                           type="button"
                           onClick={() => setSelectedSeal(ws)}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] font-semibold transition-all ${
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] font-semibold transition-all duration-200 ${
                             selectedSeal.id === ws.id
                               ? 'bg-[#180f0a] text-white border-[#180f0a]'
-                              : 'bg-[#f6f3ee] text-[#4e4540] border-[#e5e2dd]'
+                              : 'bg-[#f6f3ee] text-[#4e4540] border-[#e5e2dd] hover:bg-white'
                           }`}
                         >
                           <span style={{ backgroundColor: ws.hex }} className="w-2.5 h-2.5 rounded-full inline-block" />
@@ -405,7 +437,7 @@ export default function CustomGiftsPage() {
                         value={recipientName}
                         onChange={(e) => setRecipientName(e.target.value)}
                         placeholder="Who is this gift for?"
-                        className="w-full px-4 py-2.5 rounded-xl bg-[#f6f3ee] text-[14px] text-[#1c1c19] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a]"
+                        className="w-full px-4 py-2.5 rounded-xl bg-[#f6f3ee] text-[14px] text-[#1c1c19] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a] transition-shadow"
                       />
                     </div>
                     <div>
@@ -418,7 +450,7 @@ export default function CustomGiftsPage() {
                         value={cardMessage}
                         onChange={(e) => setCardMessage(e.target.value)}
                         placeholder="Write something kind…"
-                        className="w-full p-3 rounded-xl bg-[#f6f3ee] text-[13px] text-[#1c1c19] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a] resize-none"
+                        className="w-full p-3 rounded-xl bg-[#f6f3ee] text-[13px] text-[#1c1c19] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a] resize-none transition-shadow"
                       />
                     </div>
                     <div
@@ -448,7 +480,6 @@ export default function CustomGiftsPage() {
                       onEdit={() => jumpTo(5)}
                     />
                   </div>
-                  {/* Trust badges */}
                   <div className="flex flex-wrap gap-2 pt-3">
                     {['Handcrafted', 'Personalized', 'Gift-ready'].map((tag) => (
                       <span key={tag} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#d8e7cd]/50 text-[10px] font-bold text-[#5b6d54] uppercase tracking-wider">
@@ -515,8 +546,7 @@ export default function CustomGiftsPage() {
               <div className="relative rounded-2xl bg-gradient-to-br from-[#faf7f2] to-[#f0ede9] border border-[#e5e2dd] overflow-hidden aspect-[4/3]">
                 <img
                   loading="lazy"
-                  decoding="async" src={selectedBase.image} alt={selectedBase.title} className="w-full h-full object-cover opacity-90" />
-                {/* Palette overlay */}
+                  decoding="async" src={selectedBase.image} alt={selectedBase.title} className="w-full h-full object-cover opacity-90 transition-transform duration-500" />
                 <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/50 to-transparent">
                   <div className="flex items-center gap-2">
                     <div className="flex -space-x-1">
@@ -526,14 +556,12 @@ export default function CustomGiftsPage() {
                     <span className="text-white text-[10px] font-medium drop-shadow">{selectedPalette.name}</span>
                   </div>
                 </div>
-                {/* Seal stamp */}
                 <div
                   style={{ backgroundColor: selectedSeal.hex }}
-                  className="absolute top-3 right-3 w-8 h-8 rounded-full text-white text-[10px] font-serif flex items-center justify-center font-bold shadow-lg"
+                  className="absolute top-3 right-3 w-8 h-8 rounded-full text-white text-[10px] font-serif flex items-center justify-center font-bold shadow-lg transition-colors duration-300"
                 >
                   FA
                 </div>
-                {/* Flowers count badge */}
                 <div className="absolute top-3 left-3 flex items-center gap-1 px-2 py-1 rounded-full bg-white/90 backdrop-blur-sm">
                   <Flower2 className="w-3 h-3 text-[#964735]" />
                   <span className="text-[10px] font-bold text-[#180f0a]">{selectedFlowers.length} stems</span>
@@ -552,14 +580,13 @@ export default function CustomGiftsPage() {
                 <button
                   type="button"
                   onClick={() => jumpTo(STEPS.length - 1)}
-                  className="w-full py-3 rounded-full bg-[#180f0a] hover:bg-[#964735] text-white text-[13px] font-semibold flex items-center justify-center gap-2 shadow-md transition-all"
+                  className="w-full py-3 rounded-full bg-[#180f0a] hover:bg-[#964735] text-white text-[13px] font-semibold flex items-center justify-center gap-2 shadow-md transition-all duration-200"
                 >
                   <PackageCheck className="w-4 h-4" />
                   Review Gift · ₹{totalPrice.toLocaleString('en-IN')}
                 </button>
               )}
 
-              {/* Quick restart */}
               {step > 0 && (
                 <button
                   type="button"
