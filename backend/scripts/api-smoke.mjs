@@ -152,6 +152,9 @@ async function main() {
   check('cleanup: catalogue restored to fixture baseline', r.json.products?.length === 10);
 
   console.log('\n— ORDERS: PRICE INTEGRITY —');
+  // Top up stock so repeated suite runs never hit INSUFFICIENT_STOCK.
+  await req('POST', '/inventory/dusty-rose-lavender-posy/adjust', { token: TOKEN_ADMIN, body: { type: 'restock', quantity: 10, reason: 'api-smoke headroom' } });
+
   // Client sends a bogus price for the catalogue item; server must recompute.
   r = await req('POST', '/orders', {
     token: TOKEN_A,

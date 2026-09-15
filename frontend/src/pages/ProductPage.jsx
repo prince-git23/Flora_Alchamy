@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   ChevronLeft, ChevronRight, Minus, Plus, Heart, ShoppingBag, Zap,
@@ -9,14 +9,13 @@ import { getSettings } from '../services/settingsService.js';
 import { deriveGiftAttributes } from '../services/giftFinderService.js';
 import { useStore } from '../context/StoreContext.jsx';
 import ProductCard from '../components/ProductCard.jsx';
+import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
-// Catalogue quantity guard. The storefront cannot read /api/inventory (customers
-// receive 403 on that endpoint), so this caps a single order line without ever
-// claiming a stock number.
+gsap.registerPlugin(ScrollTrigger);
+
 const QUANTITY_MAX = 10;
 
-// Honest, category-level inclusion statement — derived from the real category
-// field rather than invented per-product content.
 const CATEGORY_INCLUSION = {
   bouquets: 'Sculpted everlasting blooms',
   cards: 'Handmade botanical cards',
@@ -51,6 +50,9 @@ export default function ProductPage() {
 
   const settings = useMemo(() => getSettings(), []);
 
+  // GSAP ref
+  const relatedRef = useRef(null);
+
   useEffect(() => {
     const found = getProductById(id);
     if (found) {
@@ -70,8 +72,28 @@ export default function ProductPage() {
     window.scrollTo(0, 0);
   }, [id]);
 
-  // Related products: same category first, then a comparable price band, then
-  // the rest of the live catalogue. Never a hardcoded list.
+  // GSAP animations for related products
+  useEffect(() => {
+    if (!relatedRef.current || !product) return;
+    const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (REDUCED) return;
+
+    const cards = relatedRef.current.querySelectorAll('article');
+    if (cards.length === 0) return;
+
+    const ctx = gsap.context(() => {
+      gsap.fromTo(cards,
+        { opacity: 0, y: 25, scale: 0.97 },
+        {
+          opacity: 1, y: 0, scale: 1, duration: 0.5, stagger: 0.06, ease: 'power2.out',
+          scrollTrigger: { trigger: relatedRef.current, start: 'top 85%', once: true },
+        }
+      );
+    });
+
+    return () => ctx.revert();
+  }, [product]);
+
   const relatedProducts = useMemo(() => {
     if (!product) return [];
     const all = getCatalogProducts().filter((p) => p.id !== product.id && p.visibility !== 'Hidden');
@@ -175,10 +197,10 @@ export default function ProductPage() {
         </nav>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-start">
-          {/* ── Gallery (left) ── */}
-          <div className="lg:col-span-6 space-y-4">
+          {/* ── Gallery (left) — spatial depth ── */}
+          <div className="lg:col-span-6 space-y-4" style={{ perspective: '1000px' }}>
             <div
-              className="relative aspect-square w-full rounded-3xl overflow-hidden bg-white shadow-sm border border-[#e5e2dd] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#180f0a]"
+              className="relative aspect-square w-full rounded-3xl overflow-hidden bg-white shadow-[0_8px_30px_-4px_rgba(46,36,30,0.08)] border border-[#e5e2dd] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#180f0a]"
               tabIndex={hasGallery ? 0 : -1}
               onKeyDown={(e) => {
                 if (e.key === 'ArrowLeft') { e.preventDefault(); stepGallery(-1); }
@@ -193,7 +215,7 @@ export default function ProductPage() {
                   decoding="async"
                   src={images[galleryIndex]}
                   alt={product.name}
-                  className="w-full h-full object-cover transition-all duration-300"
+                  className="w-full h-full object-cover transition-all duration-500"
                   onError={() => setGalleryImgError(true)}
                 />
               ) : (
@@ -216,7 +238,7 @@ export default function ProductPage() {
                     type="button"
                     onClick={() => stepGallery(-1)}
                     aria-label="Previous image"
-                    className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm shadow-md flex items-center justify-center text-[#180f0a] hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#180f0a]"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm shadow-md flex items-center justify-center text-[#180f0a] hover:bg-white transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#180f0a]"
                   >
                     <ChevronLeft className="w-5 h-5" aria-hidden="true" />
                   </button>
@@ -224,7 +246,7 @@ export default function ProductPage() {
                     type="button"
                     onClick={() => stepGallery(1)}
                     aria-label="Next image"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm shadow-md flex items-center justify-center text-[#180f0a] hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#180f0a]"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm shadow-md flex items-center justify-center text-[#180f0a] hover:bg-white transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#180f0a]"
                   >
                     <ChevronRight className="w-5 h-5" aria-hidden="true" />
                   </button>
@@ -235,7 +257,7 @@ export default function ProductPage() {
               )}
             </div>
 
-            {/* Thumbnails (only when the product genuinely has several images) */}
+            {/* Thumbnails */}
             {hasGallery && (
               <div className="flex items-center gap-3 overflow-x-auto pb-2">
                 {images.map((imgUrl, idx) => (
@@ -245,7 +267,7 @@ export default function ProductPage() {
                     onClick={() => { setGalleryImgError(false); setGalleryIndex(idx); }}
                     aria-label={`Show image ${idx + 1}`}
                     aria-current={galleryIndex === idx}
-                    className={`relative w-20 h-20 rounded-2xl overflow-hidden bg-white border-2 transition-all shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#180f0a] ${
+                    className={`relative w-20 h-20 rounded-2xl overflow-hidden bg-white border-2 transition-all duration-200 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#180f0a] ${
                       galleryIndex === idx ? 'border-[#964735] ring-2 ring-[#ffdad3]' : 'border-[#e5e2dd] opacity-75 hover:opacity-100'
                     }`}
                   >
@@ -269,7 +291,7 @@ export default function ProductPage() {
             </div>
           </div>
 
-          {/* ── Purchase panel (right) ── */}
+          {/* ── Purchase panel (right) — spatial depth ── */}
           <div className="lg:col-span-6 space-y-6">
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-3">
@@ -336,10 +358,10 @@ export default function ProductPage() {
                       type="button"
                       aria-pressed={selectedPalette === pal.name}
                       onClick={() => { setSelectedPalette(pal.name); setJustAdded(false); }}
-                      className={`p-3 rounded-2xl flex items-center gap-3 border text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#180f0a] ${
+                      className={`p-3 rounded-2xl flex items-center gap-3 border text-left transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#180f0a] ${
                         selectedPalette === pal.name
-                          ? 'bg-white border-[#180f0a]'
-                          : 'bg-[#f6f3ee] border-[#e5e2dd] hover:bg-white'
+                          ? 'bg-white border-[#180f0a] shadow-sm'
+                          : 'bg-[#f6f3ee] border-[#e5e2dd] hover:bg-white hover:border-[#80756f]'
                       }`}
                     >
                       <Leaf className="w-4 h-4 text-[#5b6d54] shrink-0" aria-hidden="true" />
@@ -366,10 +388,10 @@ export default function ProductPage() {
                       type="button"
                       aria-pressed={selectedRibbon === ribbon.name}
                       onClick={() => { setSelectedRibbon(ribbon.name); setJustAdded(false); }}
-                      className={`p-3 rounded-2xl border text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#180f0a] ${
+                      className={`p-3 rounded-2xl border text-left transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#180f0a] ${
                         selectedRibbon === ribbon.name
-                          ? 'bg-white border-[#180f0a]'
-                          : 'bg-[#f6f3ee] border-[#e5e2dd] hover:bg-white'
+                          ? 'bg-white border-[#180f0a] shadow-sm'
+                          : 'bg-[#f6f3ee] border-[#e5e2dd] hover:bg-white hover:border-[#80756f]'
                       }`}
                     >
                       <span className="text-[12px] font-semibold text-[#180f0a]">{ribbon.name}</span>
@@ -392,7 +414,7 @@ export default function ProductPage() {
                 value={giftMessage}
                 onChange={(e) => { setGiftMessage(e.target.value); setJustAdded(false); }}
                 placeholder="Include a personal message for the recipient…"
-                className="w-full p-3 rounded-2xl bg-white text-[13px] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a] resize-none"
+                className="w-full p-3 rounded-2xl bg-white text-[13px] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a] resize-none transition-shadow"
               />
               <p className="text-[11px] text-[#80756f]">
                 Inscribed on deckled cotton paper and enclosed with an organic wax seal.
@@ -400,7 +422,7 @@ export default function ProductPage() {
               </p>
             </div>
 
-            {/* Personalization preview — renders only the customer's own selections */}
+            {/* Personalization preview */}
             {(giftMessage.trim() || selectedPalette || selectedRibbon) && (
               <div className="rounded-2xl bg-[#f6f3ee] border border-[#e5e2dd] p-4 sm:p-5">
                 <p className="text-[10px] uppercase font-bold tracking-widest text-[#964735] mb-2">
@@ -414,7 +436,7 @@ export default function ProductPage() {
                     <p className="text-[12px] text-[#4e4540]"><span className="font-semibold text-[#180f0a]">Ribbon:</span> {selectedRibbon}</p>
                   )}
                   <p className="font-serif text-[15px] text-[#1c1c19] italic leading-relaxed border-t border-[#e5e2dd] pt-2">
-                    {giftMessage.trim() ? `“${giftMessage.trim()}”` : 'Your gift note will appear here.'}
+                    {giftMessage.trim() ? `\u201c${giftMessage.trim()}\u201d` : 'Your gift note will appear here.'}
                   </p>
                 </div>
                 <p className="text-[10px] text-[#80756f] mt-2">
@@ -433,7 +455,7 @@ export default function ProductPage() {
                     onClick={() => { setQuantity((q) => Math.max(1, q - 1)); setJustAdded(false); }}
                     disabled={quantity <= 1}
                     aria-label="Decrease quantity"
-                    className="text-[#4e4540] hover:text-[#180f0a] p-1 disabled:opacity-40"
+                    className="text-[#4e4540] hover:text-[#180f0a] p-1 disabled:opacity-40 transition-colors"
                   >
                     <Minus className="w-4 h-4" aria-hidden="true" />
                   </button>
@@ -443,7 +465,7 @@ export default function ProductPage() {
                     onClick={() => { setQuantity((q) => Math.min(QUANTITY_MAX, q + 1)); setJustAdded(false); }}
                     disabled={quantity >= QUANTITY_MAX}
                     aria-label="Increase quantity"
-                    className="text-[#4e4540] hover:text-[#180f0a] p-1 disabled:opacity-40"
+                    className="text-[#4e4540] hover:text-[#180f0a] p-1 disabled:opacity-40 transition-colors"
                   >
                     <Plus className="w-4 h-4" aria-hidden="true" />
                   </button>
@@ -455,7 +477,7 @@ export default function ProductPage() {
                 <button
                   type="button"
                   onClick={handleAddToCart}
-                  className="flex-1 py-3.5 rounded-full bg-[#180f0a] hover:bg-[#964735] text-white text-[13px] font-semibold tracking-wide flex items-center justify-center gap-2 shadow-md transition-all active:translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#964735] focus-visible:ring-offset-2"
+                  className="flex-1 py-3.5 rounded-full bg-[#180f0a] hover:bg-[#964735] text-white text-[13px] font-semibold tracking-wide flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all duration-200 active:translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#964735] focus-visible:ring-offset-2"
                 >
                   <ShoppingBag className="w-4 h-4" aria-hidden="true" />
                   <span>Add to Bag · ₹{lineTotal.toLocaleString('en-IN')}</span>
@@ -467,20 +489,20 @@ export default function ProductPage() {
                   aria-pressed={wishlisted}
                   aria-label={wishlisted ? 'Remove from Saved Gifts' : 'Save to Saved Gifts'}
                   title={wishlisted ? 'Remove from Saved Gifts' : 'Save to Saved Gifts'}
-                  className={`p-3.5 rounded-full border transition-all shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#964735] ${
+                  className={`p-3.5 rounded-full border transition-all duration-200 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#964735] ${
                     wishlisted
                       ? 'bg-[#ffdad3] border-[#964735] text-[#964735]'
-                      : 'bg-white border-[#e5e2dd] text-[#4e4540] hover:text-[#964735]'
+                      : 'bg-white border-[#e5e2dd] text-[#4e4540] hover:text-[#964735] hover:border-[#964735]'
                   }`}
                 >
-                  <Heart className={`w-5 h-5 ${wishlisted ? 'fill-[#964735]' : ''}`} aria-hidden="true" />
+                  <Heart className={`w-5 h-5 transition-all duration-200 ${wishlisted ? 'fill-[#964735] scale-110' : ''}`} aria-hidden="true" />
                 </button>
               </div>
 
               <button
                 type="button"
                 onClick={handleBuyNow}
-                className="w-full py-3.5 rounded-full bg-white border-2 border-[#180f0a] hover:bg-[#f6f3ee] text-[#180f0a] text-[13px] font-semibold tracking-wide flex items-center justify-center gap-2 shadow-sm transition-all active:translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#180f0a] focus-visible:ring-offset-2"
+                className="w-full py-3.5 rounded-full bg-white border-2 border-[#180f0a] hover:bg-[#f6f3ee] text-[#180f0a] text-[13px] font-semibold tracking-wide flex items-center justify-center gap-2 shadow-sm hover:shadow-md transition-all duration-200 active:translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#180f0a] focus-visible:ring-offset-2"
               >
                 <Zap className="w-4 h-4" aria-hidden="true" />
                 <span>Buy Now · ₹{lineTotal.toLocaleString('en-IN')}</span>
@@ -488,7 +510,7 @@ export default function ProductPage() {
 
               {/* Immediate feedback after Add to Bag */}
               {justAdded && (
-                <div className="fa-fade-in rounded-2xl bg-[#d8e7cd] border border-[#c3d6b6] p-4 flex flex-wrap items-center justify-between gap-3" role="status">
+                <div className="rounded-2xl bg-[#d8e7cd] border border-[#c3d6b6] p-4 flex flex-wrap items-center justify-between gap-3" role="status">
                   <p className="text-[13px] font-semibold text-[#2f3d29] flex items-center gap-2">
                     <Check className="w-4 h-4" aria-hidden="true" />
                     Added to your bag
@@ -512,7 +534,7 @@ export default function ProductPage() {
               )}
             </div>
 
-            {/* Delivery information — from store settings, never invented */}
+            {/* Delivery information */}
             <div className="rounded-2xl bg-white border border-[#e5e2dd] p-4 space-y-2">
               <p className="text-[12px] font-bold uppercase tracking-wider text-[#180f0a] flex items-center gap-2">
                 <Truck className="w-4 h-4 text-[#964735]" aria-hidden="true" /> Delivery
@@ -587,7 +609,7 @@ export default function ProductPage() {
           </div>
         </div>
 
-        {/* Detail tabs — only real content is rendered */}
+        {/* Detail tabs */}
         <div className="mt-10 bg-white rounded-3xl p-6 lg:p-10 border border-[#e5e2dd]">
           <div className="flex items-center gap-6 border-b border-[#e5e2dd] pb-4 mb-6">
             {tabs.map((tab) => (
@@ -647,7 +669,7 @@ export default function ProductPage() {
 
         {/* Related */}
         {relatedProducts.length > 0 && (
-          <div className="mt-16 lg:mt-24 space-y-6">
+          <div ref={relatedRef} className="mt-16 lg:mt-24 space-y-6">
             <div className="flex items-end justify-between gap-4">
               <div>
                 <span className="text-[11px] uppercase font-bold tracking-widest text-[#964735]">
@@ -671,7 +693,7 @@ export default function ProductPage() {
         )}
       </div>
 
-      {/* Mobile sticky purchase bar — page reserves space so nothing is hidden */}
+      {/* Mobile sticky purchase bar */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#fcf9f4]/95 backdrop-blur-md border-t border-[#e5e2dd] px-4 py-3">
         <div className="flex items-center gap-3 max-w-7xl mx-auto">
           <div className="min-w-0">

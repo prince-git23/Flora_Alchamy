@@ -1,16 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, ShoppingBag, Star, Eye, Sparkles, Leaf } from 'lucide-react';
 import { useStore } from '../context/StoreContext.jsx';
 import { deriveGiftAttributes } from '../services/giftFinderService.js';
 
 /**
- * Storefront product card.
+ * Storefront product card — spatial depth variant.
  *
- * Availability and personalization come from real product fields only:
- * `stockTracked` (a made-to-order item is not stock tracked) and the derived
- * gift attributes (cards/hampers/short-run pieces support personalization).
- * No stock numbers are shown because the storefront cannot read /api/inventory.
+ * Adds subtle perspective, hover elevation, and controlled image motion
+ * while preserving all existing functionality (wishlist, add to bag, links).
+ *
+ * Depth hierarchy:
+ *  LEVEL 0 — card surface
+ *  LEVEL 1 — image / content
+ *  LEVEL 2 — badges, wishlist button, quick view overlay
+ *  LEVEL 3 — hover elevation state
  */
 export default function ProductCard({ product }) {
   const { toggleWishlist, isWishlisted, addItemToCart } = useStore();
@@ -33,10 +37,35 @@ export default function ProductCard({ product }) {
   };
 
   const [imgError, setImgError] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const cardRef = useRef(null);
   const imgSrc = product.images ? product.images[0] : (product.image || '');
 
+  // Subtle tilt on mouse position (desktop only, max ~2deg)
+  const handleMouseMove = (e) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    cardRef.current.style.transform = `perspective(800px) rotateY(${x * 3}deg) rotateX(${-y * 3}deg) translateY(-4px)`;
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    if (cardRef.current) {
+      cardRef.current.style.transform = 'perspective(800px) rotateY(0deg) rotateX(0deg) translateY(0px)';
+    }
+  };
+
   return (
-    <article className="group relative flex flex-col bg-white rounded-3xl p-3 sm:p-4 shadow-[0_4px_20px_-2px_rgba(46,36,30,0.04)] hover:shadow-[0_12px_32px_-4px_rgba(46,36,30,0.09)] transition-all duration-300 border border-[#f0ede9]">
+    <article
+      ref={cardRef}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      className="group relative flex flex-col bg-white rounded-3xl p-3 sm:p-4 shadow-[0_4px_20px_-2px_rgba(46,36,30,0.04)] hover:shadow-[0_16px_40px_-6px_rgba(46,36,30,0.12)] transition-shadow duration-400 border border-[#f0ede9] hover:border-[#e5e2dd]"
+      style={{ transformStyle: 'preserve-3d', willChange: 'transform' }}
+    >
       {/* Thumbnail container */}
       <div className="relative aspect-square w-full rounded-2xl overflow-hidden bg-[#f6f3ee] mb-3">
         <Link to={`/product/${product.id}`} className="block w-full h-full" tabIndex={-1}>
@@ -44,7 +73,7 @@ export default function ProductCard({ product }) {
             <img
               src={imgSrc}
               alt={product.name}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
               loading="lazy"
               onError={() => setImgError(true)}
             />
@@ -72,18 +101,18 @@ export default function ProductCard({ product }) {
           </div>
         )}
 
-        {/* Saved Gifts button */}
+        {/* Saved Gifts button — elevated to LEVEL 2 */}
         <button
           onClick={handleToggleWishlist}
-          className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center text-[#4e4540] hover:text-[#964735] shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#180f0a]"
+          className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center text-[#4e4540] hover:text-[#964735] shadow-sm hover:shadow-md transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#180f0a]"
           title={wishlisted ? 'Remove from Saved Gifts' : 'Save to Saved Gifts'}
           aria-label={wishlisted ? 'Remove from Saved Gifts' : 'Save to Saved Gifts'}
           type="button"
         >
-          <Heart className={`w-4 h-4 ${wishlisted ? 'fill-[#964735] text-[#964735]' : ''}`} aria-hidden="true" />
+          <Heart className={`w-4 h-4 transition-all duration-200 ${wishlisted ? 'fill-[#964735] text-[#964735] scale-110' : ''}`} aria-hidden="true" />
         </button>
 
-        {/* Quick View Link */}
+        {/* Quick View Link — fades in on hover */}
         <div className="absolute inset-x-3 bottom-3 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
           <Link
             to={`/product/${product.id}`}
@@ -147,7 +176,7 @@ export default function ProductCard({ product }) {
           <button
             onClick={handleAddToCart}
             type="button"
-            className="px-3.5 py-1.5 rounded-full bg-[#180f0a] text-white hover:bg-[#964735] transition-all text-[12px] font-semibold flex items-center gap-1.5 shadow-sm active:translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#964735] focus-visible:ring-offset-1"
+            className="px-3.5 py-1.5 rounded-full bg-[#180f0a] text-white hover:bg-[#964735] transition-all duration-200 text-[12px] font-semibold flex items-center gap-1.5 shadow-sm hover:shadow-md active:translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#964735] focus-visible:ring-offset-1"
           >
             <ShoppingBag className="w-3.5 h-3.5" aria-hidden="true" />
             <span>Add to Bag</span>

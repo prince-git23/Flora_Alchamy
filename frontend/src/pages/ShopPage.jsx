@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { SlidersHorizontal, ArrowUpDown, X, Search, RotateCcw, Leaf, Sparkles } from 'lucide-react';
 import ProductCard from '../components/ProductCard.jsx';
@@ -10,6 +10,10 @@ import {
   OCCASION_OPTIONS,
   RECIPIENT_OPTIONS,
 } from '../services/giftFinderService.js';
+import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+gsap.registerPlugin(ScrollTrigger);
 
 // Availability is derived from the real `stockTracked` product field — the
 // storefront cannot read /api/inventory, so it never claims stock numbers.
@@ -26,14 +30,10 @@ const SORT_OPTIONS = [
 export default function ShopPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialCategory = searchParams.get('category') || 'all';
-  // Phase 3G-A discovery filters — occasion / recipient are derived from real
-  // product attributes, never a fake hand-curated list.
   const initialOccasion = searchParams.get('occasion') || '';
   const initialRecipient = searchParams.get('recipient') || '';
   const initialAvailability = searchParams.get('availability') || 'all';
 
-  // Canonical catalogue — same persisted product set the Handler Portal manages,
-  // so admin product edits/creations immediately reach the storefront.
   const catalog = useMemo(() => getCatalogProducts(), []);
   const maxPriceCap = Math.max(
     4000,
@@ -45,7 +45,6 @@ export default function ShopPage() {
       ? Math.min(maxPriceCap, Math.max(400, maxPriceParam))
       : maxPriceCap;
 
-  // Derive real category chips from the catalogue (no ghost/empty categories).
   const categoryMap = catalog.reduce((acc, p) => {
     if (p.category && !acc[p.category]) {
       acc[p.category] = { id: p.category, label: p.categoryLabel || p.category };
@@ -54,7 +53,6 @@ export default function ShopPage() {
   }, {});
   const categoryOptions = [{ id: 'all', label: 'All Keepsakes' }, ...Object.values(categoryMap)];
 
-  // Only offer availability options the catalogue actually contains.
   const availabilityOptions = useMemo(() => {
     const present = new Set(catalog.filter((p) => p.visibility !== 'Hidden').map(availabilityOf));
     const options = [{ id: 'all', label: 'Any availability' }];
@@ -72,6 +70,11 @@ export default function ShopPage() {
   const [sortBy, setSortBy] = useState('featured');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+
+  // GSAP refs
+  const heroRef = useRef(null);
+  const gridRef = useRef(null);
+  const toolbarRef = useRef(null);
 
   useEffect(() => {
     const base = getCatalogProducts();
@@ -92,7 +95,46 @@ export default function ShopPage() {
     setProducts(filtered);
   }, [selectedCategory, selectedOccasion, selectedRecipient, selectedAvailability, maxPrice, sortBy, searchQuery]);
 
-  // Keep the sheet from leaving the page scrollable behind it.
+  // GSAP animations
+  useEffect(() => {
+    const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (REDUCED) return;
+
+    const ctx = gsap.context(() => {
+      // Hero entrance
+      if (heroRef.current) {
+        gsap.fromTo(heroRef.current.children,
+          { opacity: 0, y: 20 },
+          { opacity: 1, y: 0, duration: 0.6, stagger: 0.08, ease: 'power3.out', delay: 0.1 }
+        );
+      }
+
+      // Toolbar fade in
+      if (toolbarRef.current) {
+        gsap.fromTo(toolbarRef.current,
+          { opacity: 0, y: 15 },
+          { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out', delay: 0.4 }
+        );
+      }
+    });
+
+    return () => ctx.revert();
+  }, []);
+
+  // Animate product grid when products change
+  useEffect(() => {
+    const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (REDUCED || !gridRef.current) return;
+
+    const cards = gridRef.current.querySelectorAll('article');
+    if (cards.length === 0) return;
+
+    gsap.fromTo(cards,
+      { opacity: 0, y: 20, scale: 0.97 },
+      { opacity: 1, y: 0, scale: 1, duration: 0.4, stagger: 0.04, ease: 'power2.out' }
+    );
+  }, [products]);
+
   useEffect(() => {
     if (!filterSheetOpen) return undefined;
     const prev = document.body.style.overflow;
@@ -144,7 +186,6 @@ export default function ShopPage() {
   const availabilityChipLabel =
     selectedAvailability === 'all' ? '' : AVAILABILITY_LABELS[selectedAvailability] || selectedAvailability;
 
-  /* Shared filter controls — rendered in the desktop sidebar and the mobile sheet. */
   const filterControls = (
     <>
       {/* Price range */}
@@ -249,37 +290,45 @@ export default function ShopPage() {
   );
 
   return (
-    <div className="w-full bg-[#fcf9f4] min-h-screen py-10 lg:py-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header Title & Intro */}
-        <div className="space-y-2 mb-10">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[#964735]" />
-            <span className="text-[11px] font-bold uppercase tracking-widest text-[#964735]">
-              The Atelier Catalogue
-            </span>
-          </div>
-          <h1 className="font-serif text-[38px] sm:text-[48px] text-[#180f0a] tracking-tight font-normal">
-            Shop All Gifts
-          </h1>
-          <p className="text-[15px] text-[#4e4540] max-w-2xl leading-relaxed">
-            Every piece is handcrafted to order in our studio — sculpted chenille stems, deckled
-            botanical cards, and keepsake boxes you can personalize. Filter by occasion, recipient,
-            price, or availability to find the right one.
-          </p>
-        </div>
+    <div className="w-full bg-[#fcf9f4] min-h-screen">
+      {/* ═══ EDITORIAL SHOP HEADER ═══ */}
+      <div ref={heroRef} className="relative overflow-hidden pt-10 lg:pt-16 pb-8 lg:pb-12" style={{ perspective: '1200px' }}>
+        {/* Ambient glow */}
+        <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full bg-[#ffdad3]/20 blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 -left-16 w-64 h-64 rounded-full bg-[#d8e7cd]/15 blur-3xl pointer-events-none" />
 
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="space-y-2 mb-6">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#964735]" />
+              <span className="text-[11px] font-bold uppercase tracking-widest text-[#964735]">
+                The Atelier Catalogue
+              </span>
+            </div>
+            <h1 className="font-serif text-[38px] sm:text-[52px] lg:text-[60px] text-[#180f0a] tracking-tight font-normal leading-[1.1]">
+              Shop All Gifts
+            </h1>
+            <p className="text-[15px] sm:text-[16px] text-[#4e4540] max-w-2xl leading-relaxed">
+              Every piece is handcrafted to order in our studio — sculpted chenille stems, deckled
+              botanical cards, and keepsake boxes you can personalize. Filter by occasion, recipient,
+              price, or availability to find the right one.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
         {/* Toolbar: Categories Pills, Search & Sort */}
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pb-6 border-b border-[#e5e2dd] mb-6">
+        <div ref={toolbarRef} className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pb-6 border-b border-[#e5e2dd] mb-6">
           {/* Categories Horizontal Scroll */}
-          <div className="flex items-center gap-2 overflow-x-auto w-full lg:w-auto pb-2 lg:pb-0">
+          <div className="flex items-center gap-2 overflow-x-auto w-full lg:w-auto pb-2 lg:pb-0 scrollbar-hide">
             {categoryOptions.map((cat) => (
               <button
                 key={cat.id}
                 type="button"
                 onClick={() => handleCategoryChange(cat.id)}
                 aria-pressed={selectedCategory === cat.id}
-                className={`px-4 py-2 rounded-full text-[12px] font-semibold whitespace-nowrap transition-all ${
+                className={`px-4 py-2 rounded-full text-[12px] font-semibold whitespace-nowrap transition-all duration-200 ${
                   selectedCategory === cat.id
                     ? 'bg-[#180f0a] text-white shadow-sm'
                     : 'bg-white text-[#4e4540] hover:text-[#180f0a] hover:bg-[#f0ede9] border border-[#e5e2dd]'
@@ -299,7 +348,7 @@ export default function ShopPage() {
                 aria-label="Search gifts"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 rounded-full bg-white text-[13px] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a]"
+                className="w-full pl-9 pr-4 py-2 rounded-full bg-white text-[13px] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a] transition-shadow"
               />
               <Search className="w-4 h-4 text-[#80756f] absolute left-3 top-1/2 -translate-y-1/2" aria-hidden="true" />
             </div>
@@ -331,7 +380,7 @@ export default function ShopPage() {
           </div>
         </div>
 
-        {/* Active discovery filters (occasion / recipient / availability / price) */}
+        {/* Active discovery filters */}
         {(selectedOccasion || selectedRecipient || selectedAvailability !== 'all' || Number(maxPrice) < maxPriceCap) && (
           <div className="flex flex-wrap items-center gap-2 pb-6">
             <span className="text-[11px] uppercase font-bold tracking-wider text-[#80756f]">Filtering:</span>
@@ -339,7 +388,7 @@ export default function ShopPage() {
               <button
                 type="button"
                 onClick={() => clearDiscoveryFilter('occasion')}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#180f0a] text-white text-[11px] font-semibold"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#180f0a] text-white text-[11px] font-semibold transition-all duration-200 hover:bg-[#964735]"
               >
                 Occasion: {optionLabel('occasion', selectedOccasion)} <X className="w-3 h-3" aria-hidden="true" />
               </button>
@@ -348,7 +397,7 @@ export default function ShopPage() {
               <button
                 type="button"
                 onClick={() => clearDiscoveryFilter('recipient')}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#180f0a] text-white text-[11px] font-semibold"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#180f0a] text-white text-[11px] font-semibold transition-all duration-200 hover:bg-[#964735]"
               >
                 For: {optionLabel('recipient', selectedRecipient)} <X className="w-3 h-3" aria-hidden="true" />
               </button>
@@ -357,7 +406,7 @@ export default function ShopPage() {
               <button
                 type="button"
                 onClick={() => clearDiscoveryFilter('availability')}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#180f0a] text-white text-[11px] font-semibold"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#180f0a] text-white text-[11px] font-semibold transition-all duration-200 hover:bg-[#964735]"
               >
                 {availabilityChipLabel} <X className="w-3 h-3" aria-hidden="true" />
               </button>
@@ -366,7 +415,7 @@ export default function ShopPage() {
               <button
                 type="button"
                 onClick={() => clearDiscoveryFilter('maxPrice')}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#ebe8e3] text-[#180f0a] text-[11px] font-semibold"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#ebe8e3] text-[#180f0a] text-[11px] font-semibold transition-all duration-200 hover:bg-[#d8e7cd]"
               >
                 Under ₹{Number(maxPrice).toLocaleString('en-IN')} <X className="w-3 h-3" aria-hidden="true" />
               </button>
@@ -376,7 +425,7 @@ export default function ShopPage() {
 
         {/* Layout Grid with Sidebar Filters */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Desktop Filters Sidebar (3 cols) */}
+          {/* Desktop Filters Sidebar */}
           <aside className="hidden lg:block lg:col-span-3">
             <div className="bg-white rounded-3xl p-6 border border-[#e5e2dd] shadow-xs space-y-6 lg:sticky lg:top-28">
               <div className="flex items-center justify-between border-b border-[#e5e2dd] pb-3">
@@ -396,7 +445,7 @@ export default function ShopPage() {
             </div>
           </aside>
 
-          {/* Product Grid (9 cols) */}
+          {/* Product Grid */}
           <main className="lg:col-span-9">
             {products.length > 0 ? (
               <>
@@ -407,7 +456,7 @@ export default function ShopPage() {
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div ref={gridRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {products.map((product) => (
                     <ProductCard key={product.id} product={product} />
                   ))}
