@@ -1,6 +1,10 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ArrowLeft } from 'lucide-react';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+gsap.registerPlugin(ScrollTrigger);
 
 const STEPS = [
   {
@@ -48,11 +52,55 @@ const STEPS = [
 ];
 
 export default function HowItsMadePage() {
+  const pageRef = useRef(null);
+  const heroRef = useRef(null);
+  const stepsRef = useRef([]);
+  const ctaRef = useRef(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const ctx = gsap.context(() => {
+      // Hero entrance
+      gsap.fromTo(heroRef.current, { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 1, ease: 'power3.out' });
+
+      // Step reveals with stagger
+      stepsRef.current.forEach((step, i) => {
+        if (!step) return;
+        const isEven = i % 2 === 1;
+        gsap.fromTo(step, { opacity: 0, x: isEven ? 50 : -50 }, {
+          opacity: 1, x: 0, duration: 0.8, ease: 'power3.out',
+          scrollTrigger: { trigger: step, start: 'top 85%', once: true }
+        });
+      });
+
+      // CTA reveal
+      if (ctaRef.current) {
+        gsap.fromTo(ctaRef.current, { opacity: 0, y: 30 }, {
+          opacity: 1, y: 0, duration: 0.8, ease: 'power3.out',
+          scrollTrigger: { trigger: ctaRef.current, start: 'top 85%', once: true }
+        });
+      }
+    }, pageRef);
+
+    return () => ctx.revert();
+  }, []);
+
+  const addStepRef = (el) => {
+    if (el && !stepsRef.current.includes(el)) {
+      stepsRef.current.push(el);
+    }
+  };
+
   return (
-    <div className="w-full bg-[#fcf9f4] min-h-screen">
+    <div ref={pageRef} className="w-full bg-[#fcf9f4] min-h-screen">
       {/* Hero */}
-      <section className="relative py-20 lg:py-28 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#f6f3ee] to-[#fcf9f4]" />
+      <section ref={heroRef} className="relative py-20 lg:py-28 overflow-hidden">
+        {/* Ambient glow orbs */}
+        <div className="absolute top-10 left-1/3 w-64 h-64 bg-[#964735]/8 rounded-full blur-[120px]" />
+        <div className="absolute bottom-10 right-1/3 w-48 h-48 bg-[#c17c74]/8 rounded-full blur-[100px]" />
+
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-5">
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#ebe8e3] text-[#4e4540] text-[11px] font-bold uppercase tracking-wider">
             <span>Process</span>
@@ -73,15 +121,16 @@ export default function HowItsMadePage() {
             {STEPS.map((step, idx) => (
               <div
                 key={step.number}
+                ref={addStepRef}
                 className={`grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center ${
                   idx % 2 === 1 ? 'lg:direction-rtl' : ''
                 }`}
               >
                 <div className={`${idx % 2 === 1 ? 'lg:order-2' : ''}`}>
-                  <div className="aspect-[4/3] rounded-3xl overflow-hidden bg-[#f6f3ee] border border-[#e5e2dd]">
+                  <div className="aspect-[4/3] rounded-3xl overflow-hidden bg-[#f6f3ee] border border-[#e5e2dd] group">
                     <img
                       loading="lazy"
-                      decoding="async" src={step.image} alt={step.title} className="w-full h-full object-cover" />
+                      decoding="async" src={step.image} alt={step.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
                   </div>
                 </div>
                 <div className={`space-y-4 ${idx % 2 === 1 ? 'lg:order-1' : ''}`}>
@@ -99,8 +148,11 @@ export default function HowItsMadePage() {
       </section>
 
       {/* CTA */}
-      <section className="py-16 lg:py-24 bg-white">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
+      <section ref={ctaRef} className="py-16 lg:py-24 bg-white relative overflow-hidden">
+        {/* Ambient glow */}
+        <div className="absolute top-0 right-1/4 w-56 h-56 bg-[#964735]/8 rounded-full blur-[100px]" />
+
+        <div className="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
           <h2 className="font-serif text-[32px] sm:text-[38px] text-[#180f0a]">Ready to Create Something?</h2>
           <p className="text-[15px] text-[#4e4540]">
             Now that you understand the craft, explore our collection or build a custom gift yourself.

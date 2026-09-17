@@ -1,6 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Filter } from 'lucide-react';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+gsap.registerPlugin(ScrollTrigger);
 
 const CATEGORIES = ['All', 'Bouquets', 'Cards', 'Keepsakes', 'Custom Creations', 'Behind the Scenes'];
 
@@ -73,16 +77,44 @@ const CREATIONS = [
 
 export default function FloraJournalPage() {
   const [activeCategory, setActiveCategory] = useState('All');
+  const pageRef = useRef(null);
+  const headerRef = useRef(null);
+  const gridRef = useRef(null);
 
   const filtered = activeCategory === 'All'
     ? CREATIONS
     : CREATIONS.filter((c) => c.category === activeCategory);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const ctx = gsap.context(() => {
+      // Header entrance
+      gsap.fromTo(headerRef.current, { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out' });
+
+      // Grid stagger
+      if (gridRef.current) {
+        const cards = gridRef.current.querySelectorAll('article');
+        gsap.fromTo(cards, { opacity: 0, y: 40 }, {
+          opacity: 1, y: 0, duration: 0.6, stagger: 0.08, ease: 'power3.out',
+          scrollTrigger: { trigger: gridRef.current, start: 'top 85%', once: true }
+        });
+      }
+    }, pageRef);
+
+    return () => ctx.revert();
+  }, [activeCategory]);
+
   return (
-    <div className="w-full bg-[#fcf9f4] min-h-screen py-8 lg:py-12">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div ref={pageRef} className="w-full bg-[#fcf9f4] min-h-screen py-8 lg:py-12 relative overflow-hidden">
+      {/* Ambient glow orbs */}
+      <div className="absolute top-20 left-1/4 w-64 h-64 bg-[#964735]/6 rounded-full blur-[120px]" />
+      <div className="absolute bottom-20 right-1/4 w-48 h-48 bg-[#c17c74]/6 rounded-full blur-[100px]" />
+
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         {/* Header */}
-        <div className="text-center max-w-2xl mx-auto mb-10 space-y-3">
+        <div ref={headerRef} className="text-center max-w-2xl mx-auto mb-10 space-y-3">
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#d8e7cd]/50 text-[#5b6d54] text-[11px] font-bold uppercase tracking-wider">
             <Filter className="w-3.5 h-3.5" />
             <span>Our Creations</span>
@@ -100,7 +132,7 @@ export default function FloraJournalPage() {
               key={cat}
               type="button"
               onClick={() => setActiveCategory(cat)}
-              className={`shrink-0 px-4 py-2 rounded-full border text-[12px] font-semibold transition-all ${
+              className={`shrink-0 px-4 py-2 rounded-full border text-[12px] font-semibold transition-all duration-200 ${
                 activeCategory === cat
                   ? 'bg-[#180f0a] text-white border-[#180f0a]'
                   : 'bg-white text-[#4e4540] border-[#e5e2dd] hover:border-[#80756f]'
@@ -112,16 +144,16 @@ export default function FloraJournalPage() {
         </div>
 
         {/* Creations Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div ref={gridRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {filtered.map((creation) => (
-            <article key={creation.id} className="group bg-white rounded-2xl border border-[#e5e2dd] overflow-hidden hover:shadow-lg transition-shadow">
+            <article key={creation.id} className="group bg-white rounded-2xl border border-[#e5e2dd] overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
               <div className="aspect-[4/3] overflow-hidden bg-[#f6f3ee]">
                 <img
                   loading="lazy"
                   decoding="async"
                   src={creation.image}
                   alt={creation.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                 />
               </div>
               <div className="p-5 space-y-3">

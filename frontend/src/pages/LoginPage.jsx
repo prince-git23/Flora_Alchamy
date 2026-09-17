@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { Lock, Mail, User, Phone, Eye, EyeOff, ArrowRight, Info, AlertCircle } from 'lucide-react';
+import gsap from 'gsap';
 import { useStore } from '../context/StoreContext.jsx';
 import { apiLogin, apiRegister } from '../services/customerService.js';
 
@@ -8,6 +9,9 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { showToast } = useStore();
+  const pageRef = useRef(null);
+  const heroRef = useRef(null);
+  const formRef = useRef(null);
 
   // Optional return destination (e.g. /checkout) so auth never strands the customer.
   const redirect = searchParams.get('redirect') || '/account';
@@ -23,6 +27,19 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [resetSent, setResetSent] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // GSAP entrance
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const ctx = gsap.context(() => {
+      gsap.fromTo(heroRef.current, { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.8, ease: 'power3.out' });
+      gsap.fromTo(formRef.current, { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.8, delay: 0.2, ease: 'power3.out' });
+    }, pageRef);
+
+    return () => ctx.revert();
+  }, []);
 
   const goAfterAuth = () => navigate(redirect);
 
@@ -47,8 +64,6 @@ export default function LoginPage() {
         setIsSubmitting(false);
         return;
       }
-      // Register against the backend — creates User + Customer (bcrypt + JWT)
-      // and returns to checkout when that was the originating destination.
       const result = await apiRegister({ name, email, password, phone });
       if (result.error) {
         setError(result.error);
@@ -63,7 +78,6 @@ export default function LoginPage() {
       return;
     }
 
-    // Login — the server validates credentials (bcrypt) and issues a JWT.
     const result = await apiLogin(email, password);
     if (result.error) {
       setError(result.error);
@@ -79,7 +93,6 @@ export default function LoginPage() {
   const handleSendResetLink = (e) => {
     e.preventDefault();
     setResetSent(true);
-    // Honest demo behavior: no email infrastructure exists yet.
   };
 
   const handleFillDemo = () => {
@@ -90,238 +103,294 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="w-full bg-[#fcf9f4] min-h-[calc(100vh-64px)] py-12 lg:py-20 flex items-center justify-center">
-      <div className="w-full max-w-md mx-auto px-4">
-        <div className="bg-white rounded-3xl p-8 border border-[#e5e2dd] shadow-lg space-y-6">
-          {/* Brand Emblem */}
-          <div className="text-center space-y-2">
-            <Link to="/" className="inline-block">
-              <img
-                loading="lazy"
-                decoding="async"
-                src="/assets/images/flora-asset-27.jpg"
-                alt="Flora Alchemy"
-                className="h-8 w-auto mx-auto"
-              />
-            </Link>
-            <h1 className="font-serif text-[28px] text-[#180f0a] font-medium">
-              {mode === 'login' && 'Welcome Back'}
-              {mode === 'register' && 'Create an Account'}
-              {mode === 'forgot' && 'Reset Your Password'}
-            </h1>
-            <p className="text-[13px] text-[#4e4540]">
-              {mode === 'forgot'
-                ? 'Enter the email you use to shop with us.'
-                : 'Access your orders, wishlist, and saved gift notes.'}
-            </p>
+    <div ref={pageRef} className="w-full bg-[#fcf9f4] min-h-[calc(100vh-64px)]">
+      {/* Mobile-first: stacked layout */}
+      <div className="flex flex-col lg:flex-row min-h-[calc(100vh-64px)]">
+        {/* Left — Editorial Atmosphere */}
+        <div ref={heroRef} className="hidden lg:flex lg:w-1/2 relative items-center justify-center overflow-hidden">
+          {/* Background image */}
+          <div className="absolute inset-0">
+            <img
+              loading="lazy"
+              decoding="async"
+              src="/assets/images/flora-asset-03.jpg"
+              alt=""
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#180f0a]/80 to-[#180f0a]/40" />
           </div>
 
-          {/* Tab Switcher (hidden in forgot mode) */}
-          {mode !== 'forgot' && (
-            <div className="grid grid-cols-2 p-1 rounded-2xl bg-[#f6f3ee] text-[13px] font-semibold">
-              <button
-                type="button"
-                onClick={() => { setMode('login'); setError(''); }}
-                className={`py-2 rounded-xl transition-all ${
-                  mode === 'login' ? 'bg-white text-[#180f0a] shadow-xs' : 'text-[#80756f] hover:text-[#180f0a]'
-                }`}
-              >
-                Sign In
-              </button>
-              <button
-                type="button"
-                onClick={() => { setMode('register'); setError(''); }}
-                className={`py-2 rounded-xl transition-all ${
-                  mode === 'register' ? 'bg-white text-[#180f0a] shadow-xs' : 'text-[#80756f] hover:text-[#180f0a]'
-                }`}
-              >
-                Create Account
-              </button>
-            </div>
-          )}
+          {/* Ambient glow orbs */}
+          <div className="absolute top-20 left-20 w-64 h-64 bg-[#964735]/10 rounded-full blur-[100px]" />
+          <div className="absolute bottom-20 right-20 w-48 h-48 bg-[#c17c74]/10 rounded-full blur-[80px]" />
 
-          {error && (
-            <div className="p-3 rounded-2xl bg-[#ffdad6]/60 border border-[#ffc9c2] text-[12px] text-[#8a2a18] flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-              <span>{error}</span>
+          {/* Content */}
+          <div className="relative z-10 px-16 max-w-lg space-y-8">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/10 text-white/80 text-[11px] font-bold uppercase tracking-wider backdrop-blur-sm">
+              <span>Welcome to Flora Alchemy</span>
             </div>
-          )}
-
-          {/* Form */}
-          {mode === 'forgot' ? (
-            <form onSubmit={handleSendResetLink} className="space-y-4">
-              <div>
-                <label className="block text-[11px] uppercase font-bold text-[#4e4540] mb-1">
-                  Email Address
-                </label>
-                <div className="relative">
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#f6f3ee] text-[14px] text-[#1c1c19] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a]"
-                  />
-                  <Mail className="w-4 h-4 text-[#80756f] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                </div>
+            <h2 className="font-serif text-[48px] text-white font-normal leading-[1.1] tracking-tight">
+              Where every gift<br />is handcrafted<br />with intention.
+            </h2>
+            <p className="text-[16px] text-white/70 leading-relaxed">
+              Access your orders, wishlist, and saved gift notes. Your personal atelier awaits.
+            </p>
+            <div className="flex items-center gap-4 pt-4">
+              <div className="flex items-center gap-2 text-white/60 text-[13px]">
+                <span className="w-2 h-2 rounded-full bg-[#964735]" />
+                Handmade in small batches
               </div>
+              <div className="flex items-center gap-2 text-white/60 text-[13px]">
+                <span className="w-2 h-2 rounded-full bg-[#964735]" />
+                Pan-India delivery
+              </div>
+            </div>
+          </div>
+        </div>
 
-              <button
-                type="submit"
-                className="w-full py-3.5 rounded-full bg-[#180f0a] hover:bg-[#964735] text-white text-[13px] font-semibold tracking-wide shadow-md transition-all active:translate-y-0.5"
-              >
-                Send Reset Link
-              </button>
+        {/* Right — Auth Form */}
+        <div ref={formRef} className="w-full lg:w-1/2 flex items-center justify-center py-12 lg:py-20 px-4">
+          <div className="w-full max-w-md space-y-6">
+            {/* Mobile brand header */}
+            <div className="lg:hidden text-center space-y-2 mb-6">
+              <Link to="/" className="inline-block">
+                <img
+                  loading="lazy"
+                  decoding="async"
+                  src="/assets/images/flora-asset-27.jpg"
+                  alt="Flora Alchemy"
+                  className="h-8 w-auto mx-auto"
+                />
+              </Link>
+            </div>
 
-              {resetSent && (
-                <div className="p-3 rounded-2xl bg-[#f6f3ee] border border-[#e5e2dd] text-[12px] text-[#4e4540] flex items-start gap-2">
-                  <Info className="w-4 h-4 text-[#964735] shrink-0 mt-0.5" />
-                  <span>
-                    Demo environment — no email is actually sent. Use the demo account
-                    (customer@example.com / demo1234) to sign in.
-                  </span>
-                </div>
-              )}
+            {/* Brand Emblem */}
+            <div className="text-center space-y-2">
+              <h1 className="font-serif text-[32px] text-[#180f0a] font-medium">
+                {mode === 'login' && 'Welcome Back'}
+                {mode === 'register' && 'Create an Account'}
+                {mode === 'forgot' && 'Reset Your Password'}
+              </h1>
+              <p className="text-[14px] text-[#4e4540]">
+                {mode === 'forgot'
+                  ? 'Enter the email you use to shop with us.'
+                  : 'Access your orders, wishlist, and saved gift notes.'}
+              </p>
+            </div>
 
-              <button
-                type="button"
-                onClick={() => { setMode('login'); setResetSent(false); setError(''); }}
-                className="w-full text-center text-[12px] font-semibold text-[#964735] hover:underline"
-              >
-                Back to Sign In
-              </button>
-            </form>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-              {mode === 'register' && (
+            {/* Tab Switcher (hidden in forgot mode) */}
+            {mode !== 'forgot' && (
+              <div className="grid grid-cols-2 p-1 rounded-2xl bg-[#f6f3ee] text-[13px] font-semibold">
+                <button
+                  type="button"
+                  onClick={() => { setMode('login'); setError(''); }}
+                  className={`py-2.5 rounded-xl transition-all duration-200 ${
+                    mode === 'login' ? 'bg-white text-[#180f0a] shadow-xs' : 'text-[#80756f] hover:text-[#180f0a]'
+                  }`}
+                >
+                  Sign In
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setMode('register'); setError(''); }}
+                  className={`py-2.5 rounded-xl transition-all duration-200 ${
+                    mode === 'register' ? 'bg-white text-[#180f0a] shadow-xs' : 'text-[#80756f] hover:text-[#180f0a]'
+                  }`}
+                >
+                  Create Account
+                </button>
+              </div>
+            )}
+
+            {error && (
+              <div className="p-3 rounded-2xl bg-[#ffdad6]/60 border border-[#ffc9c2] text-[12px] text-[#8a2a18] flex items-start gap-2" role="alert">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            {/* Form */}
+            {mode === 'forgot' ? (
+              <form onSubmit={handleSendResetLink} className="space-y-4">
                 <div>
-                  <label className="block text-[11px] uppercase font-bold text-[#4e4540] mb-1">
-                    Full Name
+                  <label className="block text-[11px] uppercase font-bold text-[#4e4540] mb-1.5">
+                    Email Address
                   </label>
                   <div className="relative">
                     <input
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                       required
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#f6f3ee] text-[14px] text-[#1c1c19] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a]"
+                      className="w-full pl-10 pr-4 py-3 rounded-xl bg-[#f6f3ee] text-[14px] text-[#1c1c19] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a] transition-all"
                     />
-                    <User className="w-4 h-4 text-[#80756f] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <Mail className="w-4 h-4 text-[#80756f] absolute left-3.5 top-1/2 -translate-y-1/2" />
                   </div>
                 </div>
-              )}
 
-              <div>
-                <label className="block text-[11px] uppercase font-bold text-[#4e4540] mb-1">
-                  Email Address
-                </label>
-                <div className="relative">
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#f6f3ee] text-[14px] text-[#1c1c19] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a]"
-                  />
-                  <Mail className="w-4 h-4 text-[#80756f] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                </div>
-              </div>
+                <button
+                  type="submit"
+                  className="w-full py-3.5 rounded-full bg-[#180f0a] hover:bg-[#964735] text-white text-[13px] font-semibold tracking-wide shadow-md transition-all duration-200 active:translate-y-0.5"
+                >
+                  Send Reset Link
+                </button>
 
-              {mode === 'register' && (
+                {resetSent && (
+                  <div className="p-3 rounded-2xl bg-[#f6f3ee] border border-[#e5e2dd] text-[12px] text-[#4e4540] flex items-start gap-2">
+                    <Info className="w-4 h-4 text-[#964735] shrink-0 mt-0.5" />
+                    <span>
+                      Demo environment — no email is actually sent. Use the demo account
+                      (customer@example.com / demo1234) to sign in.
+                    </span>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => { setMode('login'); setResetSent(false); setError(''); }}
+                  className="w-full text-center text-[12px] font-semibold text-[#964735] hover:underline"
+                >
+                  Back to Sign In
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+                {mode === 'register' && (
+                  <div>
+                    <label className="block text-[11px] uppercase font-bold text-[#4e4540] mb-1.5">
+                      Full Name
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        required
+                        className="w-full pl-10 pr-4 py-3 rounded-xl bg-[#f6f3ee] text-[14px] text-[#1c1c19] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a] transition-all"
+                      />
+                      <User className="w-4 h-4 text-[#80756f] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    </div>
+                  </div>
+                )}
+
                 <div>
-                  <label className="block text-[11px] uppercase font-bold text-[#4e4540] mb-1">
-                    Phone Number
+                  <label className="block text-[11px] uppercase font-bold text-[#4e4540] mb-1.5">
+                    Email Address
                   </label>
                   <div className="relative">
                     <input
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#f6f3ee] text-[14px] text-[#1c1c19] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a]"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      className="w-full pl-10 pr-4 py-3 rounded-xl bg-[#f6f3ee] text-[14px] text-[#1c1c19] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a] transition-all"
                     />
-                    <Phone className="w-4 h-4 text-[#80756f] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <Mail className="w-4 h-4 text-[#80756f] absolute left-3.5 top-1/2 -translate-y-1/2" />
                   </div>
                 </div>
-              )}
 
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-[11px] uppercase font-bold text-[#4e4540]">
-                    Password
-                  </label>
-                  {mode === 'login' && (
-                    <button
-                      type="button"
-                      onClick={() => { setMode('forgot'); setError(''); }}
-                      className="text-[11px] text-[#964735] hover:underline"
-                    >
-                      Forgot password?
-                    </button>
-                  )}
-                </div>
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    className="w-full pl-10 pr-11 py-2.5 rounded-xl bg-[#f6f3ee] text-[14px] text-[#1c1c19] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a]"
-                  />
-                  <Lock className="w-4 h-4 text-[#80756f] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[#80756f] hover:text-[#180f0a]"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
+                {mode === 'register' && (
+                  <div>
+                    <label className="block text-[11px] uppercase font-bold text-[#4e4540] mb-1.5">
+                      Phone Number
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="tel"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        className="w-full pl-10 pr-4 py-3 rounded-xl bg-[#f6f3ee] text-[14px] text-[#1c1c19] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a] transition-all"
+                      />
+                      <Phone className="w-4 h-4 text-[#80756f] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    </div>
+                  </div>
+                )}
 
-              {mode === 'register' && (
                 <div>
-                  <label className="block text-[11px] uppercase font-bold text-[#4e4540] mb-1">
-                    Confirm Password
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-[11px] uppercase font-bold text-[#4e4540]">
+                      Password
+                    </label>
+                    {mode === 'login' && (
+                      <button
+                        type="button"
+                        onClick={() => { setMode('forgot'); setError(''); }}
+                        className="text-[11px] text-[#964735] hover:underline"
+                      >
+                        Forgot password?
+                      </button>
+                    )}
+                  </div>
                   <div className="relative">
                     <input
                       type={showPassword ? 'text' : 'password'}
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
                       required
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#f6f3ee] text-[14px] text-[#1c1c19] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a]"
+                      className="w-full pl-10 pr-11 py-3 rounded-xl bg-[#f6f3ee] text-[14px] text-[#1c1c19] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a] transition-all"
                     />
                     <Lock className="w-4 h-4 text-[#80756f] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[#80756f] hover:text-[#180f0a] transition-colors"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </div>
                 </div>
-              )}
 
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full py-3.5 rounded-full bg-[#180f0a] hover:bg-[#964735] text-white text-[13px] font-semibold tracking-wide flex items-center justify-center gap-2 shadow-md transition-all active:translate-y-0.5 disabled:opacity-50"
-              >
-                <span>{mode === 'login' ? 'Sign In to Account' : 'Create My Account'}</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </form>
-          )}
+                {mode === 'register' && (
+                  <div>
+                    <label className="block text-[11px] uppercase font-bold text-[#4e4540] mb-1.5">
+                      Confirm Password
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        required
+                        className="w-full pl-10 pr-4 py-3 rounded-xl bg-[#f6f3ee] text-[14px] text-[#1c1c19] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a] transition-all"
+                      />
+                      <Lock className="w-4 h-4 text-[#80756f] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    </div>
+                  </div>
+                )}
 
-          {/* DEV ONLY helper — unmistakable testing affordance, not a production
-              sign-in method. It only prefills fields; no automatic login. */}
-          {mode !== 'forgot' && (
-            <div className="pt-3 border-t border-dashed border-[#d8cfc6] text-center">
-              <button
-                type="button"
-                onClick={handleFillDemo}
-                title="Development/testing helper — not available in production"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-dashed border-[#c9a227]/60 bg-[#fdf6e3] text-[10px] font-bold tracking-widest uppercase text-[#8a6d1a] hover:bg-[#f7ecc9] transition-colors"
-              >
-                Dev Only · Fill Demo Credentials
-              </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full py-3.5 rounded-full bg-[#180f0a] hover:bg-[#964735] text-white text-[13px] font-semibold tracking-wide flex items-center justify-center gap-2 shadow-md transition-all duration-200 active:translate-y-0.5 disabled:opacity-50"
+                >
+                  <span>{mode === 'login' ? 'Sign In to Account' : 'Create My Account'}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </form>
+            )}
+
+            {/* DEV ONLY helper */}
+            {mode !== 'forgot' && (
+              <div className="pt-3 border-t border-dashed border-[#d8cfc6] text-center">
+                <button
+                  type="button"
+                  onClick={handleFillDemo}
+                  title="Development/testing helper — not available in production"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-dashed border-[#c9a227]/60 bg-[#fdf6e3] text-[10px] font-bold tracking-widest uppercase text-[#8a6d1a] hover:bg-[#f7ecc9] transition-colors"
+                >
+                  Dev Only · Fill Demo Credentials
+                </button>
+              </div>
+            )}
+
+            {/* Store link */}
+            <div className="text-center pt-2">
+              <Link to="/shop" className="text-[12px] text-[#80756f] hover:text-[#964735] transition-colors">
+                Continue browsing without an account →
+              </Link>
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>

@@ -1,11 +1,32 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Compass, ShoppingBag, Truck } from 'lucide-react';
+import { ArrowRight, Compass, ShoppingBag, Gift, Sparkles } from 'lucide-react';
+import gsap from 'gsap';
 
 export default function NotFoundPage() {
+  const pageRef = useRef(null);
+  const contentRef = useRef(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const ctx = gsap.context(() => {
+      gsap.fromTo(contentRef.current, { opacity: 0, y: 30, scale: 0.98 }, {
+        opacity: 1, y: 0, scale: 1, duration: 0.8, ease: 'power3.out'
+      });
+    }, pageRef);
+
+    return () => ctx.revert();
+  }, []);
+
   return (
-    <div className="w-full bg-[#fcf9f4] min-h-[70vh] flex items-center justify-center py-16 px-4">
-      <div className="max-w-lg w-full text-center space-y-6 bg-white rounded-3xl p-8 sm:p-12 border border-[#e5e2dd] shadow-sm">
+    <div ref={pageRef} className="w-full bg-[#fcf9f4] min-h-[70vh] flex items-center justify-center py-16 px-4 relative overflow-hidden">
+      {/* Ambient glow orbs */}
+      <div className="absolute top-20 left-1/4 w-64 h-64 bg-[#964735]/8 rounded-full blur-[120px]" />
+      <div className="absolute bottom-20 right-1/4 w-48 h-48 bg-[#c17c74]/8 rounded-full blur-[100px]" />
+
+      <div ref={contentRef} className="max-w-lg w-full text-center space-y-6 bg-white rounded-3xl p-8 sm:p-12 border border-[#e5e2dd] shadow-sm relative">
         <div className="w-16 h-16 rounded-full bg-[#f6f3ee] text-[#964735] mx-auto flex items-center justify-center">
           <Compass className="w-8 h-8" />
         </div>
@@ -40,14 +61,30 @@ export default function NotFoundPage() {
           </Link>
         </div>
 
-        <div className="pt-4 border-t border-[#e5e2dd]">
-          <Link
-            to="/order-tracking"
-            className="text-[12px] font-medium text-[#80756f] hover:text-[#964735] transition-colors inline-flex items-center gap-1.5"
-          >
-            <Truck className="w-3.5 h-3.5" />
-            <span>Looking for an existing delivery? Track your order</span>
-          </Link>
+        <div className="pt-4 border-t border-[#e5e2dd] space-y-3">
+          <p className="text-[12px] text-[#80756f] font-semibold uppercase tracking-wider">Or explore</p>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <Link
+              to="/custom-gifts"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#ffdad3]/40 text-[12px] font-semibold text-[#964735] hover:bg-[#ffdad3]/60 transition-colors"
+            >
+              <Gift className="w-3.5 h-3.5" />
+              Custom Gifts
+            </Link>
+            <Link
+              to="/gift-finder"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#d8e7cd]/40 text-[12px] font-semibold text-[#5b6d54] hover:bg-[#d8e7cd]/60 transition-colors"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              Gift Finder
+            </Link>
+            <Link
+              to="/collections"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#f6f3ee] text-[12px] font-semibold text-[#4e4540] hover:bg-[#ebe8e3] transition-colors"
+            >
+              Collections
+            </Link>
+          </div>
         </div>
       </div>
     </div>

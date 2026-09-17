@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Search, X, Sparkles, ArrowRight } from 'lucide-react';
+import gsap from 'gsap';
 import ProductCard from '../components/ProductCard.jsx';
 import { getProducts } from '../services/productService.js';
 
@@ -11,6 +12,9 @@ export default function SearchPage() {
   const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  const headerRef = useRef(null);
+  const resultsRef = useRef(null);
 
   const suggestedTags = [
     'Dusty Rose',
@@ -38,6 +42,34 @@ export default function SearchPage() {
     executeSearch();
   }, [query]);
 
+  // GSAP entrance
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const ctx = gsap.context(() => {
+      gsap.fromTo(headerRef.current, { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out' });
+    });
+
+    return () => ctx.revert();
+  }, []);
+
+  // Stagger results when they change
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (!resultsRef.current || results.length === 0) return;
+
+    const ctx = gsap.context(() => {
+      const cards = resultsRef.current.querySelectorAll('article');
+      gsap.fromTo(cards, { opacity: 0, y: 30 }, {
+        opacity: 1, y: 0, duration: 0.5, stagger: 0.06, ease: 'power3.out'
+      });
+    });
+
+    return () => ctx.revert();
+  }, [results]);
+
   const handleTagClick = (tag) => {
     setQuery(tag);
     searchParams.set('q', tag);
@@ -51,10 +83,14 @@ export default function SearchPage() {
   };
 
   return (
-    <div className="w-full bg-[#fcf9f4] min-h-screen py-10 lg:py-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="w-full bg-[#fcf9f4] min-h-screen py-10 lg:py-16 relative overflow-hidden">
+      {/* Ambient glow orbs */}
+      <div className="absolute top-20 left-1/3 w-64 h-64 bg-[#964735]/6 rounded-full blur-[120px]" />
+      <div className="absolute bottom-20 right-1/3 w-48 h-48 bg-[#c17c74]/6 rounded-full blur-[100px]" />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         {/* Search Bar Input */}
-        <div className="max-w-3xl mx-auto text-center space-y-6 mb-12">
+        <div ref={headerRef} className="max-w-3xl mx-auto text-center space-y-6 mb-12">
           <span className="text-[11px] uppercase font-bold tracking-widest text-[#964735]">
             Atelier Search Directory
           </span>
@@ -77,14 +113,14 @@ export default function SearchPage() {
               }}
               placeholder="Search by flower name, material, occasion, or gift style..."
               autoFocus
-              className="w-full pl-12 pr-12 py-4 rounded-full bg-white text-[15px] border border-[#e5e2dd] shadow-sm focus:outline-none focus:ring-2 focus:ring-[#180f0a]"
+              className="w-full pl-12 pr-12 py-4 rounded-full bg-white text-[15px] border border-[#e5e2dd] shadow-sm focus:outline-none focus:ring-2 focus:ring-[#180f0a] transition-all"
             />
             <Search className="w-5 h-5 text-[#80756f] absolute left-5 top-1/2 -translate-y-1/2" />
             {query && (
               <button
                 type="button"
                 onClick={handleClear}
-                className="absolute right-5 top-1/2 -translate-y-1/2 text-[#80756f] hover:text-[#180f0a]"
+                className="absolute right-5 top-1/2 -translate-y-1/2 text-[#80756f] hover:text-[#180f0a] transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -123,7 +159,7 @@ export default function SearchPage() {
           </div>
 
           {results.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div ref={resultsRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {results.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
@@ -137,12 +173,21 @@ export default function SearchPage() {
               <p className="text-[14px] text-[#4e4540]">
                 Try searching for broader keywords such as "rose", "card", "hamper", or "pot".
               </p>
-              <button
-                onClick={handleClear}
-                className="px-6 py-2.5 rounded-full bg-[#180f0a] text-white text-[13px] font-semibold hover:bg-[#964735] transition-colors"
-              >
-                Clear Search
-              </button>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                <button
+                  onClick={handleClear}
+                  className="px-6 py-2.5 rounded-full bg-[#180f0a] text-white text-[13px] font-semibold hover:bg-[#964735] transition-colors"
+                >
+                  Clear Search
+                </button>
+                <Link
+                  to="/gift-finder"
+                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full border border-[#e5e2dd] text-[13px] font-semibold text-[#180f0a] hover:bg-[#f6f3ee] transition-colors"
+                >
+                  <Sparkles className="w-4 h-4 text-[#964735]" />
+                  Try Gift Finder
+                </Link>
+              </div>
             </div>
           )}
         </div>
