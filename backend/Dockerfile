@@ -20,6 +20,11 @@ RUN addgroup -g 1001 -S flora && adduser -S flora -u 1001 -G flora
 # Copy dependencies and source
 COPY --from=builder --chown=flora:flora /app .
 
+# Writable local-fallback upload directory, owned by the runtime user.
+# Only used when ImageKit is NOT configured (lazy-created by the controller
+# if absent). Pre-creating it here guarantees the non-root user can write.
+RUN mkdir -p /app/uploads && chown -R flora:flora /app/uploads
+
 USER flora
 
 EXPOSE 4000

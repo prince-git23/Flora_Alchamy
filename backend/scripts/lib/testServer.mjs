@@ -106,6 +106,11 @@ export async function bootTestServer({ port, db, extraEnv = {}, label = 'suite' 
       ...process.env,
       PORT: String(port),
       MONGO_URI: testUri,
+      // Test servers seed fixtures, which production mode forbids. Force
+      // development semantics unless the caller explicitly overrides —
+      // a developer's local .env with NODE_ENV=production must not make
+      // every suite fail with the seed-rejection config error.
+      NODE_ENV: 'development',
       SEED_ON_START: 'true',
       // Deterministic provider config: test servers never inherit live
       // ImageKit credentials from backend/.env — invalid/expired keys made
@@ -142,7 +147,22 @@ export async function bootTestServer({ port, db, extraEnv = {}, label = 'suite' 
   throw new Error(`[${label}] backend did not become healthy within 60s:\n${childOutput.slice(-800)}`);
 }
 
-/** Kill the spawned server, tolerating repeat calls. */
-export function stopTestServer(child) {
-  if (child && child.exitCode === null) child.kill();
+/**
+ * Kill the spawned server and WAIT for the port to actually be released.
+ * On Windows child.kill() is asynchronous at the OS level — the next suite
+ * (or a same-suite second server on the same port) can hit EADDRINUSE
+ * without this await. Tolerates repeat calls and already-exited children.
+ */
+export async function stopTestServer(child, base) {
+  if (!child || child.exitCode !== null) return;
+  const exited = new Promise((resolve) => child.once('exit', resolve));
+  child.kill();
+  await Promise.race([exited, sleep(5000)]);
+  if (base) {
+    // Wait until the health endpoint stops answering (port truly released).
+    for (let i = 0; i < 20; i += 1) {
+      if (!(await isUp(base))) return;
+      await sleep(250);
+    }
+  }
 }

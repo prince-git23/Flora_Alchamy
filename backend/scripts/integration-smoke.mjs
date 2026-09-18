@@ -9,6 +9,7 @@
  * Run: node scripts/integration-smoke.mjs
  */
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { bootTestServer, stopTestServer } from './lib/testServer.mjs';
 
@@ -96,10 +97,16 @@ async function main() {
   check('mark all read → 200 unreadCount 0', r.status === 200 && r.json.unreadCount === 0);
 
   // Real event → notification: creating an order must notify staff.
+  // Self-contained: create a dedicated product so the test never depends on
+  // fixture stock (a persistent test DB depletes fixture stock across runs,
+  // which made this check flaky with 409/422 order failures).
+  r = await req('POST', '/products', { token: ADMIN, body: { name: `Notif Order Posy ${stamp}`, price: 250, initialStock: 50 } });
+  check('notification-test product created', r.status === 201, JSON.stringify(r.json).slice(0, 120));
+  const NOTIF_SLUG = r.json.product?.slug;
   r = await req('POST', '/orders', {
     token: CUSTOMER,
     body: {
-      items: [{ productSlug: 'gold-foil-pressed-stickers', quantity: 1 }],
+      items: [{ productSlug: NOTIF_SLUG, quantity: 1 }],
       shippingAddress: { name: 'Integration A', address: '1 Test St', city: 'Mumbai', state: 'MH', pincode: '400001' },
     },
   });
@@ -169,10 +176,10 @@ async function main() {
     '01f15c4890000000d49444154789c626001000000ffff03000006000557bfabd40000000049454e44ae426082',
     'hex'
   );
-  async function multipartUpload(token, buf, mime, filename) {
+  async function multipartUpload(token, buf, mime, filename, base = BASE) {
     const form = new FormData();
     form.append('image', new Blob([buf], { type: mime }), filename);
-    const res = await fetch(`${BASE}/uploads/product-image`, {
+    const res = await fetch(`${base}/uploads/product-image`, {
       method: 'POST',
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: form,
@@ -235,6 +242,80 @@ async function main() {
   const mine = (r.json.requests || []).find((x) => String(x._id) === String(CR_ID));
   check('customer sees staff status update', mine?.status === 'quoted');
   check('adminNotes still hidden after staff update', mine?.adminNotes === undefined);
+
+  console.log('\n— UPLOAD STORAGE: PHASE 15A REGRESSION —');
+  // Phase 15A: the upload controller must never crash startup on an
+  // unwritable/absent local dir when ImageKit is configured, and must
+  // lazily create a valid writable dir when falling back to local storage.
+  //
+  // Test A: boot a server WITH fake ImageKit creds against an UNUSABLE
+  // UPLOAD_DIR (a path under a *file*, so mkdir must fail). Startup must
+  // succeed and readiness must be OK — no EACCES crash at module load.
+  {
+    const barrierFile = path.join(os.tmpdir(), `flora-barrier-${stamp}`);
+    fs.writeFileSync(barrierFile, 'not a directory');
+    const badDir = path.join(barrierFile, 'uploads'); // mkdir here → ENOTDIR/EACCES
+    const a = await bootTestServer({
+      port: 4095,
+      db: 'Flora-Alchemy-Test-UploadIK',
+      label: 'upload-ik-startup',
+      extraEnv: {
+        NODE_ENV: 'development', // keep config validation out of the picture
+        UPLOAD_DIR: badDir,
+        IMAGEKIT_PRIVATE_KEY: 'test-private-key',
+        IMAGEKIT_PUBLIC_KEY: 'test-public-key',
+        IMAGEKIT_URL_ENDPOINT: 'https://ik.imagekit.io/test-endpoint',
+      },
+    });
+    try {
+      const h = await fetch(`${a.base}/api/health`);
+      check('A: server with ImageKit + unusable local dir boots', h.ok);
+      const rd = await fetch(`${a.base}/api/readiness`);
+      check('A: readiness ready with ImageKit + unusable local dir', rd.ok);
+    } finally {
+      await stopTestServer(a.child, a.base); // await so port 4095 frees before Test B
+      fs.unlinkSync(barrierFile); // cleanup barrier
+    }
+  }
+
+  // Test B/C: boot a server WITHOUT ImageKit and a custom UPLOAD_DIR under
+  // the OS temp dir. Startup must succeed, a real multipart upload must
+  // lazily create the directory, persist the file there, and return a
+  // local-provider URL.
+  {
+    const customDir = path.join(os.tmpdir(), `flora-uploads-${stamp}`);
+    const b = await bootTestServer({
+      port: 4097, // 4096 is held by a local proxy controller on some dev machines
+      db: 'Flora-Alchemy-Test-UploadLocal',
+      label: 'upload-local-startup',
+      extraEnv: {
+        NODE_ENV: 'development',
+        UPLOAD_DIR: customDir,
+        IMAGEKIT_PRIVATE_KEY: '',
+        IMAGEKIT_PUBLIC_KEY: '',
+        IMAGEKIT_URL_ENDPOINT: '',
+      },
+    });
+    try {
+      const h = await fetch(`${b.base}/api/health`);
+      check('B: server without ImageKit boots', h.ok);
+      check('B: local dir NOT created at startup (lazy)', !fs.existsSync(customDir), customDir);
+
+      const bl = await fetch(`${b.base}/api/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'handler.admin@flora-alchemy.demo', password: 'handler1234' }) });
+      const BADMIN = (await bl.json()).token;
+      const upB = await multipartUpload(BADMIN, pngBytes, 'image/png', 'lazy-dir.png', `${b.base}/api`);
+      check('B: upload succeeds → 201', upB.status === 201, JSON.stringify(upB.json).slice(0, 120));
+      check('B: local dir lazily created on first upload', fs.existsSync(customDir), customDir);
+      const storedName = (upB.json.url || '').replace('/uploads/', '');
+      check('B: file persisted into custom UPLOAD_DIR', storedName && fs.existsSync(path.join(customDir, storedName)), upB.json.url);
+      check('B: provider reported as local', upB.json.provider === 'local');
+      if (storedName && fs.existsSync(path.join(customDir, storedName))) {
+        fs.rmSync(customDir, { recursive: true, force: true }); // cleanup
+      }
+    } finally {
+      await stopTestServer(b.child, b.base);
+    }
+  }
 
   console.log(`\n══════════════════════════════════════`);
   console.log(`INTEGRATION RESULT: ${passed} passed, ${failed} failed`);

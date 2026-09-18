@@ -25,15 +25,42 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif'];
 const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
 
-// Local fallback storage — real files on disk, served by the frontend.
-const UPLOAD_DIR = path.resolve(__dirname, '../../frontend/public/uploads');
-if (!fs.existsSync(UPLOAD_DIR)) {
-  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+// ── Local fallback storage directory ─────────────────────────────────
+// Resolution order:
+//   1. UPLOAD_DIR env var — explicit override for any deployment layout.
+//   2. In development (running from the repo): the frontend's public/uploads
+//      so Vite serves uploaded files directly at /uploads/<name>.
+//   3. In production containers (RUNNING FROM /app): an app-relative writable
+//      directory /app/uploads owned by the non-root runtime user.
+//
+// CRITICAL: the directory is created LAZILY (on first local-fallback write),
+// NOT at module load. When ImageKit is configured the local dir is never
+// touched, so a read-only or absent filesystem must not crash startup —
+// this was the Render EACCES mkdir '/frontend/public/uploads' failure.
+const UPLOAD_DIR = process.env.UPLOAD_DIR
+  ? path.resolve(process.env.UPLOAD_DIR)
+  : path.resolve(__dirname, process.env.NODE_ENV === 'production' ? '../uploads' : '../../frontend/public/uploads');
+
+function ensureUploadDir() {
+  if (!fs.existsSync(UPLOAD_DIR)) {
+    fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+  }
+  return UPLOAD_DIR;
 }
 
-const storage = multer.diskStorage({
+// Multer storage: when ImageKit is configured the file only needs to exist
+// long enough to be forwarded to the provider, so keep it in MEMORY and let
+// the provider path stream from the buffer — no filesystem writes at all in
+// a fully-configured production deployment. Without ImageKit, persist to the
+// (lazily ensured) local fallback directory.
+const imageKitMemoryStorage = multer.memoryStorage();
+const localStorage = multer.diskStorage({
   destination(_req, _file, cb) {
-    cb(null, UPLOAD_DIR);
+    try {
+      cb(null, ensureUploadDir());
+    } catch (err) {
+      cb(err instanceof ApiError ? err : new ApiError(500, `Upload storage unavailable: ${err.message}`, 'UPLOAD_FAILED'));
+    }
   },
   filename(_req, file, cb) {
     // Extension is derived from the ALREADY MIME-VALIDATED file and
@@ -52,7 +79,7 @@ const storage = multer.diskStorage({
 });
 
 export const uploadMiddleware = multer({
-  storage,
+  storage: imagekitConfigured() ? imageKitMemoryStorage : localStorage,
   limits: { fileSize: MAX_SIZE_BYTES },
   fileFilter(_req, file, cb) {
     if (!ALLOWED_MIME.includes(file.mimetype)) {
@@ -74,12 +101,13 @@ function imagekitConfigured() {
 /**
  * Upload to ImageKit using the v1 files/upload API with Basic auth.
  * Only the PRIVATE key touches the server — the public key/URL endpoint are
- * safe identifiers. Returns the hosted CDN URL.
+ * safe identifiers. Returns the hosted CDN URL. Accepts either a path on
+ * disk (diskStorage fallback) or an in-memory Buffer (memoryStorage path).
  */
-async function uploadToImageKit(filePath, originalName, folder) {
+async function uploadToImageKit(fileSource, originalName, folder) {
   const auth = Buffer.from(`${process.env.IMAGEKIT_PRIVATE_KEY}:`).toString('base64');
   const form = new FormData();
-  const fileBuffer = fs.readFileSync(filePath);
+  const fileBuffer = Buffer.isBuffer(fileSource) ? fileSource : fs.readFileSync(fileSource);
   form.append('file', new Blob([fileBuffer]), originalName || 'product-image');
   form.append('fileName', originalName || `product-${Date.now()}`);
   form.append('folder', folder || '/flora-alchemy/products');
@@ -108,20 +136,21 @@ export async function uploadProductImage(req, res, next) {
     if (imagekitConfigured()) {
       try {
         const url = await uploadToImageKit(
-          req.file.path,
+          req.file.buffer || req.file.path,
           req.file.originalname,
           process.env.IMAGEKIT_FOLDER || '/flora-alchemy/products'
         );
-        // Local temp copy is no longer needed once hosted.
-        fs.unlink(req.file.path, () => {});
+        // Memory buffers are garbage-collected; disk temp copies (if any)
+        // are no longer needed once hosted.
+        if (req.file.path) fs.unlink(req.file.path, () => {});
         return res.status(201).json({
           success: true,
           url,
           provider: 'imagekit',
         });
       } catch (err) {
-        // Provider failed — clean the temp file and surface honestly.
-        fs.unlink(req.file.path, () => {});
+        // Provider failed — clean the temp file (if any) and surface honestly.
+        if (req.file.path) fs.unlink(req.file.path, () => {});
         return next(err);
       }
     }
