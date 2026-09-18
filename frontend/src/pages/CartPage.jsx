@@ -203,14 +203,14 @@ export default function CartPage() {
                       </div>
 
                       {/* Quantity and Actions */}
-                      <div className="flex items-center justify-between sm:justify-end gap-6 w-full sm:w-auto">
-                        <div className="flex items-center justify-between px-3 py-1 rounded-full bg-[#f6f3ee] border border-[#e5e2dd] w-28">
+                      <div className="flex items-center justify-between sm:justify-end gap-4 sm:gap-6 w-full sm:w-auto">
+                        <div className="flex items-center justify-between px-2 py-1 rounded-full bg-[#f6f3ee] border border-[#e5e2dd] w-28">
                           <button
                             type="button"
                             onClick={() => updateItemQuantity(idx, (item.quantity || 1) - 1)}
                             disabled={(item.quantity || 1) <= 1}
                             aria-label={`Decrease quantity of ${item.name}`}
-                            className="text-[16px] text-[#4e4540] hover:text-[#180f0a] px-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#180f0a] rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                            className="w-7 h-7 flex items-center justify-center text-[16px] text-[#4e4540] hover:text-[#180f0a] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#180f0a] rounded-full disabled:opacity-30 disabled:cursor-not-allowed"
                           >
                             −
                           </button>
@@ -219,7 +219,7 @@ export default function CartPage() {
                             type="button"
                             onClick={() => updateItemQuantity(idx, (item.quantity || 1) + 1)}
                             aria-label={`Increase quantity of ${item.name}`}
-                            className="text-[16px] text-[#4e4540] hover:text-[#180f0a] px-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#180f0a] rounded"
+                            className="w-7 h-7 flex items-center justify-center text-[16px] text-[#4e4540] hover:text-[#180f0a] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#180f0a] rounded-full"
                           >
                             +
                           </button>

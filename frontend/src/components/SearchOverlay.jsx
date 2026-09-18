@@ -70,17 +70,17 @@ export default function SearchOverlay({ open, onClose }) {
 
   return (
     <div
-      className="fixed inset-0 z-[70] bg-[#180f0a]/40 backdrop-blur-sm flex items-start justify-center px-4 pt-16 sm:pt-24"
+      className="fixed inset-0 z-[70] bg-[#180f0a]/40 backdrop-blur-sm flex items-start justify-center px-3 sm:px-4 pt-12 sm:pt-24"
       role="dialog"
       aria-modal="true"
       aria-label="Search Flora Alchemy"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-2xl bg-[#fcf9f4] rounded-3xl shadow-2xl border border-[#e5e2dd] overflow-hidden"
+        className="w-full max-w-2xl bg-[#fcf9f4] rounded-3xl shadow-2xl border border-[#e5e2dd] overflow-hidden animate-fade-in"
         onClick={(e) => e.stopPropagation()}
       >
-        <form onSubmit={handleSubmit} className="flex items-center gap-3 px-5 py-4 border-b border-[#e5e2dd]">
+        <form onSubmit={handleSubmit} className="flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-4 border-b border-[#e5e2dd]">
           <Search className="w-5 h-5 text-[#964735] shrink-0" aria-hidden="true" />
           <input
             ref={inputRef}
@@ -89,28 +89,28 @@ export default function SearchOverlay({ open, onClose }) {
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search Flora Alchemy"
             aria-label="Search Flora Alchemy"
-            className="flex-1 bg-transparent text-[16px] text-[#1c1c19] placeholder:text-[#80756f] focus:outline-none"
+            className="flex-1 bg-transparent text-[15px] sm:text-[16px] text-[#1c1c19] placeholder:text-[#80756f] focus:outline-none min-w-0"
           />
           <button
             type="button"
             onClick={onClose}
             aria-label="Close search"
-            className="p-2 rounded-full text-[#80756f] hover:text-[#180f0a] hover:bg-[#f0ede9] transition-colors"
+            className="p-2 rounded-full text-[#80756f] hover:text-[#180f0a] hover:bg-[#f0ede9] transition-colors touch-target flex items-center justify-center"
           >
             <X className="w-5 h-5" />
           </button>
         </form>
 
-        <div className="p-5 sm:p-6 space-y-6 max-h-[70vh] overflow-y-auto">
-          <div className="space-y-3">
+        <div className="p-4 sm:p-6 space-y-5 sm:space-y-6 max-h-[75vh] overflow-y-auto">
+          <div className="space-y-2.5 sm:space-y-3">
             <p className="text-[11px] uppercase font-bold tracking-widest text-[#80756f]">Popular Searches</p>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5 sm:gap-2">
               {POPULAR_SEARCHES.map((item) => (
                 <button
                   key={item.label}
                   type="button"
                   onClick={() => go(item.to)}
-                  className="px-3.5 py-1.5 rounded-full bg-white text-[12px] font-medium text-[#4e4540] border border-[#e5e2dd] hover:border-[#180f0a] hover:text-[#180f0a] transition-colors"
+                  className="px-3.5 py-1.5 rounded-full bg-white text-[12px] font-medium text-[#4e4540] border border-[#e5e2dd] hover:border-[#180f0a] hover:text-[#180f0a] transition-colors min-h-[36px]"
                 >
                   {item.label}
                 </button>
@@ -118,18 +118,18 @@ export default function SearchOverlay({ open, onClose }) {
             </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2.5 sm:space-y-3">
             <p className="text-[11px] uppercase font-bold tracking-widest text-[#80756f]">Suggested Categories</p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
               {SUGGESTED_CATEGORIES.map((cat) => (
                 <button
                   key={cat.label}
                   type="button"
                   onClick={() => go(cat.to)}
-                  className="group flex items-center gap-2.5 p-3 rounded-2xl bg-white border border-[#e5e2dd] hover:border-[#964735] hover:shadow-sm transition-all text-left"
+                  className="group flex items-center gap-2 sm:gap-2.5 p-2.5 sm:p-3 rounded-2xl bg-white border border-[#e5e2dd] hover:border-[#964735] hover:shadow-sm transition-all text-left min-h-[44px]"
                 >
                   <span className="text-[18px]" aria-hidden="true">{cat.icon}</span>
-                  <span className="text-[13px] font-semibold text-[#180f0a] group-hover:text-[#964735] transition-colors">
+                  <span className="text-[12px] sm:text-[13px] font-semibold text-[#180f0a] group-hover:text-[#964735] transition-colors truncate">
                     {cat.label}
                   </span>
                 </button>
@@ -140,7 +140,7 @@ export default function SearchOverlay({ open, onClose }) {
           <button
             type="button"
             onClick={() => go('/gift-finder')}
-            className="w-full flex items-center justify-between gap-3 p-4 rounded-2xl bg-[#180f0a] text-white hover:bg-[#964735] transition-colors text-left"
+            className="w-full flex items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl bg-[#180f0a] text-white hover:bg-[#964735] transition-colors text-left min-h-[48px]"
           >
             <span>
               <span className="block text-[13px] font-semibold">Not sure what to gift?</span>

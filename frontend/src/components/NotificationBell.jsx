@@ -97,12 +97,13 @@ export default function NotificationBell() {
 
   return (
     <div className="relative" ref={dropdownRef}>
-      <Link
-        to="/notifications"
+      <button
+        type="button"
         onClick={() => setOpen((v) => !v)}
-        className="relative p-2 rounded-full hover:bg-[#f0ede9] transition-all duration-200 flex items-center justify-center"
+        className="relative p-2 rounded-full hover:bg-[#f0ede9] transition-all duration-200 flex items-center justify-center min-w-[36px] min-h-[36px]"
         title="Notifications"
         aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
+        aria-expanded={open}
       >
         <Bell className="w-5 h-5 text-[#4e4540]" aria-hidden="true" />
         {unreadCount > 0 && (
@@ -110,11 +111,11 @@ export default function NotificationBell() {
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
-      </Link>
+      </button>
 
       {open && (
         <div
-          className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-[#e5e2dd] overflow-hidden z-50"
+          className="fixed inset-x-3 top-16 sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 w-auto sm:w-80 md:w-96 max-w-[calc(100vw-1.5rem)] bg-white rounded-2xl shadow-2xl border border-[#e5e2dd] overflow-hidden z-50 animate-fade-in"
           role="dialog"
           aria-label="Recent notifications"
         >
@@ -124,7 +125,7 @@ export default function NotificationBell() {
               View all
             </Link>
           </div>
-          <div className="max-h-80 overflow-y-auto">
+          <div className="max-h-[60vh] sm:max-h-80 overflow-y-auto">
             {loading ? (
               <div className="p-8 text-center"><Loader2 className="w-5 h-5 text-[#964735] animate-spin mx-auto" /></div>
             ) : notifications.length === 0 ? (

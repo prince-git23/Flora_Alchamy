@@ -276,7 +276,7 @@ export default function GiftFinderPage() {
                   >
                     {done ? <Check className="w-3.5 h-3.5" aria-hidden="true" /> : i + 1}
                   </span>
-                  <span className={`text-[10px] uppercase tracking-wider font-bold ${active ? 'text-[#180f0a]' : 'text-[#80756f]'}`}>
+                  <span className={`text-[10px] uppercase tracking-wider font-bold truncate max-w-full hidden xs:inline sm:inline ${active ? 'text-[#180f0a]' : 'text-[#80756f]'}`}>
                     {label}
                   </span>
                 </button>

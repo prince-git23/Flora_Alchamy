@@ -41,9 +41,10 @@ export default function ProductCard({ product }) {
   const cardRef = useRef(null);
   const imgSrc = product.images ? product.images[0] : (product.image || '');
 
-  // Subtle tilt on mouse position (desktop only, max ~2deg)
+  // Subtle tilt on mouse position (desktop hover only, max ~2deg)
   const handleMouseMove = (e) => {
     if (!cardRef.current) return;
+    if (typeof window !== 'undefined' && !window.matchMedia('(hover: hover)').matches) return;
     const rect = cardRef.current.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width - 0.5;
     const y = (e.clientY - rect.top) / rect.height - 0.5;
@@ -87,7 +88,7 @@ export default function ProductCard({ product }) {
 
         {/* Badges */}
         {(product.badge || madeToOrder) && (
-          <div className="absolute top-3 left-3 flex flex-col gap-1">
+          <div className="absolute top-3 left-3 flex flex-col gap-1 pointer-events-none">
             {product.badge && (
               <span className="px-2.5 py-0.5 rounded-full bg-[#964735] text-white text-[10px] font-bold uppercase tracking-wider shadow-sm">
                 {product.badge}
@@ -104,7 +105,7 @@ export default function ProductCard({ product }) {
         {/* Saved Gifts button — elevated to LEVEL 2 */}
         <button
           onClick={handleToggleWishlist}
-          className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center text-[#4e4540] hover:text-[#964735] shadow-sm hover:shadow-md transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#180f0a]"
+          className="absolute top-2.5 right-2.5 w-9 h-9 sm:w-8 sm:h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center text-[#4e4540] hover:text-[#964735] shadow-sm hover:shadow-md transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#180f0a] touch-target"
           title={wishlisted ? 'Remove from Saved Gifts' : 'Save to Saved Gifts'}
           aria-label={wishlisted ? 'Remove from Saved Gifts' : 'Save to Saved Gifts'}
           type="button"

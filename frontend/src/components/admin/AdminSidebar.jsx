@@ -211,6 +211,21 @@ export default function AdminSidebar({ isOpen, onClose }) {
     </div>
   );
 
+  // Body scroll lock and Escape key for mobile drawer
+  React.useEffect(() => {
+    if (!isOpen) return undefined;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e) => {
+      if (e.key === 'Escape' && onClose) onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [isOpen, onClose]);
+
   return (
     <>
       {/* Desktop Persistent Sidebar */}
@@ -223,7 +238,7 @@ export default function AdminSidebar({ isOpen, onClose }) {
         <div className="md:hidden fixed inset-0 z-50 flex">
           {/* Backdrop */}
           <div
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
+            className="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity"
             onClick={onClose}
           />
           {/* Drawer */}

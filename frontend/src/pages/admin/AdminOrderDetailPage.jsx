@@ -341,7 +341,7 @@ export default function AdminOrderDetailPage() {
         {/* Status Update Modal */}
         {statusModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#e5e2dd] space-y-4">
+            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#e5e2dd] space-y-4 max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between">
                 <h3 className="font-serif text-xl font-medium text-[#180f0a]">Update Order Status</h3>
                 <button type="button" onClick={() => setStatusModalOpen(false)} className="p-1 rounded-lg text-[#80756f] hover:bg-[#f0ede9]">
@@ -371,7 +371,7 @@ export default function AdminOrderDetailPage() {
 
         {/* Toast */}
         {toastMessage && (
-          <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 bg-[#180f0a] text-white px-5 py-3 rounded-full shadow-2xl border border-white/10">
+          <div className="fixed bottom-6 inset-x-4 sm:inset-x-auto sm:right-6 sm:max-w-md z-50 flex items-center gap-2.5 bg-[#180f0a] text-white px-5 py-3 rounded-full shadow-2xl border border-white/10">
             <span className="w-2 h-2 rounded-full bg-[#964735]"></span>
             <span className="text-[13px] font-medium tracking-wide">{toastMessage}</span>
           </div>

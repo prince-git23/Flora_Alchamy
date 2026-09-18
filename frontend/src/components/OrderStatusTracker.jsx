@@ -44,8 +44,8 @@ export default function OrderStatusTracker({ order }) {
       </div>
 
       {/* Step rail */}
-      <div className="py-6">
-        <div className="relative">
+      <div className="py-6 overflow-x-auto scrollbar-none">
+        <div className="relative min-w-[540px] sm:min-w-0">
           <div className="absolute left-0 top-[15px] h-1 bg-[#ebe8e3] w-full z-0 rounded-full" />
           <div
             className="absolute left-0 top-[15px] h-1 bg-[#964735] transition-all duration-700 z-0 rounded-full"
@@ -57,7 +57,7 @@ export default function OrderStatusTracker({ order }) {
               const done = currentStage >= stageNum;
               const isCurrent = currentStage === stageNum;
               return (
-                <div key={step.key} className="flex flex-col items-center text-center">
+                <div key={step.key} className="flex flex-col items-center text-center px-1">
                   <div
                     className={`w-[30px] h-[30px] rounded-full flex items-center justify-center text-[13px] shadow-sm ${
                       done ? (isCurrent ? 'bg-[#964735] text-white animate-pulse' : 'bg-[#180f0a] text-white') : 'bg-[#ebe8e3] text-[#4e4540]'

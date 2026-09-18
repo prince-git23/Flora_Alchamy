@@ -62,10 +62,10 @@ export default function Footer() {
 
   return (
     <footer className="w-full bg-[#f6f3ee] border-t border-[#e5e2dd]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-10 pb-12 border-b border-[#e5e2dd]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-20">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-12 gap-8 sm:gap-10 pb-12 border-b border-[#e5e2dd]">
           {/* Brand Col */}
-          <div className="md:col-span-4 space-y-4">
+          <div className="col-span-2 sm:col-span-2 md:col-span-4 space-y-4">
             <Link to="/" className="flex items-center gap-3" aria-label="Flora Alchemy home">
               <img
                 loading="lazy"
@@ -84,30 +84,30 @@ export default function Footer() {
 
             <Link
               to="/gift-finder"
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-white border border-[#e5e2dd] hover:border-[#964735] transition-colors group"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-white border border-[#e5e2dd] hover:border-[#964735] transition-colors group text-left"
             >
-              <Gift className="w-4 h-4 text-[#964735]" aria-hidden="true" />
-              <span className="text-[12px] font-semibold text-[#180f0a]">Not sure what to gift? Use the Gift Finder</span>
-              <ArrowRight className="w-3.5 h-3.5 text-[#80756f] group-hover:text-[#964735] transition-colors" aria-hidden="true" />
+              <Gift className="w-4 h-4 text-[#964735] shrink-0" aria-hidden="true" />
+              <span className="text-[12px] font-semibold text-[#180f0a]">Not sure what to gift? Use Gift Finder</span>
+              <ArrowRight className="w-3.5 h-3.5 text-[#80756f] group-hover:text-[#964735] transition-colors shrink-0" aria-hidden="true" />
             </Link>
 
             <div className="pt-2">
               <p className="text-[11px] uppercase tracking-wider font-bold text-[#4e4540]/80 mb-2">
                 Join Our Studio Newsletter
               </p>
-              <form onSubmit={handleSubscribe} className="flex items-center gap-2 max-w-sm">
+              <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 max-w-sm">
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Your email address"
                   aria-label="Your email address"
-                  className="w-full px-4 py-2 rounded-full bg-white text-[13px] text-[#1c1c19] placeholder:text-[#80756f] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a]"
+                  className="w-full px-4 py-2.5 rounded-full bg-white text-[13px] text-[#1c1c19] placeholder:text-[#80756f] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a]"
                   required
                 />
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-full bg-[#180f0a] text-white hover:bg-[#964735] transition-colors text-[12px] font-semibold tracking-wide shrink-0"
+                  className="px-5 py-2.5 rounded-full bg-[#180f0a] text-white hover:bg-[#964735] transition-colors text-[12px] font-semibold tracking-wide shrink-0 touch-target flex items-center justify-center"
                 >
                   Subscribe
                 </button>
@@ -120,19 +120,19 @@ export default function Footer() {
 
           {/* Link Columns */}
           {FOOTER_COLUMNS.map((col) => (
-            <nav key={col.title} className="md:col-span-2 space-y-3" aria-label={col.title}>
+            <nav key={col.title} className="col-span-1 md:col-span-2 space-y-3" aria-label={col.title}>
               <h3 className="text-[11px] uppercase font-bold tracking-widest text-[#1c1c19]">{col.title}</h3>
               <ul className="space-y-2 text-[13px] text-[#4e4540]">
                 {col.links.map((link) => (
                   <li key={link.label}>
-                    <Link to={link.to} className="hover:text-[#180f0a] transition-colors">
+                    <Link to={link.to} className="hover:text-[#180f0a] transition-colors inline-block py-0.5">
                       {link.label}
                     </Link>
                   </li>
                 ))}
                 {col.title === 'Help' && (
                   <li>
-                    <Link to="/admin/login" className="text-[12px] text-[#a89f99] hover:text-[#180f0a] transition-colors">
+                    <Link to="/admin/login" className="text-[12px] text-[#a89f99] hover:text-[#180f0a] transition-colors inline-block py-0.5">
                       Staff / Admin Login
                     </Link>
                   </li>
@@ -143,9 +143,9 @@ export default function Footer() {
         </div>
 
         {/* Bottom copyright */}
-        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[13px] text-[#4e4540]">
+        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[13px] text-[#4e4540] text-center sm:text-left">
           <p>© 2025 Flora Alchemy. All rights reserved. Handcrafted in India.</p>
-          <div className="flex items-center gap-6">
+          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
             <Link to="/shop" className="hover:text-[#180f0a] transition-colors">Curated Catalog</Link>
             <Link to="/custom-gifts" className="hover:text-[#180f0a] transition-colors">Bespoke Studio</Link>
             <Link to="/order-tracking" className="hover:text-[#180f0a] transition-colors">Track Order</Link>

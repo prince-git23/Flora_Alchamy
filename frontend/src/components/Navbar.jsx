@@ -189,7 +189,22 @@ export default function Navbar() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  const utilityButton = 'relative flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#f0ede9] text-[#4e4540] hover:text-[#1c1c19] hover:bg-[#ebe8e3] transition-all duration-200';
+  // Body scroll lock and Escape key for mobile menu
+  useEffect(() => {
+    if (!mobileMenuOpen) return undefined;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e) => {
+      if (e.key === 'Escape') setMobileMenuOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [mobileMenuOpen]);
+
+  const utilityButton = 'relative flex items-center justify-center min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 sm:px-3 sm:py-1.5 rounded-full bg-[#f0ede9] text-[#4e4540] hover:text-[#1c1c19] hover:bg-[#ebe8e3] transition-all duration-200 touch-target';
 
   return (
     <>
@@ -200,21 +215,21 @@ export default function Navbar() {
             : 'bg-[#fcf9f4]/90 backdrop-blur-md shadow-[0_1px_8px_rgba(0,0,0,0.03)]'
         }`}
       >
-        <div className={`transition-all duration-300 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4 ${
-          scrolled ? 'h-16' : 'h-20'
+        <div className={`transition-all duration-300 max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 flex items-center justify-between gap-2 sm:gap-4 ${
+          scrolled ? 'h-14 sm:h-16' : 'h-16 sm:h-20'
         }`}>
           {/* Brand Logo */}
-          <Link to="/" className="flex items-center gap-3 group shrink-0" aria-label="Flora Alchemy home">
+          <Link to="/" className="flex items-center gap-2 sm:gap-3 group shrink-0 min-w-0" aria-label="Flora Alchemy home">
             <img
               loading="lazy"
               decoding="async"
               src="/assets/images/flora-asset-27.jpg"
               alt=""
               className="w-auto object-contain transition-all duration-300 group-hover:scale-105"
-              style={{ height: scrolled ? '24px' : '32px' }}
+              style={{ height: scrolled ? '22px' : '28px' }}
             />
-            <span className={`font-serif tracking-tight font-medium text-[#180f0a] group-hover:text-[#964735] transition-all duration-300 ${
-              scrolled ? 'text-[18px]' : 'text-[22px]'
+            <span className={`font-serif tracking-tight font-medium text-[#180f0a] group-hover:text-[#964735] transition-all duration-300 truncate ${
+              scrolled ? 'text-[17px] sm:text-[18px]' : 'text-[19px] sm:text-[22px]'
             }`}>
               Flora Alchemy
             </span>
@@ -251,7 +266,7 @@ export default function Navbar() {
           </nav>
 
           {/* Action Utilities */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-1 sm:gap-2.5 shrink-0">
             <button
               type="button"
               onClick={() => setSearchOpen(true)}
@@ -260,18 +275,18 @@ export default function Navbar() {
               aria-label="Search Flora Alchemy"
             >
               <Search className="w-4 h-4 text-[#4e4540]" aria-hidden="true" />
-              <span className="text-[11px] font-bold uppercase tracking-widest text-[#4e4540]/80 hidden sm:inline">⌘K</span>
+              <span className="text-[11px] font-bold uppercase tracking-widest text-[#4e4540]/80 hidden md:inline ml-1">⌘K</span>
             </button>
 
             <NotificationBell />
 
             <Link
               to="/wishlist"
-              className="relative p-2 rounded-full hover:bg-[#f0ede9] text-[#4e4540] hover:text-[#1c1c19] transition-all duration-200 flex items-center justify-center"
+              className="relative p-2 rounded-full hover:bg-[#f0ede9] text-[#4e4540] hover:text-[#1c1c19] transition-all duration-200 flex items-center justify-center min-w-[36px] min-h-[36px]"
               title="Saved Gifts"
               aria-label="Saved Gifts"
             >
-              <Heart className={`w-5 h-5 ${wishlist.length > 0 ? 'text-[#964735]' : 'text-[#4e4540]'}`} aria-hidden="true" />
+              <Heart className={`w-4 h-4 sm:w-5 sm:h-5 ${wishlist.length > 0 ? 'text-[#964735]' : 'text-[#4e4540]'}`} aria-hidden="true" />
               {wishlist.length > 0 && (
                 <span className="absolute top-0.5 right-0.5 w-4 h-4 bg-[#964735] text-white rounded-full text-[9px] font-bold flex items-center justify-center leading-none">
                   {wishlist.length}
@@ -281,32 +296,36 @@ export default function Navbar() {
 
             <Link
               to="/cart"
-              className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#f0ede9] hover:bg-[#ebe8e3] text-[#1c1c19] transition-all duration-200"
+              className="relative flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-full bg-[#f0ede9] hover:bg-[#ebe8e3] text-[#1c1c19] transition-all duration-200 min-h-[36px]"
               title="Shopping Bag"
               aria-label={`Shopping Bag, ${cartCount} items`}
             >
               <ShoppingBag className="w-4 h-4 text-[#180f0a]" aria-hidden="true" />
-              <span className="text-[12px] font-semibold whitespace-nowrap">
+              <span className="text-[12px] font-semibold whitespace-nowrap hidden sm:inline">
                 {cartCount} · ₹{cartSubtotal.toLocaleString('en-IN')}
+              </span>
+              <span className="text-[12px] font-semibold sm:hidden">
+                {cartCount}
               </span>
             </Link>
 
             <Link
               to={isAuthed ? '/account' : '/login'}
-              className="flex items-center gap-2 pl-2 pr-3 py-1 rounded-full bg-[#180f0a] hover:bg-[#964735] text-white transition-all duration-200"
+              className="flex items-center gap-1.5 p-1 sm:pl-2 sm:pr-3 sm:py-1 rounded-full bg-[#180f0a] hover:bg-[#964735] text-white transition-all duration-200 min-w-[32px] min-h-[32px] justify-center"
               title={isAuthed ? 'My Account' : 'Sign In'}
+              aria-label={isAuthed ? 'My Account' : 'Sign In'}
             >
               <span className="flex items-center justify-center w-6 h-6 rounded-full bg-white/15 text-[11px] font-bold">
                 {isAuthed ? (activeCustomer.name || 'A').charAt(0).toUpperCase() : <User className="w-3.5 h-3.5" />}
               </span>
-              <span className="text-[11px] font-semibold hidden sm:inline">
+              <span className="text-[11px] font-semibold hidden md:inline">
                 {isAuthed ? 'My Account' : 'Sign In'}
               </span>
             </Link>
 
             <button
               type="button"
-              className="lg:hidden p-2 rounded-full hover:bg-[#f0ede9] text-[#1c1c19]"
+              className="lg:hidden p-2 rounded-full hover:bg-[#f0ede9] text-[#1c1c19] min-w-[40px] min-h-[40px] flex items-center justify-center"
               onClick={() => setMobileMenuOpen((o) => !o)}
               aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
               aria-expanded={mobileMenuOpen}
@@ -316,98 +335,113 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Mobile Drawer Menu */}
+        {/* Mobile Drawer Menu & Backdrop */}
         {mobileMenuOpen && (
-          <div className="lg:hidden bg-[#fcf9f4] border-b border-[#e5e2dd] max-h-[calc(100vh-5rem)] overflow-y-auto shadow-lg">
-            <div className="px-5 py-5 space-y-6">
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => { setMobileMenuOpen(false); setSearchOpen(true); }}
-                  className="flex flex-col items-center gap-1.5 py-3 rounded-2xl bg-white border border-[#e5e2dd] text-[11px] font-semibold text-[#4e4540]"
-                >
-                  <Search className="w-4 h-4" aria-hidden="true" /> Search
-                </button>
-                <Link
-                  to="/wishlist"
-                  className="flex flex-col items-center gap-1.5 py-3 rounded-2xl bg-white border border-[#e5e2dd] text-[11px] font-semibold text-[#4e4540]"
-                >
-                  <Heart className="w-4 h-4" aria-hidden="true" /> Saved {wishlist.length > 0 ? `(${wishlist.length})` : ''}
-                </Link>
-                <Link
-                  to="/cart"
-                  className="flex flex-col items-center gap-1.5 py-3 rounded-2xl bg-white border border-[#e5e2dd] text-[11px] font-semibold text-[#4e4540]"
-                >
-                  <ShoppingBag className="w-4 h-4" aria-hidden="true" /> Bag ({cartCount})
-                </Link>
-              </div>
+          <div className="lg:hidden fixed inset-0 top-[56px] sm:top-[64px] z-40 flex flex-col">
+            {/* Backdrop */}
+            <div
+              className="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity"
+              onClick={() => setMobileMenuOpen(false)}
+            />
 
-              <div className="space-y-2">
-                <p className="text-[11px] uppercase font-bold tracking-widest text-[#80756f]">Shop</p>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {SHOP_ITEMS.map((item) => (
-                    <Link
-                      key={item.to + item.label}
-                      to={item.to}
-                      className="px-3.5 py-2.5 rounded-xl bg-white border border-[#e5e2dd] text-[13px] font-medium text-[#4e4540]"
-                    >
-                      {item.label}
+            {/* Menu Container */}
+            <div className="relative bg-[#fcf9f4] border-b border-[#e5e2dd] max-h-[calc(100vh-4rem)] overflow-y-auto shadow-2xl z-10 animate-fade-in">
+              <div className="px-4 sm:px-6 py-5 space-y-5 pb-8">
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { setMobileMenuOpen(false); setSearchOpen(true); }}
+                    className="flex flex-col items-center justify-center gap-1.5 py-3 rounded-2xl bg-white border border-[#e5e2dd] text-[11px] font-semibold text-[#4e4540] hover:bg-[#f6f3ee] transition-colors touch-target"
+                  >
+                    <Search className="w-4 h-4" aria-hidden="true" /> Search
+                  </button>
+                  <Link
+                    to="/wishlist"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex flex-col items-center justify-center gap-1.5 py-3 rounded-2xl bg-white border border-[#e5e2dd] text-[11px] font-semibold text-[#4e4540] hover:bg-[#f6f3ee] transition-colors touch-target"
+                  >
+                    <Heart className="w-4 h-4" aria-hidden="true" /> Saved {wishlist.length > 0 ? `(${wishlist.length})` : ''}
+                  </Link>
+                  <Link
+                    to="/cart"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex flex-col items-center justify-center gap-1.5 py-3 rounded-2xl bg-white border border-[#e5e2dd] text-[11px] font-semibold text-[#4e4540] hover:bg-[#f6f3ee] transition-colors touch-target"
+                  >
+                    <ShoppingBag className="w-4 h-4" aria-hidden="true" /> Bag ({cartCount})
+                  </Link>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-[11px] uppercase font-bold tracking-widest text-[#80756f]">Shop</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {SHOP_ITEMS.map((item) => (
+                      <Link
+                        key={item.to + item.label}
+                        to={item.to}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="px-3.5 py-2.5 rounded-xl bg-white border border-[#e5e2dd] text-[13px] font-medium text-[#4e4540] hover:bg-[#f6f3ee] transition-colors flex items-center min-h-[44px]"
+                      >
+                        {item.label}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-[11px] uppercase font-bold tracking-widest text-[#80756f]">Gifting</p>
+                  <Link
+                    to="/gift-finder"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center justify-between p-4 rounded-2xl bg-[#180f0a] text-white min-h-[48px]"
+                  >
+                    <span className="flex items-center gap-2 text-[13px] font-semibold">
+                      <Gift className="w-4 h-4" aria-hidden="true" /> Gift Finder
+                    </span>
+                    <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                  </Link>
+                  <Link
+                    to="/custom-gifts"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center justify-between p-4 rounded-2xl bg-white border border-[#e5e2dd] text-[#180f0a] min-h-[48px]"
+                  >
+                    <span className="flex items-center gap-2 text-[13px] font-semibold">
+                      <Sparkles className="w-4 h-4 text-[#964735]" aria-hidden="true" /> Custom Gift Studio
+                    </span>
+                    <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                  </Link>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-[11px] uppercase font-bold tracking-widest text-[#80756f]">Explore</p>
+                  <div className="flex flex-col gap-1">
+                    <Link to="/collections" onClick={() => setMobileMenuOpen(false)} className="px-3.5 py-2.5 rounded-xl text-[13px] font-medium text-[#4e4540] hover:bg-[#f0ede9] min-h-[44px] flex items-center">
+                      Curated Collections
                     </Link>
-                  ))}
+                    <Link to="/our-story" onClick={() => setMobileMenuOpen(false)} className="px-3.5 py-2.5 rounded-xl text-[13px] font-medium text-[#4e4540] hover:bg-[#f0ede9] min-h-[44px] flex items-center">
+                      Our Story
+                    </Link>
+                    <Link to="/how-its-made" onClick={() => setMobileMenuOpen(false)} className="px-3.5 py-2.5 rounded-xl text-[13px] font-medium text-[#4e4540] hover:bg-[#f0ede9] min-h-[44px] flex items-center">
+                      How It&apos;s Made
+                    </Link>
+                    <Link to="/our-creations" onClick={() => setMobileMenuOpen(false)} className="px-3.5 py-2.5 rounded-xl text-[13px] font-medium text-[#4e4540] hover:bg-[#f0ede9] min-h-[44px] flex items-center">
+                      Our Creations
+                    </Link>
+                    <Link to="/custom-request" onClick={() => setMobileMenuOpen(false)} className="px-3.5 py-2.5 rounded-xl text-[13px] font-medium text-[#964735] hover:bg-[#f0ede9] min-h-[44px] flex items-center">
+                      Request a Custom Creation
+                    </Link>
+                  </div>
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <p className="text-[11px] uppercase font-bold tracking-widest text-[#80756f]">Gifting</p>
-                <Link
-                  to="/gift-finder"
-                  className="flex items-center justify-between p-4 rounded-2xl bg-[#180f0a] text-white"
-                >
-                  <span className="flex items-center gap-2 text-[13px] font-semibold">
-                    <Gift className="w-4 h-4" aria-hidden="true" /> Gift Finder
-                  </span>
-                  <ArrowRight className="w-4 h-4" aria-hidden="true" />
-                </Link>
-                <Link
-                  to="/custom-gifts"
-                  className="flex items-center justify-between p-4 rounded-2xl bg-white border border-[#e5e2dd] text-[#180f0a]"
-                >
-                  <span className="flex items-center gap-2 text-[13px] font-semibold">
-                    <Sparkles className="w-4 h-4 text-[#964735]" aria-hidden="true" /> Custom Gift Studio
-                  </span>
-                  <ArrowRight className="w-4 h-4" aria-hidden="true" />
-                </Link>
-              </div>
-
-              <div className="space-y-2">
-                <p className="text-[11px] uppercase font-bold tracking-widest text-[#80756f]">Explore</p>
-                <div className="flex flex-col gap-1.5">
-                  <Link to="/collections" className="px-3.5 py-2.5 rounded-xl text-[13px] font-medium text-[#4e4540] hover:bg-[#f0ede9]">
-                    Curated Collections
-                  </Link>
-                  <Link to="/our-story" className="px-3.5 py-2.5 rounded-xl text-[13px] font-medium text-[#4e4540] hover:bg-[#f0ede9]">
-                    Our Story
-                  </Link>
-                  <Link to="/how-its-made" className="px-3.5 py-2.5 rounded-xl text-[13px] font-medium text-[#4e4540] hover:bg-[#f0ede9]">
-                    How It&apos;s Made
-                  </Link>
-                  <Link to="/our-creations" className="px-3.5 py-2.5 rounded-xl text-[13px] font-medium text-[#4e4540] hover:bg-[#f0ede9]">
-                    Our Creations
-                  </Link>
-                  <Link to="/custom-request" className="px-3.5 py-2.5 rounded-xl text-[13px] font-medium text-[#964735] hover:bg-[#f0ede9]">
-                    Request a Custom Creation
+                <div className="pt-3 border-t border-[#e5e2dd]">
+                  <Link
+                    to={isAuthed ? '/account' : '/login'}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="text-[13px] font-semibold text-[#964735] flex items-center gap-2 py-2 min-h-[44px]"
+                  >
+                    <User className="w-4 h-4" aria-hidden="true" />
+                    <span>{isAuthed ? `My Account${activeCustomer ? ` (${activeCustomer.name})` : ''}` : 'Sign In / Create Account'}</span>
                   </Link>
                 </div>
-              </div>
-
-              <div className="pt-3 border-t border-[#e5e2dd]">
-                <Link
-                  to={isAuthed ? '/account' : '/login'}
-                  className="text-[13px] font-semibold text-[#964735] flex items-center gap-1.5"
-                >
-                  <User className="w-4 h-4" aria-hidden="true" />
-                  <span>{isAuthed ? `My Account${activeCustomer ? ` (${activeCustomer.name})` : ''}` : 'Sign In / Create Account'}</span>
-                </Link>
               </div>
             </div>
           </div>
