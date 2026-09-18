@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import mongoose from 'mongoose';
 import { connectDB } from './config/db.js';
 import { errorHandler, notFoundHandler } from './middleware/errorMiddleware.js';
 import {
@@ -28,6 +29,46 @@ import adminUserRoutes from './routes/adminUserRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
 import { seedIfEmpty } from './seed/seed.js';
+
+// ── Production configuration validation ──────────────────────────────────
+// Fail fast when critical configuration is missing in production.
+function validateProductionConfig() {
+  const isProd = process.env.NODE_ENV === 'production';
+  if (!isProd) return; // Development — no strict validation.
+
+  const missing = [];
+
+  // Critical: must have a real database
+  if (!process.env.MONGO_URI) missing.push('MONGO_URI');
+
+  // Critical: must have a real JWT secret (not the development placeholder)
+  if (!process.env.JWT_SECRET) missing.push('JWT_SECRET');
+
+  // Critical: must have explicit CORS origin (never default to localhost)
+  if (!process.env.CORS_ORIGIN) missing.push('CORS_ORIGIN');
+
+  // Critical: must not seed fixtures in production
+  if (process.env.SEED_ON_START === 'true') {
+    console.error('[config] SEED_ON_START=true is not allowed in production. Set SEED_ON_START=false.');
+    process.exit(1);
+  }
+
+  // Warn: ImageKit not configured — uploads will use local filesystem (not durable)
+  if (!process.env.IMAGEKIT_PRIVATE_KEY || !process.env.IMAGEKIT_PUBLIC_KEY || !process.env.IMAGEKIT_URL_ENDPOINT) {
+    console.warn('[config] WARNING: ImageKit not configured. Product image uploads will use local filesystem storage which is NOT durable across redeployments. Configure IMAGEKIT_* for production image hosting.');
+  }
+
+  // Warn: Razorpay not configured — payments will use Sample status
+  if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+    console.warn('[config] WARNING: Razorpay not configured. Payments will use Sample (no real charge). Configure RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET for live payments.');
+  }
+
+  if (missing.length > 0) {
+    console.error(`[config] PRODUCTION CONFIGURATION ERROR: Missing required environment variables: ${missing.join(', ')}`);
+    console.error('[config] Set these in your production environment before starting the server.');
+    process.exit(1);
+  }
+}
 
 const app = express();
 
@@ -90,8 +131,20 @@ app.use(
 );
 
 // Health / diagnostics
+// GET /api/health — liveness probe: process is alive.
 app.get('/api/health', (_req, res) => {
   res.json({ success: true, service: 'flora-alchemy-api', status: 'ok', time: new Date().toISOString() });
+});
+
+// GET /api/readiness — readiness probe: critical dependencies are available.
+app.get('/api/readiness', (_req, res) => {
+  // Check MongoDB connection state (0=disconnected, 1=connected, 2=connecting, 3=disconnecting)
+  const dbReady = mongoose.connection.readyState === 1;
+  if (dbReady) {
+    res.json({ success: true, status: 'ready' });
+  } else {
+    res.status(503).json({ success: false, status: 'not_ready' });
+  }
 });
 
 // ── Rate-limited route mounting ──────────────────────────────────────
@@ -122,17 +175,63 @@ app.use(errorHandler);
 // non-positive value as unset so backend/.env controls the port.
 const PORT = Number(process.env.PORT) > 0 ? Number(process.env.PORT) : 4000;
 
+// ── Graceful shutdown ───────────────────────────────────────────────────
+// SIGTERM/SIGINT → stop accepting new requests → drain active requests →
+// close MongoDB → exit cleanly. Idempotent: multiple signals are safe.
+const SHUTDOWN_TIMEOUT_MS = 10_000; // 10 seconds max to drain
+let server = null;
+let shuttingDown = false;
+
+function gracefulShutdown(signal) {
+  if (shuttingDown) return; // Idempotent guard
+  shuttingDown = true;
+  console.log(`[server] ${signal} received — shutting down gracefully...`);
+
+  // Stop accepting new connections
+  if (server) {
+    server.close(async () => {
+      console.log('[server] HTTP server closed');
+      try {
+        await mongoose.connection.close(false);
+        console.log('[db] MongoDB connection closed');
+      } catch (err) {
+        console.error('[db] error closing MongoDB:', err.message);
+      }
+      console.log('[server] shutdown complete');
+      process.exit(0);
+    });
+
+    // Force exit if graceful shutdown takes too long
+    setTimeout(() => {
+      console.error(`[server] forced shutdown after ${SHUTDOWN_TIMEOUT_MS}ms timeout`);
+      process.exit(1);
+    }, SHUTDOWN_TIMEOUT_MS).unref(); // unref so it doesn't keep the process alive
+  } else {
+    // Server hasn't started yet — close DB and exit
+    mongoose.connection.close(false).catch(() => {});
+    process.exit(0);
+  }
+}
+
+// Register signal handlers
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
 async function main() {
   try {
+    // Validate production configuration before doing anything else
+    validateProductionConfig();
+
     await connectDB();
     console.log('[db] connected to MongoDB');
 
+    // Seed safety: reject in production, allow in development
     if (process.env.SEED_ON_START === 'true') {
       const created = await seedIfEmpty();
       console.log(`[seed] fixtures ensured (${created} created)`);
     }
 
-    app.listen(PORT, () => {
+    server = app.listen(PORT, () => {
       console.log(`[server] Flora Alchemy API listening on http://localhost:${PORT}`);
     });
   } catch (err) {
