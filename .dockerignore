@@ -1,0 +1,31 @@
+# Dependencies
+node_modules
+npm-debug.log
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Build artifacts
+frontend/dist
+backend/.freebuff
+
+# Development
+.git
+.github
+.freebuff
+*.md
+!README.md
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode
+.idea
+
+# Test artifacts
+*.log
+coverage

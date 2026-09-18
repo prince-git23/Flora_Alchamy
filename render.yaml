@@ -1,0 +1,44 @@
+# Flora Alchemy — Render.com deployment configuration
+# https://render.com/docs/blueprint-spec
+
+services:
+  # ── Backend API ──────────────────────────────────────────────────
+  - type: web
+    name: flora-alchemy-api
+    runtime: node
+    plan: starter
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4000
+      - key: MONGO_URI
+        sync: false  # Set manually in Render dashboard
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGIN
+        sync: false  # Set to your frontend URL
+      - key: SEED_ON_START
+        value: 'false'
+      - key: TRUST_PROXY
+        value: 'true'
+    healthCheckPath: /api/health
+    autoDeploy: true
+
+  # ── Frontend (Static Site) ───────────────────────────────────────
+  - type: web
+    name: flora-alchemy-frontend
+    runtime: static
+    plan: starter
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: frontend/dist
+    envVars:
+      - key: VITE_API_URL
+        sync: false  # Set to your backend API URL + /api
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    autoDeploy: true
