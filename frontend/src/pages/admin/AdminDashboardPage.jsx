@@ -154,11 +154,11 @@ export default function AdminDashboardPage() {
 
   return (
     <AdminLayout>
-      <div ref={pageRef} className="max-w-7xl mx-auto space-y-8 pb-12">
+      <div ref={pageRef} className="max-w-7xl mx-auto space-y-6 sm:space-y-8 pb-8 sm:pb-12">
         {/* Welcome & Action Bar */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="font-serif text-3xl sm:text-4xl text-[#180f0a] tracking-tight font-normal">
+            <h1 className="font-serif text-2xl sm:text-3xl lg:text-4xl text-[#180f0a] tracking-tight font-normal">
               Operations Overview
             </h1>
             <p className="text-[15px] text-[#4e4540] mt-1">
@@ -198,7 +198,7 @@ export default function AdminDashboardPage() {
         {/* ACTIVE LIVE VIEW */}
         <div className="space-y-8">
             {/* 5-Card KPI Metrics Row */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
               {/* KPI 1: Total Orders */}
               <div data-dash-kpi className="p-4 bg-white rounded-2xl shadow-[0_4px_20px_-2px_rgba(46,36,30,0.04)] border border-[#e5e2dd] flex flex-col justify-between hover:shadow-[0_10px_30px_-8px_rgba(46,36,30,0.12)] hover:-translate-y-0.5 transition-all duration-300">
                 <div className="flex items-center justify-between text-[#80756f]">
@@ -463,7 +463,7 @@ export default function AdminDashboardPage() {
             </div>
 
             {/* Two-Column Operational Workspace (7 cols & 5 cols) */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
               {/* LEFT COLUMN: Recent Orders & Revenue (7 cols) */}
               <div className="lg:col-span-7 space-y-8 min-w-0">
                 {/* SECTION A: RECENT ORDERS TABLE */}

@@ -295,30 +295,30 @@ export default function ConversationPage() {
 
   return (
     <div className={`${admin ? '' : 'min-h-screen bg-[#fcf9f4]'}`}>
-      <div ref={threadRef} className={`${admin ? 'max-w-4xl mx-auto py-8' : 'max-w-3xl mx-auto px-4 py-8'}`}>
+      <div ref={threadRef} className={`${admin ? 'max-w-4xl mx-auto py-8' : 'max-w-3xl mx-auto px-3 sm:px-4 py-6 sm:py-8'}`}>
         {/* Header */}
-        <div data-conv-header className="bg-white rounded-3xl border border-[#e5e2dd] shadow-sm mb-4 overflow-hidden">
-          <div className="px-6 py-4 border-b border-[#f0ede9]">
+        <div data-conv-header className="bg-white rounded-3xl border border-[#e5e2dd] shadow-sm mb-3 sm:mb-4 overflow-hidden">
+          <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-[#f0ede9]">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2.5 sm:gap-3">
                 <Link
                   to={backLink}
-                  className="w-8 h-8 rounded-full bg-[#f6f3ee] flex items-center justify-center hover:bg-[#ede9e4] transition-colors"
+                  className="w-9 h-9 rounded-full bg-[#f6f3ee] flex items-center justify-center hover:bg-[#ede9e4] transition-colors touch-target"
                 >
                   <ArrowLeft className="w-4 h-4 text-[#4e4540]" />
                 </Link>
                 <div>
-                  <h1 className="font-serif text-[18px] text-[#180f0a] font-medium">
+                  <h1 className="font-serif text-[16px] sm:text-[18px] text-[#180f0a] font-medium">
                     Order #{effectiveOrderId}
                   </h1>
-                  <p className="text-[12px] text-[#80756f]">
+                  <p className="text-[11px] sm:text-[12px] text-[#80756f]">
                     {order ? `Status: ${getStatusLabel(order.orderStatus)}` : 'Loading...'}
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-500" aria-hidden="true" />
-                <span className="text-[12px] text-[#80756f]">Messages stored with your order</span>
+                <span className="text-[11px] sm:text-[12px] text-[#80756f] hidden sm:inline">Messages stored with your order</span>
               </div>
             </div>
           </div>
@@ -326,7 +326,7 @@ export default function ConversationPage() {
 
         {/* Messages */}
         <div className="bg-white rounded-3xl border border-[#e5e2dd] shadow-sm overflow-hidden">
-          <div className="h-[50vh] overflow-y-auto px-6 py-4" style={{ scrollBehavior: 'smooth' }}>
+          <div className="h-[55vh] sm:h-[50vh] overflow-y-auto px-4 sm:px-6 py-3 sm:py-4" style={{ scrollBehavior: 'smooth' }}>
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center">
                 <MessageSquare className="w-8 h-8 text-[#d9d3cc] mb-3" />
@@ -351,7 +351,7 @@ export default function ConversationPage() {
           </div>
 
           {/* Composer */}
-          <div data-composer className="border-t border-[#f0ede9] px-6 py-4">
+          <div data-composer className="border-t border-[#f0ede9] px-4 sm:px-6 py-3 sm:py-4">
             {sendError && (
               <div role="alert" className="mb-3 flex items-start gap-2 px-3.5 py-2.5 rounded-xl bg-red-50 border border-red-200 text-[12px] text-red-700">
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
@@ -363,7 +363,7 @@ export default function ConversationPage() {
                 <p className="text-[13px] text-[#80756f]">This conversation is closed.</p>
               </div>
             ) : (
-              <div className="flex items-end gap-3">
+              <div className="flex items-end gap-2 sm:gap-3">
                 <textarea
                   ref={textareaRef}
                   value={newMessage}
@@ -371,7 +371,7 @@ export default function ConversationPage() {
                   onKeyDown={handleKeyDown}
                   placeholder="Type your message..."
                   rows={1}
-                  className="flex-1 resize-none rounded-2xl border border-[#e5e2dd] bg-[#faf8f5] px-4 py-3 text-[14px] text-[#180f0a] placeholder-[#b0a89f] focus:outline-none focus:ring-2 focus:ring-[#c17c74]/30 focus:border-[#c17c74] transition-all min-h-[44px] max-h-[120px]"
+                  className="flex-1 resize-none rounded-2xl border border-[#e5e2dd] bg-[#faf8f5] px-3 sm:px-4 py-2.5 sm:py-3 text-[14px] text-[#180f0a] placeholder-[#b0a89f] focus:outline-none focus:ring-2 focus:ring-[#c17c74]/30 focus:border-[#c17c74] transition-all min-h-[44px] max-h-[120px]"
                   style={{ fieldSizing: 'content' }}
                   disabled={sending}
                   aria-label="Message input"
@@ -379,7 +379,7 @@ export default function ConversationPage() {
                 <button
                   onClick={handleSend}
                   disabled={!newMessage.trim() || sending}
-                  className="w-11 h-11 rounded-full bg-[#964735] text-white flex items-center justify-center hover:bg-[#7d3a2b] transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm shrink-0"
+                  className="w-11 h-11 rounded-full bg-[#964735] text-white flex items-center justify-center hover:bg-[#7d3a2b] transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm shrink-0 touch-target"
                   aria-label="Send message"
                 >
                   {sending ? (

@@ -52,19 +52,19 @@ export default function WishlistPage() {
   }, [wishlist.length]);
 
   return (
-    <div ref={pageRef} className="w-full bg-[#fcf9f4] min-h-screen py-10 lg:py-16 relative overflow-hidden">
+    <div ref={pageRef} className="w-full bg-[#fcf9f4] min-h-screen py-6 lg:py-16 relative overflow-hidden">
       {/* Ambient glow orbs */}
       <div className="absolute top-10 right-0 w-80 h-80 rounded-full bg-[#ffdad3]/12 blur-3xl pointer-events-none" />
       <div className="absolute bottom-20 left-0 w-64 h-64 rounded-full bg-[#d8e7cd]/10 blur-3xl pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         {/* Header Title */}
-        <div ref={headerRef} className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+        <div ref={headerRef} className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6 sm:mb-8">
           <div className="space-y-1">
             <span className="text-[11px] uppercase font-bold tracking-widest text-[#964735]">
               Saved Treasures
             </span>
-            <h1 className="font-serif text-[36px] sm:text-[44px] text-[#180f0a] font-normal tracking-tight">
+            <h1 className="font-serif text-[28px] sm:text-[36px] lg:text-[44px] text-[#180f0a] font-normal tracking-tight leading-tight">
               Your Saved Gifts
             </h1>
             <p className="text-[14px] text-[#4e4540]">
@@ -135,7 +135,7 @@ export default function WishlistPage() {
             </div>
           )
         ) : (
-          <div ref={gridRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div ref={gridRef} className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
             {wishlist.map((item) => (
               <div
                 key={item.id}

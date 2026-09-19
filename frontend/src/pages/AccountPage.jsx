@@ -251,14 +251,14 @@ export default function AccountPage() {
   };
 
   return (
-    <div ref={pageRef} className="w-full bg-[#fcf9f4] min-h-screen py-10 lg:py-16 relative overflow-hidden">
+    <div ref={pageRef} className="w-full bg-[#fcf9f4] min-h-screen py-6 lg:py-16 relative overflow-hidden">
       {/* Ambient glow orbs */}
       <div className="absolute top-0 right-0 w-96 h-96 rounded-full bg-[#ffdad3]/12 blur-3xl pointer-events-none" />
       <div className="absolute bottom-40 left-0 w-80 h-80 rounded-full bg-[#d8e7cd]/10 blur-3xl pointer-events-none" />
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         {/* Profile Header */}
-        <div ref={headerRef} className="relative bg-white rounded-3xl p-6 sm:p-8 border border-[#e5e2dd] shadow-sm mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 overflow-hidden">
+        <div ref={headerRef} className="relative bg-white rounded-3xl p-5 sm:p-8 border border-[#e5e2dd] shadow-sm mb-6 sm:mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-6 overflow-hidden">
           {/* Inner glow */}
           <div className="absolute -top-16 -right-16 w-48 h-48 rounded-full bg-[#ffdad3]/10 blur-3xl pointer-events-none" />
           <div className="flex items-center gap-4">
@@ -284,39 +284,43 @@ export default function AccountPage() {
               className="px-5 py-2 rounded-full bg-[#f6f3ee] text-[#180f0a] hover:bg-[#e5e2dd] text-[12px] font-semibold transition-all duration-300 hover:shadow-sm hover:-translate-y-0.5 active:translate-y-0"
             >
               Browse Catalog
-            </Link>
-            <button
-              type="button"
-              onClick={handleSignOut}
-              className="px-4 py-2 rounded-full border border-[#e5e2dd] text-[#80756f] hover:text-[#180f0a] text-[12px] flex items-center gap-1.5 transition-all duration-300 hover:shadow-sm hover:-translate-y-0.5 active:translate-y-0"
-            >
+            </Link>              <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="px-4 py-2 rounded-full border border-[#e5e2dd] text-[#80756f] hover:text-[#180f0a] text-[12px] flex items-center gap-1.5 transition-all duration-300 hover:shadow-sm active:translate-y-0 touch-target"
+                >
               <LogOut className="w-3.5 h-3.5" />
               <span>Sign Out</span>
             </button>
           </div>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="flex items-center gap-4 border-b border-[#e5e2dd] pb-4 mb-8 overflow-x-auto">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`text-[14px] font-serif transition-all pb-2 relative whitespace-nowrap ${
-                activeTab === tab.key ? 'text-[#180f0a] font-semibold' : 'text-[#80756f] hover:text-[#180f0a]'
-              }`}
-            >
-              <span>{tab.label}</span>
-              {tab.count !== undefined && (
-                <span className="ml-1.5 px-2 py-0.5 rounded-full bg-[#f0ede9] text-[11px] font-sans font-bold">
-                  {tab.count}
-                </span>
-              )}
-              {activeTab === tab.key && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#964735] -mb-4 rounded-full" />
-              )}
-            </button>
-          ))}
+        {/* Tab Navigation — mobile: compact icon+label pills, desktop: serif tabs */}
+        <div className="flex items-center gap-1.5 sm:gap-4 border-b border-[#e5e2dd] pb-4 mb-6 sm:mb-8 overflow-x-auto scrollbar-none">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-[12px] sm:text-[14px] font-medium transition-all whitespace-nowrap shrink-0 ${
+                  activeTab === tab.key
+                    ? 'bg-[#180f0a] text-white shadow-sm'
+                    : 'text-[#80756f] hover:text-[#180f0a] hover:bg-[#f6f3ee]'
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" aria-hidden="true" />
+                <span className="hidden sm:inline">{tab.label}</span>
+                {tab.count !== undefined && (
+                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                    activeTab === tab.key ? 'bg-white/20' : 'bg-[#f0ede9]'
+                  }`}>
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {/* Overview Tab */}

@@ -181,14 +181,14 @@ export default function NotificationsPage() {
   const visible = filter === 'unread' ? notifications.filter((n) => !n.read) : notifications;
 
   return (
-    <div ref={pageRef} className="w-full bg-[#fcf9f4] min-h-screen py-10 lg:py-16 relative overflow-hidden">
+    <div ref={pageRef} className="w-full bg-[#fcf9f4] min-h-screen py-6 lg:py-16 relative overflow-hidden">
       {/* Ambient glow orbs */}
       <div className="absolute top-0 right-0 w-96 h-96 rounded-full bg-[#ffdad3]/12 blur-3xl pointer-events-none" />
       <div className="absolute bottom-40 left-0 w-80 h-80 rounded-full bg-[#d8e7cd]/10 blur-3xl pointer-events-none" />
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         {/* Header */}
-        <div data-notif-hero className="relative text-center max-w-xl mx-auto mb-8 space-y-3">
+        <div data-notif-hero className="relative text-center max-w-xl mx-auto mb-6 sm:mb-8 space-y-2 sm:space-y-3">
           <div className="relative w-16 h-16 rounded-full bg-white border border-[#e5e2dd] shadow-sm flex items-center justify-center mx-auto">
             <Bell className="w-7 h-7 text-[#964735]" />
             {unreadCount > 0 && (
@@ -198,7 +198,7 @@ export default function NotificationsPage() {
             )}
           </div>
           <span className="block text-[11px] uppercase font-bold tracking-widest text-[#964735]">Your Activity</span>
-          <h1 className="font-serif text-[34px] sm:text-[42px] text-[#180f0a] tracking-tight leading-tight">
+          <h1 className="font-serif text-[28px] sm:text-[34px] lg:text-[42px] text-[#180f0a] tracking-tight leading-tight">
             Notifications
           </h1>
           <p className="text-[14px] text-[#4e4540]">
@@ -209,7 +209,7 @@ export default function NotificationsPage() {
         </div>
 
         {/* Toolbar */}
-        <div className="relative flex items-center justify-between gap-3 mb-5">
+        <div className="relative flex items-center justify-between gap-2 sm:gap-3 mb-4 sm:mb-5">
           <div className="inline-flex rounded-full bg-white border border-[#e5e2dd] p-1 shadow-xs" role="tablist" aria-label="Filter notifications">
             {[
               { key: 'all', label: `All (${notifications.length})` },
@@ -236,7 +236,7 @@ export default function NotificationsPage() {
               type="button"
               onClick={handleMarkAllRead}
               disabled={markingAll}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-[#e5e2dd] bg-white text-[12px] font-semibold text-[#180f0a] hover:bg-[#f6f3ee] transition-all duration-300 disabled:opacity-50 hover:shadow-sm"
+              className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-full border border-[#e5e2dd] bg-white text-[11px] sm:text-[12px] font-semibold text-[#180f0a] hover:bg-[#f6f3ee] transition-all duration-300 disabled:opacity-50 touch-target"
             >
               {markingAll ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCheck className="w-3.5 h-3.5" />}
               Mark all read
