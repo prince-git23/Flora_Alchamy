@@ -111,11 +111,11 @@ All business data is server-authoritative. Client prices are never trusted for o
 ```bash
 cd backend
 npm run test:api         # 120 API smoke tests
-npm run test:integration  # 56 integration tests
+npm run test:integration  # 65 integration tests
 npm run test:payment     # 45 payment lifecycle tests
 npm run test:conversation # 34 conversation tests
 npm run test:pricing     # 22 custom gift pricing tests
-npm test                 # Run all suites (367 assertions)
+npm test                 # Run all 7 suites (367 assertions incl. security + production)
 ```
 
 ## Canonical Order Lifecycle

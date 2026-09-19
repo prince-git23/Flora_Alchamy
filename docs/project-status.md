@@ -8,20 +8,20 @@
 Flora_Alchemy/
 ├── frontend/          ← React/Vite application
 │   ├── src/
-│   │   ├── components/    (14 components)
-│   │   ├── pages/         (47 pages: 20 customer + 27 admin)
+│   │   ├── components/    (17 components incl. admin/)
+│   │   ├── pages/         (49 pages: 21 customer + 28 admin)
 │   │   ├── context/       (3 providers)
-│   │   └── services/      (18 service files)
-│   ├── public/assets/     (16 product images)
+│   │   └── services/      (20 service files)
+│   ├── public/assets/     (18 product images)
 │   └── vite.config.js
 ├── backend/           ← Express/MongoDB API
 │   ├── config/            (2 files: customGiftPricing, db)
-│   ├── controllers/       (11 controllers)
-│   ├── middleware/         (2 files: auth, error)
-│   ├── models/            (12 MongoDB models)
-│   ├── routes/            (12 route files, 57 endpoints)
+│   ├── controllers/       (15 controllers)
+│   ├── middleware/         (3 files: auth, error, security)
+│   ├── models/            (13 MongoDB models)
+│   ├── routes/            (15 route files, 67 endpoints)
 │   ├── services/          (5 service files)
-│   ├── scripts/           (7 test suites + run-all orchestrator + lib/testServer.mjs)
+│   ├── scripts/           (8 test suites + run-all orchestrator + lib/testServer.mjs)
 │   └── seed/              (seed data)
 ├── .freebuff/         ← development tooling
 ├── docs/              ← project documentation
@@ -135,11 +135,11 @@ stays contained in its own server process.
 |---|---|---|
 | Pricing | `npm run test:pricing` | 22 |
 | API | `npm run test:api` | 120 |
-| Integration | `npm run test:integration` | 56 |
+| Integration | `npm run test:integration` | 65 |
 | Payment (mock Razorpay) | `npm run test:payment` | 45 |
 | Conversation | `npm run test:conversation` | 34 |
 | Security | `npm run test:security` | 56 |
-| Production | `npm run test:production` | 34 |
+| Production | runs inside `npm test` (no standalone script) | 25 |
 | **Full run** | **`npm test`** | **367** |
 
 Shared bootstrap: `backend/scripts/lib/testServer.mjs`. Orchestrator:
