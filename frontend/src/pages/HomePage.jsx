@@ -4,10 +4,7 @@ import { ArrowRight, Sparkles, Heart, Star, Eye, ShoppingBag, Brush, Gift, Shiel
 import ProductCard from '../components/ProductCard.jsx';
 import { getProducts } from '../services/productService.js';
 import { OCCASION_OPTIONS, RECIPIENT_OPTIONS } from '../services/giftFinderService.js';
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-
-gsap.registerPlugin(ScrollTrigger);
+import { gsap, ScrollTrigger, prefersReducedMotion, isDesktop } from '../lib/gsapSetup.js';
 
 const FEATURED_OCCASIONS = ['birthday', 'anniversary', 'thank_you', 'festival', 'just_because', 'congratulations']
   .map((id) => OCCASION_OPTIONS.find((o) => o.id === id))
@@ -18,15 +15,19 @@ const FEATURED_RECIPIENTS = ['partner', 'mom', 'best_friend', 'someone_special',
   .filter(Boolean);
 
 /**
- * Initialize all GSAP ScrollTrigger animations, cursor parallax, and magnetic buttons.
+ * Initialize GSAP ScrollTrigger animations, cursor parallax, and magnetic buttons.
  * Returns a cleanup function that kills all ScrollTriggers and stops animation frames.
  *
- * Phase 16.2: varied reveal types per section, mobile-safe, reduced-motion aware.
+ * FIX: RAF cleanup is tracked OUTSIDE gsap.context so the outer cleanup
+ * function can cancel them directly, independent of GSAP's inner-return
+ * pattern which is fragile across GSAP/React version combinations.
  */
 function initSpatialEffects() {
-  const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const IS_DESKTOP = window.matchMedia('(min-width: 1024px)').matches;
-  if (REDUCED) return () => {};
+  if (prefersReducedMotion()) return () => {};
+  const desktop = isDesktop();
+
+  // Track RAF + event listeners OUTSIDE gsap.context for reliable cleanup
+  const disposers = [];
 
   const ctx = gsap.context(() => {
     // ═══ HERO ENTRANCE TIMELINE ═══
@@ -113,7 +114,7 @@ function initSpatialEffects() {
     });
 
     // Parallax — elements with data-parallax="speed" — desktop only
-    if (IS_DESKTOP) {
+    if (desktop) {
       document.querySelectorAll('[data-parallax]').forEach((el) => {
         const speed = parseFloat(el.dataset.parallax) || 0.1;
         gsap.to(el, {
@@ -124,12 +125,12 @@ function initSpatialEffects() {
     }
 
     // ═══ CURSOR PARALLAX — hero only, desktop ═══
-    let rafId = null;
-    let mx = 0, my = 0, cx = 0, cy = 0;
-
-    if (hero && IS_DESKTOP) {
+    if (hero && desktop) {
       const targets = hero.querySelectorAll('[data-cursor-depth]');
       if (targets.length) {
+        let mx = 0, my = 0, cx = 0, cy = 0;
+        let rafId = null;
+        let stopped = false;
         const onMouseMove = (e) => {
           const rect = hero.getBoundingClientRect();
           mx = ((e.clientX - rect.left) / rect.width - 0.5) * 2;
@@ -137,6 +138,7 @@ function initSpatialEffects() {
         };
         hero.addEventListener('mousemove', onMouseMove, { passive: true });
         const animate = () => {
+          if (stopped) return;
           cx += (mx - cx) * 0.08;
           cy += (my - cy) * 0.08;
           targets.forEach((el) => {
@@ -146,26 +148,27 @@ function initSpatialEffects() {
           rafId = requestAnimationFrame(animate);
         };
         rafId = requestAnimationFrame(animate);
-
-        hero._cleanupCursor = () => {
+        disposers.push(() => {
+          stopped = true;
           hero.removeEventListener('mousemove', onMouseMove);
           if (rafId) cancelAnimationFrame(rafId);
-        };
+        });
       }
     }
 
     // ═══ MAGNETIC BUTTONS — desktop only ═══
-    const magneticCleanups = [];
-    if (IS_DESKTOP) {
+    if (desktop) {
       document.querySelectorAll('[data-magnetic]').forEach((btn) => {
         let bmx = 0, bmy = 0, bcx = 0, bcy = 0;
         let brafId = null;
+        let stopped = false;
         const onMouseMove = (e) => {
           const rect = btn.getBoundingClientRect();
           bmx = (e.clientX - rect.left - rect.width / 2) * 0.25;
           bmy = (e.clientY - rect.top - rect.height / 2) * 0.25;
         };
         const animate = () => {
+          if (stopped) return;
           bcx += (bmx - bcx) * 0.15;
           bcy += (bmy - bcy) * 0.15;
           btn.style.transform = `translate3d(${bcx}px, ${bcy}px, 0)`;
@@ -174,23 +177,21 @@ function initSpatialEffects() {
         };
         btn.addEventListener('mousemove', onMouseMove, { passive: true });
         brafId = requestAnimationFrame(animate);
-        magneticCleanups.push(() => {
+        disposers.push(() => {
+          stopped = true;
           btn.removeEventListener('mousemove', onMouseMove);
           if (brafId) cancelAnimationFrame(brafId);
           btn.style.transform = '';
         });
       });
     }
-
-    // Return unified cleanup
-    return () => {
-      ctx.revert();
-      if (hero && hero._cleanupCursor) hero._cleanupCursor();
-      magneticCleanups.forEach((fn) => fn());
-    };
   });
 
-  return () => ctx.revert();
+  // Return a single cleanup that handles BOTH GSAP and RAF/event cleanup
+  return () => {
+    ctx.revert();
+    disposers.forEach((fn) => fn());
+  };
 }
 
 export default function HomePage() {

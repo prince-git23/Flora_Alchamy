@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, ShoppingBag, Star, Eye, Sparkles, Leaf } from 'lucide-react';
 import { useStore } from '../context/StoreContext.jsx';
@@ -47,22 +47,34 @@ export default function ProductCard({ product }) {
     setTimeout(() => setWishAnim(false), 400);
   }, [product, toggleWishlist]);
 
-  // Subtle tilt on mouse position (desktop hover only, max ~3deg)
-  const handleMouseMove = (e) => {
-    if (!cardRef.current) return;
-    if (typeof window !== 'undefined' && !window.matchMedia('(hover: hover)').matches) return;
-    const rect = cardRef.current.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width - 0.5;
-    const y = (e.clientY - rect.top) / rect.height - 0.5;
-    cardRef.current.style.transform = `perspective(800px) rotateY(${x * 3}deg) rotateX(${-y * 3}deg) translateY(-4px)`;
-  };
+  // Track whether the device supports hover + fine pointer (desktop)
+  const [canHover, setCanHover] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(hover: hover) and (pointer: fine)');
+    setCanHover(mq.matches);
+    const onChange = (e) => setCanHover(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
 
-  const handleMouseLeave = () => {
+  // Cache rect to avoid layout thrashing on every mousemove
+  const rectRef = useRef(null);
+  const handleMouseMove = useCallback((e) => {
+    if (!cardRef.current || !canHover) return;
+    if (!rectRef.current) rectRef.current = cardRef.current.getBoundingClientRect();
+    const { left, top, width, height } = rectRef.current;
+    const x = (e.clientX - left) / width - 0.5;
+    const y = (e.clientY - top) / height - 0.5;
+    cardRef.current.style.transform = `perspective(800px) rotateY(${x * 3}deg) rotateX(${-y * 3}deg) translateY(-4px)`;
+  }, [canHover]);
+
+  const handleMouseLeave = useCallback(() => {
     setIsHovered(false);
+    rectRef.current = null;
     if (cardRef.current) {
-      cardRef.current.style.transform = 'perspective(800px) rotateY(0deg) rotateX(0deg) translateY(0px)';
+      cardRef.current.style.transform = '';
     }
-  };
+  }, []);
 
   return (
     <article
@@ -71,7 +83,7 @@ export default function ProductCard({ product }) {
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       className="group relative flex flex-col bg-white rounded-3xl p-3 sm:p-4 shadow-[0_4px_20px_-2px_rgba(46,36,30,0.04)] hover:shadow-[0_16px_40px_-6px_rgba(46,36,30,0.12)] transition-shadow duration-500 border border-[#f0ede9] hover:border-[#e5e2dd]"
-      style={{ transformStyle: 'preserve-3d', willChange: 'transform' }}
+      style={canHover ? { transformStyle: 'preserve-3d' } : undefined}
     >
       {/* Thumbnail container */}
       <div className="relative aspect-square w-full rounded-2xl overflow-hidden bg-[#f6f3ee] mb-3">
