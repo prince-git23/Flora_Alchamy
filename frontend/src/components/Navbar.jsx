@@ -286,21 +286,21 @@ export default function Navbar() {
             : 'bg-[#fcf9f4]/80 backdrop-blur-md shadow-[0_1px_8px_rgba(0,0,0,0.03)]'
         }`}
       >
-        <div className={`fa-nav-transition max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 flex items-center justify-between gap-2 sm:gap-4 ${
-          scrolled ? 'h-14 sm:h-16' : 'h-16 sm:h-20'
+        <div className={`fa-nav-transition max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 flex items-center justify-between gap-1.5 sm:gap-2 lg:gap-4 ${
+          scrolled ? 'h-12 sm:h-14 lg:h-16' : 'h-14 sm:h-16 lg:h-20'
         }`}>
           {/* Brand Logo */}
-          <Link to="/" className="flex items-center gap-2 sm:gap-3 group shrink-0 min-w-0" aria-label="Flora Alchemy home">
+          <Link to="/" className="flex items-center gap-1.5 sm:gap-2.5 lg:gap-3 group min-w-0" aria-label="Flora Alchemy home">
             <img
               loading="eager"
               decoding="async"
               src="/assets/images/flora-asset-27.jpg"
               alt=""
-              className="w-auto object-contain transition-all duration-300 group-hover:scale-105"
-              style={{ height: scrolled ? '22px' : '28px' }}
+              className="w-auto object-contain transition-all duration-300 group-hover:scale-105 shrink-0"
+              style={{ height: scrolled ? '20px' : '24px' }}
             />
-            <span className={`font-serif tracking-tight font-medium text-[#180f0a] group-hover:text-[#964735] transition-all duration-300 truncate ${
-              scrolled ? 'text-[17px] sm:text-[18px]' : 'text-[19px] sm:text-[22px]'
+            <span className={`font-serif tracking-tight font-medium text-[#180f0a] group-hover:text-[#964735] transition-all duration-300 truncate whitespace-nowrap ${
+              scrolled ? 'text-[15px] sm:text-[16px] lg:text-[18px]' : 'text-[17px] sm:text-[19px] lg:text-[22px]'
             }`}>
               Flora Alchemy
             </span>
@@ -339,7 +339,7 @@ export default function Navbar() {
           </nav>
 
           {/* Action Utilities */}
-          <div className="flex items-center gap-1 sm:gap-2.5 shrink-0">
+          <div className="flex items-center gap-0.5 sm:gap-1.5 lg:gap-2.5 shrink-0">
             <button
               type="button"
               onClick={() => setSearchOpen(true)}
@@ -348,18 +348,18 @@ export default function Navbar() {
               aria-label="Search Flora Alchemy"
             >
               <Search className="w-4 h-4 text-[#4e4540] group-hover/search:text-[#1c1c19] transition-colors" aria-hidden="true" />
-              <span className="text-[11px] font-bold uppercase tracking-widest text-[#4e4540]/80 hidden md:inline ml-1 group-hover/search:text-[#180f0a] transition-colors">⌘K</span>
+              <span className="text-[11px] font-bold uppercase tracking-widest text-[#4e4540]/80 hidden lg:inline ml-1 group-hover/search:text-[#180f0a] transition-colors">⌘K</span>
             </button>
 
             <NotificationBell />
 
             <Link
               to="/wishlist"
-              className="relative p-2 rounded-full hover:bg-[#f0ede9] text-[#4e4540] hover:text-[#1c1c19] transition-all duration-200 flex items-center justify-center min-w-[36px] min-h-[36px] group/wish"
+              className="relative p-1.5 sm:p-2 rounded-full hover:bg-[#f0ede9] text-[#4e4540] hover:text-[#1c1c19] transition-all duration-200 flex items-center justify-center min-w-[32px] min-h-[32px] sm:min-w-[36px] sm:min-h-[36px] group/wish"
               title="Saved Gifts"
               aria-label="Saved Gifts"
             >
-              <Heart className={`w-4 h-4 sm:w-5 sm:h-5 transition-transform duration-200 group-hover/wish:scale-110 ${wishlist.length > 0 ? 'text-[#964735]' : 'text-[#4e4540]'}`} aria-hidden="true" />
+              <Heart className={`w-4 h-4 sm:w-[18px] sm:h-[18px] lg:w-5 lg:h-5 transition-transform duration-200 group-hover/wish:scale-110 ${wishlist.length > 0 ? 'text-[#964735]' : 'text-[#4e4540]'}`} aria-hidden="true" />
               {wishlist.length > 0 && (
                 <span className="absolute top-0.5 right-0.5 w-4 h-4 bg-[#964735] text-white rounded-full text-[9px] font-bold flex items-center justify-center leading-none">
                   {wishlist.length}
@@ -369,29 +369,29 @@ export default function Navbar() {
 
             <Link
               to="/cart"
-              className="relative flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-full bg-[#f0ede9] hover:bg-[#ebe8e3] text-[#1c1c19] transition-all duration-200 min-h-[36px] group/cart"
+              className="relative flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 lg:px-3.5 py-1.5 rounded-full bg-[#f0ede9] hover:bg-[#ebe8e3] text-[#1c1c19] transition-all duration-200 min-h-[32px] sm:min-h-[36px] group/cart"
               title="Shopping Bag"
               aria-label={`Shopping Bag, ${cartCount} items`}
             >
               <ShoppingBag className="w-4 h-4 text-[#180f0a] transition-transform duration-200 group-hover/cart:scale-110" aria-hidden="true" />
-              <span className="text-[12px] font-semibold whitespace-nowrap hidden sm:inline">
+              <span className="text-[11px] sm:text-[12px] font-semibold whitespace-nowrap hidden md:inline">
                 {cartCount} · ₹{cartSubtotal.toLocaleString('en-IN')}
               </span>
-              <span className="text-[12px] font-semibold sm:hidden">
+              <span className="text-[11px] sm:text-[12px] font-semibold md:hidden">
                 {cartCount}
               </span>
             </Link>
 
             <Link
               to={isAuthed ? '/account' : '/login'}
-              className="flex items-center gap-1.5 p-1 sm:pl-2 sm:pr-3 sm:py-1 rounded-full bg-[#180f0a] hover:bg-[#964735] text-white transition-all duration-200 min-w-[32px] min-h-[32px] justify-center"
+              className="flex items-center gap-1 p-1 sm:pl-1.5 sm:pr-2 lg:pr-3 sm:py-1 rounded-full bg-[#180f0a] hover:bg-[#964735] text-white transition-all duration-200 min-w-[32px] min-h-[32px] justify-center"
               title={isAuthed ? 'My Account' : 'Sign In'}
               aria-label={isAuthed ? 'My Account' : 'Sign In'}
             >
               <span className="flex items-center justify-center w-6 h-6 rounded-full bg-white/15 text-[11px] font-bold transition-transform duration-200 hover:scale-105">
                 {isAuthed ? (activeCustomer.name || 'A').charAt(0).toUpperCase() : <User className="w-3.5 h-3.5" />}
               </span>
-              <span className="text-[11px] font-semibold hidden md:inline">
+              <span className="text-[11px] font-semibold hidden lg:inline whitespace-nowrap">
                 {isAuthed ? 'My Account' : 'Sign In'}
               </span>
             </Link>
