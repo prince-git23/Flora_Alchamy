@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useRef } from 'react';
+import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   ChevronLeft, ChevronRight, Minus, Plus, Heart, ShoppingBag, Zap,
@@ -47,10 +47,12 @@ export default function ProductPage() {
   const [justAdded, setJustAdded] = useState(false);
   const [activeTab, setActiveTab] = useState('craft');
   const [galleryImgError, setGalleryImgError] = useState(false);
+  const [wishAnim, setWishAnim] = useState(false);
 
   const settings = useMemo(() => getSettings(), []);
 
-  // GSAP ref
+  // GSAP refs
+  const heroRef = useRef(null);
   const relatedRef = useRef(null);
 
   useEffect(() => {
@@ -71,6 +73,34 @@ export default function ProductPage() {
     }
     window.scrollTo(0, 0);
   }, [id]);
+
+  // Hero entrance animation
+  useEffect(() => {
+    if (!product || !heroRef.current) return;
+    const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (REDUCED) return;
+
+    const ctx = gsap.context(() => {
+      const gallery = heroRef.current.querySelector('[data-gallery]');
+      const info = heroRef.current.querySelector('[data-product-info]');
+
+      if (gallery) {
+        gsap.fromTo(gallery,
+          { opacity: 0, x: -20 },
+          { opacity: 1, x: 0, duration: 0.6, ease: 'power3.out', delay: 0.1 }
+        );
+      }
+      if (info) {
+        const children = info.children;
+        gsap.fromTo(children,
+          { opacity: 0, y: 16 },
+          { opacity: 1, y: 0, duration: 0.5, stagger: 0.06, ease: 'power3.out', delay: 0.2 }
+        );
+      }
+    });
+
+    return () => ctx.revert();
+  }, [product]);
 
   // GSAP animations for related products
   useEffect(() => {
@@ -113,7 +143,7 @@ export default function ProductPage() {
         <div className="w-16 h-16 rounded-full bg-[#f6f3ee] mx-auto flex items-center justify-center text-3xl" aria-hidden="true">
           🥀
         </div>
-        <h1 className="font-serif text-[26px] text-[#180f0a]">This creation is no longer available</h1>
+        <h1 className="font-serif text-[24px] sm:text-[26px] text-[#180f0a]">This creation is no longer available</h1>
         <p className="text-[14px] text-[#4e4540] max-w-md">
           It may have sold out or been retired from the catalogue. Here are some other ways to find
           something special.
@@ -136,7 +166,7 @@ export default function ProductPage() {
   if (!product) {
     return (
       <div className="w-full min-h-[60vh] flex items-center justify-center bg-[#fcf9f4]">
-        <p className="font-serif text-[24px] text-[#180f0a]">Locating botanical keepsake…</p>
+        <p className="font-serif text-[22px] sm:text-[24px] text-[#180f0a]">Locating botanical keepsake…</p>
       </div>
     );
   }
@@ -156,15 +186,21 @@ export default function ProductPage() {
     giftMessage: giftMessage.trim() || undefined,
   });
 
-  const handleAddToCart = () => {
+  const handleAddToCart = useCallback(() => {
     addItemToCart(product, purchaseOptions());
     setJustAdded(true);
-  };
+  }, [addItemToCart, product, quantity, selectedPalette, selectedRibbon, giftMessage]);
 
-  const handleBuyNow = () => {
+  const handleBuyNow = useCallback(() => {
     addItemToCart(product, purchaseOptions());
     navigate('/checkout');
-  };
+  }, [addItemToCart, product, quantity, selectedPalette, selectedRibbon, giftMessage, navigate]);
+
+  const handleWishlist = useCallback(() => {
+    toggleWishlist(product);
+    setWishAnim(true);
+    setTimeout(() => setWishAnim(false), 400);
+  }, [product, toggleWishlist]);
 
   const stepGallery = (delta) => {
     if (!hasGallery) return;
@@ -185,10 +221,10 @@ export default function ProductPage() {
   ];
 
   return (
-    <div className="w-full bg-[#fcf9f4] min-h-screen py-8 lg:py-12 pb-28 lg:pb-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="w-full bg-[#fcf9f4] min-h-screen py-6 lg:py-12 pb-28 lg:pb-12">
+      <div ref={heroRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-[12px] text-[#80756f] mb-8 font-medium" aria-label="Breadcrumb">
+        <nav className="flex items-center gap-2 text-[12px] text-[#80756f] mb-6 lg:mb-8 font-medium" aria-label="Breadcrumb">
           <Link to="/" className="hover:text-[#180f0a] transition-colors">Home</Link>
           <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
           <Link to="/shop" className="hover:text-[#180f0a] transition-colors">Shop</Link>
@@ -196,9 +232,9 @@ export default function ProductPage() {
           <span className="text-[#180f0a] truncate">{product.name}</span>
         </nav>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14 items-start">
           {/* ── Gallery (left) — spatial depth ── */}
-          <div className="lg:col-span-6 space-y-4" style={{ perspective: '1000px' }}>
+          <div data-gallery className="lg:col-span-6 space-y-4" style={{ perspective: '1000px' }}>
             <div
               className="relative aspect-square w-full rounded-3xl overflow-hidden bg-white shadow-[0_8px_30px_-4px_rgba(46,36,30,0.08)] border border-[#e5e2dd] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#180f0a]"
               tabIndex={hasGallery ? 0 : -1}
@@ -211,11 +247,11 @@ export default function ProductPage() {
             >
               {!galleryImgError ? (
                 <img
-                  loading="lazy"
-                  decoding="async"
+                  key={galleryIndex}
                   src={images[galleryIndex]}
                   alt={product.name}
-                  className="w-full h-full object-cover transition-all duration-500"
+                  className="w-full h-full object-cover fa-gallery-crossfade"
+                  loading="lazy"
                   onError={() => setGalleryImgError(true)}
                 />
               ) : (
@@ -259,7 +295,7 @@ export default function ProductPage() {
 
             {/* Thumbnails */}
             {hasGallery && (
-              <div className="flex items-center gap-3 overflow-x-auto pb-2">
+              <div className="flex items-center gap-2.5 sm:gap-3 overflow-x-auto pb-2 scrollbar-none">
                 {images.map((imgUrl, idx) => (
                   <button
                     key={idx}
@@ -267,8 +303,8 @@ export default function ProductPage() {
                     onClick={() => { setGalleryImgError(false); setGalleryIndex(idx); }}
                     aria-label={`Show image ${idx + 1}`}
                     aria-current={galleryIndex === idx}
-                    className={`relative w-20 h-20 rounded-2xl overflow-hidden bg-white border-2 transition-all duration-200 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#180f0a] ${
-                      galleryIndex === idx ? 'border-[#964735] ring-2 ring-[#ffdad3]' : 'border-[#e5e2dd] opacity-75 hover:opacity-100'
+                    className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden bg-white border-2 transition-all duration-200 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#180f0a] ${
+                      galleryIndex === idx ? 'border-[#964735] ring-2 ring-[#ffdad3] fa-thumb-active' : 'border-[#e5e2dd] opacity-75 hover:opacity-100'
                     }`}
                   >
                     <img
@@ -281,7 +317,7 @@ export default function ProductPage() {
 
             {/* Atelier stamp */}
             <div className="p-4 rounded-2xl bg-[#f6f3ee] border border-[#e5e2dd] flex items-center gap-4">
-              <div className="w-10 h-10 rounded-full bg-[#180f0a] text-white flex items-center justify-center font-serif text-[18px]">
+              <div className="w-10 h-10 rounded-full bg-[#180f0a] text-white flex items-center justify-center font-serif text-[18px] shrink-0">
                 FA
               </div>
               <div className="text-[13px] text-[#4e4540]">
@@ -292,7 +328,7 @@ export default function ProductPage() {
           </div>
 
           {/* ── Purchase panel (right) — spatial depth ── */}
-          <div className="lg:col-span-6 space-y-6">
+          <div data-product-info className="lg:col-span-6 space-y-5 sm:space-y-6">
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-3">
                 <span className="text-[11px] uppercase font-bold tracking-widest text-[#964735]">
@@ -304,12 +340,12 @@ export default function ProductPage() {
                 </span>
               </div>
 
-              <h1 className="font-serif text-[32px] sm:text-[40px] text-[#180f0a] font-normal leading-tight tracking-tight">
+              <h1 className="font-serif text-[28px] sm:text-[32px] md:text-[40px] text-[#180f0a] font-normal leading-tight tracking-tight">
                 {product.name}
               </h1>
 
               <div className="flex flex-wrap items-baseline gap-3">
-                <span className="text-[28px] font-bold text-[#180f0a]">
+                <span className="text-[24px] sm:text-[28px] font-bold text-[#180f0a]">
                   ₹{product.price.toLocaleString('en-IN')}
                 </span>
                 <span className="text-[11px] uppercase font-bold text-[#5b6d54] bg-[#d8e7cd] px-2.5 py-0.5 rounded-full">
@@ -317,25 +353,25 @@ export default function ProductPage() {
                 </span>
               </div>
 
-              <p className="text-[15px] text-[#4e4540] leading-relaxed">
+              <p className="text-[14px] sm:text-[15px] text-[#4e4540] leading-relaxed">
                 {product.description
                   || `A handcrafted ${(product.categoryLabel || 'studio piece').toLowerCase()}${product.palette ? ` in ${product.palette}` : ''}, made in small batches and finished by hand.`}
               </p>
 
               <div className="flex flex-wrap items-center gap-2 pt-1">
-                <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#4e4540]">
+                <span className="inline-flex items-center gap-1.5 text-[11px] sm:text-[12px] font-medium text-[#4e4540]">
                   <Check className="w-3.5 h-3.5 text-[#5b6d54]" aria-hidden="true" /> Handcrafted
                 </span>
                 {personalizable && (
-                  <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#4e4540]">
+                  <span className="inline-flex items-center gap-1.5 text-[11px] sm:text-[12px] font-medium text-[#4e4540]">
                     <Sparkles className="w-3.5 h-3.5 text-[#964735]" aria-hidden="true" /> Personalizable
                   </span>
                 )}
-                <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#4e4540]">
+                <span className="inline-flex items-center gap-1.5 text-[11px] sm:text-[12px] font-medium text-[#4e4540]">
                   <Gift className="w-3.5 h-3.5 text-[#964735]" aria-hidden="true" /> Gift-ready packaging
                 </span>
                 {madeToOrder && (
-                  <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#4e4540]">
+                  <span className="inline-flex items-center gap-1.5 text-[11px] sm:text-[12px] font-medium text-[#4e4540]">
                     <Leaf className="w-3.5 h-3.5 text-[#5b6d54]" aria-hidden="true" /> Made to order
                   </span>
                 )}
@@ -455,7 +491,7 @@ export default function ProductPage() {
                     onClick={() => { setQuantity((q) => Math.max(1, q - 1)); setJustAdded(false); }}
                     disabled={quantity <= 1}
                     aria-label="Decrease quantity"
-                    className="text-[#4e4540] hover:text-[#180f0a] p-1 disabled:opacity-40 transition-colors"
+                    className="text-[#4e4540] hover:text-[#180f0a] p-1 disabled:opacity-40 transition-colors touch-target"
                   >
                     <Minus className="w-4 h-4" aria-hidden="true" />
                   </button>
@@ -465,7 +501,7 @@ export default function ProductPage() {
                     onClick={() => { setQuantity((q) => Math.min(QUANTITY_MAX, q + 1)); setJustAdded(false); }}
                     disabled={quantity >= QUANTITY_MAX}
                     aria-label="Increase quantity"
-                    className="text-[#4e4540] hover:text-[#180f0a] p-1 disabled:opacity-40 transition-colors"
+                    className="text-[#4e4540] hover:text-[#180f0a] p-1 disabled:opacity-40 transition-colors touch-target"
                   >
                     <Plus className="w-4 h-4" aria-hidden="true" />
                   </button>
@@ -477,7 +513,7 @@ export default function ProductPage() {
                 <button
                   type="button"
                   onClick={handleAddToCart}
-                  className="flex-1 py-3.5 rounded-full bg-[#180f0a] hover:bg-[#964735] text-white text-[13px] font-semibold tracking-wide flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all duration-200 active:translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#964735] focus-visible:ring-offset-2"
+                  className={`flex-1 py-3.5 rounded-full bg-[#180f0a] hover:bg-[#964735] text-white text-[13px] font-semibold tracking-wide flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all duration-200 active:translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#964735] focus-visible:ring-offset-2 ${justAdded ? 'fa-atc-success' : ''}`}
                 >
                   <ShoppingBag className="w-4 h-4" aria-hidden="true" />
                   <span>Add to Bag · ₹{lineTotal.toLocaleString('en-IN')}</span>
@@ -485,7 +521,7 @@ export default function ProductPage() {
 
                 <button
                   type="button"
-                  onClick={() => toggleWishlist(product)}
+                  onClick={handleWishlist}
                   aria-pressed={wishlisted}
                   aria-label={wishlisted ? 'Remove from Saved Gifts' : 'Save to Saved Gifts'}
                   title={wishlisted ? 'Remove from Saved Gifts' : 'Save to Saved Gifts'}
@@ -493,7 +529,7 @@ export default function ProductPage() {
                     wishlisted
                       ? 'bg-[#ffdad3] border-[#964735] text-[#964735]'
                       : 'bg-white border-[#e5e2dd] text-[#4e4540] hover:text-[#964735] hover:border-[#964735]'
-                  }`}
+                  } ${wishAnim ? 'fa-wishlist-pop' : ''}`}
                 >
                   <Heart className={`w-5 h-5 transition-all duration-200 ${wishlisted ? 'fill-[#964735] scale-110' : ''}`} aria-hidden="true" />
                 </button>
@@ -571,13 +607,13 @@ export default function ProductPage() {
         </div>
 
         {/* What's Included + How It Arrives */}
-        <div className="mt-14 grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white rounded-3xl p-6 lg:p-8 border border-[#e5e2dd]">
-            <h2 className="font-serif text-[24px] text-[#180f0a] mb-1">What&apos;s included</h2>
+        <div className="mt-12 lg:mt-14 grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white rounded-3xl p-5 sm:p-6 lg:p-8 border border-[#e5e2dd]">
+            <h2 className="font-serif text-[22px] sm:text-[24px] text-[#180f0a] mb-1">What&apos;s included</h2>
             <p className="text-[13px] text-[#4e4540] mb-4">Built from this product&apos;s own details.</p>
             <ul className="space-y-2.5">
               {inclusionItems.map((item) => (
-                <li key={item.label} className="flex items-start gap-2.5 text-[14px] text-[#1c1c19]">
+                <li key={item.label} className="flex items-start gap-2.5 text-[13px] sm:text-[14px] text-[#1c1c19]">
                   <Check className="w-4 h-4 text-[#5b6d54] mt-0.5 shrink-0" aria-hidden="true" />
                   <span>{item.label}</span>
                 </li>
@@ -585,8 +621,8 @@ export default function ProductPage() {
             </ul>
           </div>
 
-          <div className="bg-[#f6f3ee] rounded-3xl p-6 lg:p-8 border border-[#e5e2dd]">
-            <h2 className="font-serif text-[24px] text-[#180f0a] mb-1">How it arrives</h2>
+          <div className="bg-[#f6f3ee] rounded-3xl p-5 sm:p-6 lg:p-8 border border-[#e5e2dd]">
+            <h2 className="font-serif text-[22px] sm:text-[24px] text-[#180f0a] mb-1">How it arrives</h2>
             <p className="text-[13px] text-[#4e4540] mb-4">Our studio journey, step by step.</p>
             <ol className="space-y-3">
               {HOW_IT_ARRIVES.map((stage, idx) => (
@@ -610,7 +646,7 @@ export default function ProductPage() {
         </div>
 
         {/* Detail tabs */}
-        <div className="mt-10 bg-white rounded-3xl p-6 lg:p-10 border border-[#e5e2dd]">
+        <div className="mt-10 bg-white rounded-3xl p-5 sm:p-6 lg:p-10 border border-[#e5e2dd]">
           <div className="flex items-center gap-6 border-b border-[#e5e2dd] pb-4 mb-6">
             {tabs.map((tab) => (
               <button
@@ -631,7 +667,7 @@ export default function ProductPage() {
           </div>
 
           {activeTab === 'craft' && (
-            <div className="space-y-4 max-w-3xl text-[14px] text-[#4e4540] leading-relaxed">
+            <div className="space-y-4 max-w-3xl text-[13px] sm:text-[14px] text-[#4e4540] leading-relaxed">
               <p>
                 Each stem is formed around a pliable wire armature, overlaid with dense cotton chenille
                 yarns. Petals are individually twisted and arranged to echo botanical curvature while
@@ -653,7 +689,7 @@ export default function ProductPage() {
           )}
 
           {activeTab === 'delivery' && (
-            <div className="space-y-4 max-w-3xl text-[14px] text-[#4e4540] leading-relaxed">
+            <div className="space-y-4 max-w-3xl text-[13px] sm:text-[14px] text-[#4e4540] leading-relaxed">
               <p>
                 Arrives nested in a rigid presentation gift box, closed with an artisan wax seal.
               </p>
@@ -669,13 +705,13 @@ export default function ProductPage() {
 
         {/* Related */}
         {relatedProducts.length > 0 && (
-          <div ref={relatedRef} className="mt-16 lg:mt-24 space-y-6">
+          <div ref={relatedRef} className="mt-14 lg:mt-24 space-y-6">
             <div className="flex items-end justify-between gap-4">
               <div>
                 <span className="text-[11px] uppercase font-bold tracking-widest text-[#964735]">
                   Complementary Keepsakes
                 </span>
-                <h2 className="font-serif text-[28px] sm:text-[36px] text-[#180f0a]">
+                <h2 className="font-serif text-[24px] sm:text-[28px] lg:text-[36px] text-[#180f0a]">
                   You may also like
                 </h2>
               </div>
@@ -684,7 +720,7 @@ export default function ProductPage() {
               </Link>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
               {relatedProducts.map((p) => (
                 <ProductCard key={p.id} product={p} />
               ))}

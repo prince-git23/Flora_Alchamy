@@ -75,6 +75,8 @@ export default function ShopPage() {
   const heroRef = useRef(null);
   const gridRef = useRef(null);
   const toolbarRef = useRef(null);
+  const emptyStateRef = useRef(null);
+  const filterSheetRef = useRef(null);
 
   useEffect(() => {
     const base = getCatalogProducts();
@@ -95,25 +97,31 @@ export default function ShopPage() {
     setProducts(filtered);
   }, [selectedCategory, selectedOccasion, selectedRecipient, selectedAvailability, maxPrice, sortBy, searchQuery]);
 
-  // GSAP animations
+  // GSAP hero entrance + toolbar
   useEffect(() => {
     const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (REDUCED) return;
 
     const ctx = gsap.context(() => {
-      // Hero entrance
       if (heroRef.current) {
-        gsap.fromTo(heroRef.current.children,
-          { opacity: 0, y: 20 },
-          { opacity: 1, y: 0, duration: 0.6, stagger: 0.08, ease: 'power3.out', delay: 0.1 }
-        );
+        const tl = gsap.timeline({ delay: 0.1 });
+        const badge = heroRef.current.querySelector('[data-hero-badge]');
+        const headline = heroRef.current.querySelector('[data-hero-headline]');
+        const desc = heroRef.current.querySelector('[data-hero-desc]');
+        const glow1 = heroRef.current.querySelector('[data-hero-glow-1]');
+        const glow2 = heroRef.current.querySelector('[data-hero-glow-2]');
+
+        if (glow1) tl.fromTo(glow1, { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.8, ease: 'power2.out' }, 0);
+        if (glow2) tl.fromTo(glow2, { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.8, ease: 'power2.out' }, 0.1);
+        if (badge) tl.fromTo(badge, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out' }, 0.15);
+        if (headline) tl.fromTo(headline, { opacity: 0, y: 20, clipPath: 'inset(0 0 100% 0)' }, { opacity: 1, y: 0, clipPath: 'inset(0 0 0% 0)', duration: 0.7, ease: 'power3.out' }, 0.25);
+        if (desc) tl.fromTo(desc, { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' }, 0.5);
       }
 
-      // Toolbar fade in
       if (toolbarRef.current) {
         gsap.fromTo(toolbarRef.current,
-          { opacity: 0, y: 15 },
-          { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out', delay: 0.4 }
+          { opacity: 0, y: 12 },
+          { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out', delay: 0.6 }
         );
       }
     });
@@ -130,16 +138,52 @@ export default function ShopPage() {
     if (cards.length === 0) return;
 
     gsap.fromTo(cards,
-      { opacity: 0, y: 20, scale: 0.97 },
-      { opacity: 1, y: 0, scale: 1, duration: 0.4, stagger: 0.04, ease: 'power2.out' }
+      { opacity: 0, y: 24, scale: 0.97 },
+      { opacity: 1, y: 0, scale: 1, duration: 0.45, stagger: 0.05, ease: 'power2.out' }
     );
   }, [products]);
 
+  // Filter sheet body scroll lock + focus trap
   useEffect(() => {
     if (!filterSheetOpen) return undefined;
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = prev; };
+
+    // Focus first interactive element in sheet
+    const timer = setTimeout(() => {
+      const sheet = filterSheetRef.current;
+      if (sheet) {
+        const focusable = sheet.querySelector('input, select, button');
+        if (focusable) focusable.focus();
+      }
+    }, 50);
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setFilterSheetOpen(false);
+        return;
+      }
+      if (e.key === 'Tab' && filterSheetRef.current) {
+        const focusable = filterSheetRef.current.querySelectorAll('input, select, button, [tabindex]:not([tabindex="-1"])');
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = prev;
+      clearTimeout(timer);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [filterSheetOpen]);
 
   const syncParam = (key, value) => {
@@ -219,7 +263,7 @@ export default function ShopPage() {
           id="filter-occasion"
           value={selectedOccasion}
           onChange={(e) => { setSelectedOccasion(e.target.value); syncParam('occasion', e.target.value); }}
-          className="w-full px-4 py-2 rounded-full bg-[#fcf9f4] text-[13px] text-[#1c1c19] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a] cursor-pointer"
+          className="w-full px-4 py-2.5 rounded-full bg-[#fcf9f4] text-[13px] text-[#1c1c19] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a] cursor-pointer"
         >
           <option value="">Any occasion</option>
           {OCCASION_OPTIONS.map((o) => (
@@ -237,7 +281,7 @@ export default function ShopPage() {
           id="filter-recipient"
           value={selectedRecipient}
           onChange={(e) => { setSelectedRecipient(e.target.value); syncParam('recipient', e.target.value); }}
-          className="w-full px-4 py-2 rounded-full bg-[#fcf9f4] text-[13px] text-[#1c1c19] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a] cursor-pointer"
+          className="w-full px-4 py-2.5 rounded-full bg-[#fcf9f4] text-[13px] text-[#1c1c19] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a] cursor-pointer"
         >
           <option value="">Anyone</option>
           {RECIPIENT_OPTIONS.map((r) => (
@@ -256,7 +300,7 @@ export default function ShopPage() {
             id="filter-availability"
             value={selectedAvailability}
             onChange={(e) => { setSelectedAvailability(e.target.value); syncParam('availability', e.target.value === 'all' ? '' : e.target.value); }}
-            className="w-full px-4 py-2 rounded-full bg-[#fcf9f4] text-[13px] text-[#1c1c19] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a] cursor-pointer"
+            className="w-full px-4 py-2.5 rounded-full bg-[#fcf9f4] text-[13px] text-[#1c1c19] border border-[#e5e2dd] focus:outline-none focus:ring-1 focus:ring-[#180f0a] cursor-pointer"
           >
             {availabilityOptions.map((o) => (
               <option key={o.id} value={o.id}>{o.label}</option>
@@ -293,22 +337,22 @@ export default function ShopPage() {
     <div className="w-full bg-[#fcf9f4] min-h-screen">
       {/* ═══ EDITORIAL SHOP HEADER ═══ */}
       <div ref={heroRef} className="relative overflow-hidden pt-10 lg:pt-16 pb-8 lg:pb-12" style={{ perspective: '1200px' }}>
-        {/* Ambient glow */}
-        <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full bg-[#ffdad3]/20 blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 -left-16 w-64 h-64 rounded-full bg-[#d8e7cd]/15 blur-3xl pointer-events-none" />
+        {/* Ambient glows */}
+        <div data-hero-glow-1 className="absolute -top-20 -right-20 w-80 h-80 rounded-full bg-[#ffdad3]/20 blur-3xl pointer-events-none" />
+        <div data-hero-glow-2 className="absolute bottom-0 -left-16 w-64 h-64 rounded-full bg-[#d8e7cd]/15 blur-3xl pointer-events-none" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="space-y-2 mb-6">
-            <div className="flex items-center gap-2">
+            <div data-hero-badge className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#964735]" />
               <span className="text-[11px] font-bold uppercase tracking-widest text-[#964735]">
                 The Atelier Catalogue
               </span>
             </div>
-            <h1 className="font-serif text-[38px] sm:text-[52px] lg:text-[60px] text-[#180f0a] tracking-tight font-normal leading-[1.1]">
+            <h1 data-hero-headline className="font-serif text-[32px] sm:text-[44px] md:text-[52px] lg:text-[60px] text-[#180f0a] tracking-tight font-normal leading-[1.08]">
               Shop All Gifts
             </h1>
-            <p className="text-[15px] sm:text-[16px] text-[#4e4540] max-w-2xl leading-relaxed">
+            <p data-hero-desc className="text-[14px] sm:text-[15px] md:text-[16px] text-[#4e4540] max-w-2xl leading-relaxed">
               Every piece is handcrafted to order in our studio — sculpted chenille stems, deckled
               botanical cards, and keepsake boxes you can personalize. Filter by occasion, recipient,
               price, or availability to find the right one.
@@ -321,7 +365,7 @@ export default function ShopPage() {
         {/* Toolbar: Categories Pills, Search & Sort */}
         <div ref={toolbarRef} className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pb-6 border-b border-[#e5e2dd] mb-6">
           {/* Categories Horizontal Scroll */}
-          <div className="flex items-center gap-2 overflow-x-auto w-full lg:w-auto pb-2 lg:pb-0 scrollbar-hide">
+          <div className="flex items-center gap-2 overflow-x-auto w-full lg:w-auto pb-2 lg:pb-0 scrollbar-none">
             {categoryOptions.map((cat) => (
               <button
                 key={cat.id}
@@ -370,7 +414,7 @@ export default function ShopPage() {
             <button
               type="button"
               onClick={() => setFilterSheetOpen(true)}
-              className="lg:hidden p-2.5 rounded-full bg-white border border-[#e5e2dd] text-[#180f0a] relative"
+              className="lg:hidden p-2.5 rounded-full bg-white border border-[#e5e2dd] text-[#180f0a] relative touch-target"
               title="Open filters"
               aria-label="Open filters"
             >
@@ -449,25 +493,25 @@ export default function ShopPage() {
           <main className="lg:col-span-9">
             {products.length > 0 ? (
               <>
-                <div className="flex items-center justify-between text-[13px] text-[#4e4540] mb-4">
-                  <span>Showing {products.length} handcrafted creation{products.length === 1 ? '' : 's'}</span>
+                <div className="flex items-center justify-between text-[13px] text-[#4e4540] mb-5">
+                  <span className="font-medium">Showing {products.length} handcrafted creation{products.length === 1 ? '' : 's'}</span>
                   <span className="text-[11px] uppercase tracking-wider font-bold text-[#80756f]">
                     All Prices in ₹ INR
                   </span>
                 </div>
 
-                <div ref={gridRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div ref={gridRef} className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                   {products.map((product) => (
                     <ProductCard key={product.id} product={product} />
                   ))}
                 </div>
               </>
             ) : (
-              <div className="rounded-3xl bg-white p-12 text-center border border-[#e5e2dd] space-y-4">
+              <div ref={emptyStateRef} className="rounded-3xl bg-white p-12 text-center border border-[#e5e2dd] space-y-4">
                 <div className="w-16 h-16 rounded-full bg-[#f6f3ee] mx-auto flex items-center justify-center text-3xl" aria-hidden="true">
                   🥀
                 </div>
-                <h3 className="font-serif text-[24px] text-[#180f0a]">No gifts match these filters</h3>
+                <h3 className="font-serif text-[22px] sm:text-[24px] text-[#180f0a]">No gifts match these filters</h3>
                 <p className="text-[14px] text-[#4e4540] max-w-md mx-auto">
                   Try widening your price range, clearing the search, or choosing another occasion.
                 </p>
@@ -500,26 +544,27 @@ export default function ShopPage() {
         </div>
       </div>
 
-      {/* Mobile filter sheet */}
+      {/* Mobile filter sheet — bottom drawer with focus trap */}
       {filterSheetOpen && (
         <div
-          className="lg:hidden fixed inset-0 z-[70] bg-black/40 backdrop-blur-sm flex items-end"
+          className="lg:hidden fixed inset-0 z-[70] bg-black/40 backdrop-blur-sm flex items-end fa-drawer-backdrop"
           role="dialog"
           aria-modal="true"
           aria-label="Filter gifts"
           onClick={() => setFilterSheetOpen(false)}
         >
           <div
-            className="w-full bg-[#fcf9f4] rounded-t-3xl max-h-[85vh] overflow-y-auto"
+            ref={filterSheetRef}
+            className="w-full bg-[#fcf9f4] rounded-t-3xl max-h-[85vh] overflow-y-auto fa-drawer-slide"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="sticky top-0 bg-[#fcf9f4] px-5 pt-5 pb-3 border-b border-[#e5e2dd] flex items-center justify-between">
+            <div className="sticky top-0 bg-[#fcf9f4] px-5 pt-5 pb-3 border-b border-[#e5e2dd] flex items-center justify-between z-10">
               <span className="font-serif text-[20px] text-[#180f0a]">Refine Your Gifts</span>
               <button
                 type="button"
                 onClick={() => setFilterSheetOpen(false)}
                 aria-label="Close filters"
-                className="p-2 rounded-full hover:bg-[#f0ede9] text-[#4e4540]"
+                className="p-2.5 rounded-full hover:bg-[#f0ede9] text-[#4e4540] touch-target"
               >
                 <X className="w-5 h-5" aria-hidden="true" />
               </button>
@@ -529,14 +574,14 @@ export default function ShopPage() {
               <button
                 type="button"
                 onClick={() => { handleResetFilters(); }}
-                className="px-5 py-3 rounded-full border border-[#e5e2dd] text-[13px] font-semibold text-[#180f0a] bg-white"
+                className="px-5 py-3 rounded-full border border-[#e5e2dd] text-[13px] font-semibold text-[#180f0a] bg-white touch-target"
               >
                 Reset
               </button>
               <button
                 type="button"
                 onClick={() => setFilterSheetOpen(false)}
-                className="flex-1 px-5 py-3 rounded-full bg-[#180f0a] text-white text-[13px] font-semibold"
+                className="flex-1 px-5 py-3 rounded-full bg-[#180f0a] text-white text-[13px] font-semibold touch-target"
               >
                 Show {products.length} result{products.length === 1 ? '' : 's'}
               </button>

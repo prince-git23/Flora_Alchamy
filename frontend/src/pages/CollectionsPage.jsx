@@ -35,24 +35,30 @@ export default function CollectionsPage() {
     if (REDUCED) return;
 
     const ctx = gsap.context(() => {
-      // Hero entrance
+      // Hero entrance — 3-stage
       if (heroRef.current) {
-        gsap.fromTo(heroRef.current.children,
-          { opacity: 0, y: 20 },
-          { opacity: 1, y: 0, duration: 0.6, stagger: 0.08, ease: 'power3.out', delay: 0.1 }
-        );
+        const tl = gsap.timeline({ delay: 0.1 });
+        const badge = heroRef.current.querySelector('[data-hero-badge]');
+        const headline = heroRef.current.querySelector('[data-hero-headline]');
+        const desc = heroRef.current.querySelector('[data-hero-desc]');
+
+        if (badge) tl.fromTo(badge, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out' }, 0);
+        if (headline) tl.fromTo(headline, { opacity: 0, y: 20, clipPath: 'inset(0 0 100% 0)' }, { opacity: 1, y: 0, clipPath: 'inset(0 0 0% 0)', duration: 0.7, ease: 'power3.out' }, 0.15);
+        if (desc) tl.fromTo(desc, { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' }, 0.4);
       }
 
-      // Collection cards stagger
+      // Collection cards — staggered entrance with varied transforms
       if (gridRef.current) {
-        const cards = gridRef.current.children;
-        gsap.fromTo(cards,
-          { opacity: 0, y: 30, scale: 0.97 },
-          {
-            opacity: 1, y: 0, scale: 1, duration: 0.6, stagger: 0.1, ease: 'power3.out',
-            scrollTrigger: { trigger: gridRef.current, start: 'top 85%', once: true },
-          }
-        );
+        const cards = gridRef.current.querySelectorAll('[data-col-card]');
+        if (cards.length > 0) {
+          gsap.fromTo(cards,
+            { opacity: 0, y: 40, scale: 0.97 },
+            {
+              opacity: 1, y: 0, scale: 1, duration: 0.7, stagger: 0.12, ease: 'power3.out',
+              scrollTrigger: { trigger: gridRef.current, start: 'top 85%', once: true },
+            }
+          );
+        }
       }
 
       // Banner reveal
@@ -74,22 +80,22 @@ export default function CollectionsPage() {
     <div className="w-full bg-[#fcf9f4] min-h-screen">
       {/* ═══ EDITORIAL HEADER ═══ */}
       <div ref={heroRef} className="relative overflow-hidden pt-10 lg:pt-16 pb-8 lg:pb-12" style={{ perspective: '1200px' }}>
-        {/* Ambient glow */}
+        {/* Ambient glows */}
         <div className="absolute -top-20 -left-20 w-80 h-80 rounded-full bg-[#ffdad3]/20 blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 -right-16 w-64 h-64 rounded-full bg-[#d8e7cd]/15 blur-3xl pointer-events-none" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="space-y-2 mb-6">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#964735]"></span>
+            <div data-hero-badge className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#964735]" />
               <span className="text-[11px] font-bold uppercase tracking-widest text-[#964735]">
                 Curated Thematic Archives
               </span>
             </div>
-            <h1 className="font-serif text-[38px] sm:text-[52px] lg:text-[60px] text-[#180f0a] tracking-tight font-normal leading-[1.1]">
+            <h1 data-hero-headline className="font-serif text-[32px] sm:text-[44px] md:text-[52px] lg:text-[60px] text-[#180f0a] tracking-tight font-normal leading-[1.08]">
               Seasonal & Occasion Collections
             </h1>
-            <p className="text-[15px] sm:text-[16px] text-[#4e4540] max-w-2xl leading-relaxed">
+            <p data-hero-desc className="text-[14px] sm:text-[15px] md:text-[16px] text-[#4e4540] max-w-2xl leading-relaxed">
               Carefully curated groupings of handcrafted florals, stationery, and personalized vessels gathered for meaningful life rituals.
             </p>
           </div>
@@ -98,11 +104,12 @@ export default function CollectionsPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
         {/* Collections Grid — editorial composition */}
-        <div ref={gridRef} className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div ref={gridRef} className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
           {collections.map((col, idx) => (
             <div
               key={col.id}
-              className={`group bg-white rounded-3xl overflow-hidden border border-[#e5e2dd] shadow-sm hover:shadow-xl transition-all duration-400 flex flex-col justify-between ${
+              data-col-card
+              className={`group bg-white rounded-3xl overflow-hidden border border-[#e5e2dd] shadow-sm hover:shadow-xl transition-all duration-500 flex flex-col justify-between fa-card-depth ${
                 idx === 0 ? 'md:col-span-2' : ''
               }`}
             >
@@ -112,7 +119,7 @@ export default function CollectionsPage() {
                   decoding="async"
                   src={col.image}
                   alt={col.title}
-                  className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-700 ease-out"
+                  className="w-full h-full object-cover fa-img-reveal transition-transform duration-700 ease-out"
                 />
                 {/* Gradient overlay for depth */}
                 <div className="absolute inset-0 bg-gradient-to-t from-[#180f0a]/15 via-transparent to-transparent pointer-events-none" />
@@ -123,15 +130,15 @@ export default function CollectionsPage() {
                 </div>
               </div>
 
-              <div className="p-6 sm:p-8 space-y-4 flex-1 flex flex-col justify-between">
+              <div className="p-5 sm:p-8 space-y-4 flex-1 flex flex-col justify-between">
                 <div className="space-y-2">
                   <span className="text-[11px] uppercase font-bold tracking-widest text-[#80756f]">
                     {col.pieceCount}
                   </span>
-                  <h2 className="font-serif text-[26px] text-[#180f0a] font-normal leading-snug group-hover:text-[#964735] transition-colors duration-300">
+                  <h2 className="font-serif text-[22px] sm:text-[26px] text-[#180f0a] font-normal leading-snug group-hover:text-[#964735] transition-colors duration-300">
                     {col.title}
                   </h2>
-                  <p className="text-[14px] text-[#4e4540] leading-relaxed">
+                  <p className="text-[13px] sm:text-[14px] text-[#4e4540] leading-relaxed">
                     {col.subtitle}
                   </p>
                 </div>
@@ -151,15 +158,15 @@ export default function CollectionsPage() {
         </div>
 
         {/* Bespoke Inquiry Banner */}
-        <div ref={bannerRef} className="mt-16 rounded-3xl bg-[#180f0a] text-white p-8 sm:p-12 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+        <div ref={bannerRef} className="mt-12 sm:mt-16 rounded-3xl bg-[#180f0a] text-white p-6 sm:p-8 lg:p-12 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
           <div className="space-y-2 max-w-xl">
             <span className="text-[11px] uppercase font-bold tracking-widest text-[#ffdad3]">
               Bespoke Bridal & Milestone Suites
             </span>
-            <h3 className="font-serif text-[30px] sm:text-[36px] font-normal">
+            <h3 className="font-serif text-[24px] sm:text-[30px] lg:text-[36px] font-normal leading-tight">
               Planning a wedding, event, or private keepsake drop?
             </h3>
-            <p className="text-[14px] text-[#d4c3ba] leading-relaxed">
+            <p className="text-[13px] sm:text-[14px] text-[#d4c3ba] leading-relaxed">
               We handcraft custom wedding favors, everlasting bridal posies, and bespoke family keepsake suites.
             </p>
           </div>

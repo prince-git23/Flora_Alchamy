@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, ShoppingBag, Star, Eye, Sparkles, Leaf } from 'lucide-react';
 import { useStore } from '../context/StoreContext.jsx';
@@ -24,24 +24,30 @@ export default function ProductCard({ product }) {
   const attributes = deriveGiftAttributes(product);
   const personalizable = attributes.personalization !== 'simple';
 
-  const handleAddToCart = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    addItemToCart(product);
-  };
-
-  const handleToggleWishlist = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    toggleWishlist(product);
-  };
-
   const [imgError, setImgError] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [justAdded, setJustAdded] = useState(false);
+  const [wishAnim, setWishAnim] = useState(false);
   const cardRef = useRef(null);
   const imgSrc = product.images ? product.images[0] : (product.image || '');
 
-  // Subtle tilt on mouse position (desktop hover only, max ~2deg)
+  const handleAddToCart = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    addItemToCart(product);
+    setJustAdded(true);
+    setTimeout(() => setJustAdded(false), 600);
+  }, [product, addItemToCart]);
+
+  const handleToggleWishlist = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleWishlist(product);
+    setWishAnim(true);
+    setTimeout(() => setWishAnim(false), 400);
+  }, [product, toggleWishlist]);
+
+  // Subtle tilt on mouse position (desktop hover only, max ~3deg)
   const handleMouseMove = (e) => {
     if (!cardRef.current) return;
     if (typeof window !== 'undefined' && !window.matchMedia('(hover: hover)').matches) return;
@@ -64,7 +70,7 @@ export default function ProductCard({ product }) {
       onMouseEnter={() => setIsHovered(true)}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      className="group relative flex flex-col bg-white rounded-3xl p-3 sm:p-4 shadow-[0_4px_20px_-2px_rgba(46,36,30,0.04)] hover:shadow-[0_16px_40px_-6px_rgba(46,36,30,0.12)] transition-shadow duration-400 border border-[#f0ede9] hover:border-[#e5e2dd]"
+      className="group relative flex flex-col bg-white rounded-3xl p-3 sm:p-4 shadow-[0_4px_20px_-2px_rgba(46,36,30,0.04)] hover:shadow-[0_16px_40px_-6px_rgba(46,36,30,0.12)] transition-shadow duration-500 border border-[#f0ede9] hover:border-[#e5e2dd]"
       style={{ transformStyle: 'preserve-3d', willChange: 'transform' }}
     >
       {/* Thumbnail container */}
@@ -74,7 +80,7 @@ export default function ProductCard({ product }) {
             <img
               src={imgSrc}
               alt={product.name}
-              className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
+              className="w-full h-full object-cover fa-img-reveal"
               loading="lazy"
               onError={() => setImgError(true)}
             />
@@ -102,10 +108,10 @@ export default function ProductCard({ product }) {
           </div>
         )}
 
-        {/* Saved Gifts button — elevated to LEVEL 2 */}
+        {/* Wishlist button — elevated to LEVEL 2 */}
         <button
           onClick={handleToggleWishlist}
-          className="absolute top-2.5 right-2.5 w-9 h-9 sm:w-8 sm:h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center text-[#4e4540] hover:text-[#964735] shadow-sm hover:shadow-md transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#180f0a] touch-target"
+          className={`absolute top-2.5 right-2.5 w-9 h-9 sm:w-8 sm:h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center text-[#4e4540] hover:text-[#964735] shadow-sm hover:shadow-md transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#180f0a] touch-target ${wishAnim ? 'fa-wishlist-pop' : ''}`}
           title={wishlisted ? 'Remove from Saved Gifts' : 'Save to Saved Gifts'}
           aria-label={wishlisted ? 'Remove from Saved Gifts' : 'Save to Saved Gifts'}
           type="button"
@@ -113,8 +119,8 @@ export default function ProductCard({ product }) {
           <Heart className={`w-4 h-4 transition-all duration-200 ${wishlisted ? 'fill-[#964735] text-[#964735] scale-110' : ''}`} aria-hidden="true" />
         </button>
 
-        {/* Quick View Link — fades in on hover */}
-        <div className="absolute inset-x-3 bottom-3 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+        {/* Quick View Link — fades in on hover (desktop) / always visible (mobile) */}
+        <div className="absolute inset-x-3 bottom-3 md:opacity-0 md:group-hover:opacity-100 focus-within:opacity-100 transition-all duration-300 transform md:translate-y-2 md:group-hover:translate-y-0">
           <Link
             to={`/product/${product.id}`}
             className="w-full py-2 rounded-xl bg-white/95 text-[#180f0a] text-[12px] font-semibold tracking-wide shadow-md hover:bg-[#180f0a] hover:text-white transition-colors flex items-center justify-center gap-1.5"
@@ -141,20 +147,20 @@ export default function ProductCard({ product }) {
           </div>
 
           <Link to={`/product/${product.id}`}>
-            <h3 className="font-serif text-[18px] text-[#180f0a] leading-snug font-medium hover:text-[#964735] transition-colors line-clamp-2">
+            <h3 className="font-serif text-[16px] sm:text-[18px] text-[#180f0a] leading-snug font-medium hover:text-[#964735] transition-colors line-clamp-2">
               {product.name}
             </h3>
           </Link>
 
           {product.palette && (
-            <p className="text-[12px] text-[#4e4540] line-clamp-1">{product.palette}</p>
+            <p className="text-[11px] sm:text-[12px] text-[#4e4540] line-clamp-1">{product.palette}</p>
           )}
 
           {/* Real, data-backed indicators only */}
           <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
             <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#5b6d54]">
               <Leaf className="w-3 h-3" aria-hidden="true" />
-              {madeToOrder ? 'Made to order' : 'Handcrafted in small batches'}
+              {madeToOrder ? 'Made to order' : 'Handcrafted'}
             </span>
             {personalizable && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#ffdad3]/60 text-[#783020] text-[10px] font-bold uppercase tracking-wider">
@@ -166,10 +172,10 @@ export default function ProductCard({ product }) {
         </div>
 
         {/* Price and Cart Button */}
-        <div className="pt-4 mt-2 flex items-center justify-between border-t border-[#f0ede9]">
+        <div className="pt-3 sm:pt-4 mt-2 flex items-center justify-between border-t border-[#f0ede9]">
           <div className="flex flex-col">
             <span className="text-[10px] uppercase font-bold tracking-wider text-[#80756f]">Price</span>
-            <span className="text-[17px] font-bold text-[#180f0a]">
+            <span className="text-[15px] sm:text-[17px] font-bold text-[#180f0a]">
               ₹{product.price.toLocaleString('en-IN')}
             </span>
           </div>
@@ -177,10 +183,11 @@ export default function ProductCard({ product }) {
           <button
             onClick={handleAddToCart}
             type="button"
-            className="px-3.5 py-1.5 rounded-full bg-[#180f0a] text-white hover:bg-[#964735] transition-all duration-200 text-[12px] font-semibold flex items-center gap-1.5 shadow-sm hover:shadow-md active:translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#964735] focus-visible:ring-offset-1"
+            className={`px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-full bg-[#180f0a] text-white hover:bg-[#964735] transition-all duration-200 text-[11px] sm:text-[12px] font-semibold flex items-center gap-1.5 shadow-sm hover:shadow-md active:translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#964735] focus-visible:ring-offset-1 touch-target ${justAdded ? 'fa-atc-success' : ''}`}
+            aria-label={`Add ${product.name} to bag`}
           >
             <ShoppingBag className="w-3.5 h-3.5" aria-hidden="true" />
-            <span>Add to Bag</span>
+            <span>{justAdded ? 'Added!' : 'Add to Bag'}</span>
           </button>
         </div>
       </div>

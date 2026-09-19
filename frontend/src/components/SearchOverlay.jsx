@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, X, ArrowRight } from 'lucide-react';
+import { gsap } from 'gsap';
 
 /**
  * Phase 3G-A — customer search entry experience.
@@ -30,6 +31,7 @@ const SUGGESTED_CATEGORIES = [
 export default function SearchOverlay({ open, onClose }) {
   const [query, setQuery] = useState('');
   const inputRef = useRef(null);
+  const panelRef = useRef(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -55,6 +57,33 @@ export default function SearchOverlay({ open, onClose }) {
     };
   }, [open, onClose]);
 
+  // Staggered entrance animation
+  useEffect(() => {
+    if (!open || !panelRef.current) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const panel = panelRef.current;
+    const popularBtns = panel.querySelectorAll('[data-popular-btn]');
+    const catBtns = panel.querySelectorAll('[data-cat-btn]');
+    const giftBtn = panel.querySelector('[data-gift-btn]');
+
+    const ctx = gsap.context(() => {
+      const tl = gsap.timeline({ delay: 0.1 });
+      tl.fromTo(panel, { opacity: 0, y: 16, scale: 0.98 }, { opacity: 1, y: 0, scale: 1, duration: 0.35, ease: 'power3.out' });
+      if (popularBtns.length > 0) {
+        tl.fromTo(popularBtns, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.25, stagger: 0.03, ease: 'power2.out' }, 0.15);
+      }
+      if (catBtns.length > 0) {
+        tl.fromTo(catBtns, { opacity: 0, y: 8, scale: 0.96 }, { opacity: 1, y: 0, scale: 1, duration: 0.25, stagger: 0.04, ease: 'power2.out' }, 0.25);
+      }
+      if (giftBtn) {
+        tl.fromTo(giftBtn, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' }, 0.4);
+      }
+    }, panel);
+
+    return () => ctx.revert();
+  }, [open]);
+
   if (!open) return null;
 
   const go = (to) => {
@@ -77,7 +106,8 @@ export default function SearchOverlay({ open, onClose }) {
       onClick={onClose}
     >
       <div
-        className="w-full max-w-2xl bg-[#fcf9f4] rounded-3xl shadow-2xl border border-[#e5e2dd] overflow-hidden animate-fade-in"
+        ref={panelRef}
+        className="w-full max-w-2xl bg-[#fcf9f4] rounded-3xl shadow-2xl border border-[#e5e2dd] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         <form onSubmit={handleSubmit} className="flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-4 border-b border-[#e5e2dd]">
@@ -95,7 +125,7 @@ export default function SearchOverlay({ open, onClose }) {
             type="button"
             onClick={onClose}
             aria-label="Close search"
-            className="p-2 rounded-full text-[#80756f] hover:text-[#180f0a] hover:bg-[#f0ede9] transition-colors touch-target flex items-center justify-center"
+            className="p-2.5 rounded-full text-[#80756f] hover:text-[#180f0a] hover:bg-[#f0ede9] transition-colors touch-target flex items-center justify-center"
           >
             <X className="w-5 h-5" />
           </button>
@@ -109,8 +139,9 @@ export default function SearchOverlay({ open, onClose }) {
                 <button
                   key={item.label}
                   type="button"
+                  data-popular-btn
                   onClick={() => go(item.to)}
-                  className="px-3.5 py-1.5 rounded-full bg-white text-[12px] font-medium text-[#4e4540] border border-[#e5e2dd] hover:border-[#180f0a] hover:text-[#180f0a] transition-colors min-h-[36px]"
+                  className="px-3.5 py-1.5 rounded-full bg-white text-[12px] font-medium text-[#4e4540] border border-[#e5e2dd] hover:border-[#180f0a] hover:text-[#180f0a] transition-colors min-h-[36px] touch-target"
                 >
                   {item.label}
                 </button>
@@ -125,6 +156,7 @@ export default function SearchOverlay({ open, onClose }) {
                 <button
                   key={cat.label}
                   type="button"
+                  data-cat-btn
                   onClick={() => go(cat.to)}
                   className="group flex items-center gap-2 sm:gap-2.5 p-2.5 sm:p-3 rounded-2xl bg-white border border-[#e5e2dd] hover:border-[#964735] hover:shadow-sm transition-all text-left min-h-[44px]"
                 >
@@ -139,6 +171,7 @@ export default function SearchOverlay({ open, onClose }) {
 
           <button
             type="button"
+            data-gift-btn
             onClick={() => go('/gift-finder')}
             className="w-full flex items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl bg-[#180f0a] text-white hover:bg-[#964735] transition-colors text-left min-h-[48px]"
           >

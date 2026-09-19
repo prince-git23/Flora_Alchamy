@@ -259,6 +259,125 @@ html {
   }
 }
 
+/* ═══════════════════════════════════════════════════
+   PRODUCT CARD DEPTH — Phase 16.3
+   ═══════════════════════════════════════════════════ */
+.fa-card-depth {
+  transform-style: preserve-3d;
+  will-change: transform;
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.fa-card-depth:hover {
+  box-shadow: 0 16px 40px -6px rgba(46, 36, 30, 0.12);
+}
+@media (hover: hover) and (pointer: fine) {
+  .fa-card-depth:hover {
+    transform: perspective(800px) translateY(-4px);
+  }
+}
+
+/* Image reveal on card hover */
+.fa-img-reveal {
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@media (hover: hover) and (pointer: fine) {
+  .group:hover .fa-img-reveal {
+    transform: scale(1.04);
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   GALLERY TRANSITIONS — Phase 16.3
+   ═══════════════════════════════════════════════════ */
+@keyframes fa-gallery-crossfade {
+  from { opacity: 0; transform: scale(1.03); }
+  to { opacity: 1; transform: scale(1); }
+}
+.fa-gallery-crossfade {
+  animation: fa-gallery-crossfade 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Thumbnail active ring pulse */
+@keyframes fa-thumb-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(150, 71, 53, 0.3); }
+  70% { box-shadow: 0 0 0 6px rgba(150, 71, 53, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(150, 71, 53, 0); }
+}
+.fa-thumb-active {
+  animation: fa-thumb-pulse 0.8s ease-out 1;
+}
+
+/* ═══════════════════════════════════════════════════
+   SEARCH OVERLAY MOBILE — Phase 16.3
+   ═══════════════════════════════════════════════════ */
+@keyframes fa-search-slide-up {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.fa-search-slide-up {
+  animation: fa-search-slide-up 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ═══════════════════════════════════════════════════
+   SHOPPING SCROLL STORY — Phase 16.3
+   ═══════════════════════════════════════════════════ */
+@keyframes fa-shop-reveal {
+  from { opacity: 0; transform: translateY(32px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes fa-shop-stagger {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fa-shop-reveal {
+  animation: fa-shop-reveal 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ═══════════════════════════════════════════════════
+   ADD TO CART MICROINTERACTION — Phase 16.3
+   ═══════════════════════════════════════════════════ */
+@keyframes fa-atc-success {
+  0% { transform: scale(1); }
+  30% { transform: scale(0.96); }
+  60% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+.fa-atc-success {
+  animation: fa-atc-success 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Wishlist heart microinteraction */
+@keyframes fa-wishlist-pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.3); }
+  70% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+.fa-wishlist-pop {
+  animation: fa-wishlist-pop 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ═══════════════════════════════════════════════════
+   REDUCED MOTION — Phase 16.3 additions
+   ═══════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  .fa-card-depth,
+  .fa-img-reveal,
+  .fa-gallery-crossfade,
+  .fa-thumb-active,
+  .fa-search-slide-up,
+  .fa-shop-reveal,
+  .fa-atc-success,
+  .fa-wishlist-pop {
+    animation: none;
+    transition-duration: 0.01ms;
+  }
+  .fa-card-depth:hover {
+    transform: none;
+  }
+}
+
 /* Custom smooth scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
