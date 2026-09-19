@@ -228,7 +228,7 @@ export default function GiftFinderPage() {
   return (
     <div className="w-full bg-[#fcf9f4] min-h-screen">
       {/* ═══ EDITORIAL HERO ═══ */}
-      <div ref={heroRef} className="relative overflow-hidden pt-10 lg:pt-16 pb-8 lg:pb-12" style={{ perspective: '1200px' }}>
+      <div ref={heroRef} className="relative overflow-hidden pt-8 lg:pt-16 pb-6 lg:pb-12" style={{ perspective: '1200px' }}>
         <div className="absolute -top-20 -left-20 w-80 h-80 rounded-full bg-[#ffdad3]/20 blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 -right-16 w-64 h-64 rounded-full bg-[#d8e7cd]/15 blur-3xl pointer-events-none" />
 
@@ -238,17 +238,15 @@ export default function GiftFinderPage() {
               <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
               <span>The Gift Finder</span>
             </div>
-            <h1 className="font-serif text-[38px] sm:text-[52px] lg:text-[60px] text-[#180f0a] tracking-tight font-normal leading-[1.1]">
+            <h1 className="font-serif text-[30px] sm:text-[38px] md:text-[52px] lg:text-[60px] text-[#180f0a] tracking-tight font-normal leading-[1.1]">
               Let&apos;s find the right gift.
             </h1>
-            <p className="text-[15px] sm:text-[16px] text-[#4e4540] leading-relaxed max-w-xl mx-auto">
+            <p className="text-[14px] sm:text-[15px] text-[#4e4540] leading-relaxed max-w-xl mx-auto">
               Five quick questions. We&apos;ll shortlist handcrafted pieces from our live atelier catalogue — with a reason for each pick.
             </p>
           </div>
         </div>
-      </div>
-
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+      </div>          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 lg:pb-16">
         {/* Progress */}
         <div className="mb-8">
           <div className="flex items-center justify-between gap-2 max-w-3xl mx-auto">
@@ -353,7 +351,7 @@ export default function GiftFinderPage() {
                 type="button"
                 onClick={goBack}
                 disabled={step === 0}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-[#e5e2dd] text-[13px] font-semibold text-[#180f0a] hover:bg-[#f6f3ee] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-[#e5e2dd] text-[13px] font-semibold text-[#180f0a] hover:bg-[#f6f3ee] transition-colors disabled:opacity-40 disabled:cursor-not-allowed touch-target"
               >
                 <ArrowLeft className="w-4 h-4" aria-hidden="true" />
                 Back
@@ -363,7 +361,7 @@ export default function GiftFinderPage() {
                 type="button"
                 onClick={goNext}
                 disabled={!answers[current.key]}
-                className="inline-flex items-center gap-2 px-7 py-3 rounded-full bg-[#180f0a] text-white text-[13px] font-semibold hover:bg-[#964735] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-2 px-7 py-3 rounded-full bg-[#180f0a] text-white text-[13px] font-semibold hover:bg-[#964735] transition-colors disabled:opacity-40 disabled:cursor-not-allowed touch-target"
               >
                 {step < STEPS.length - 1 ? 'Continue' : 'See My Gifts'}
                 <ArrowRight className="w-4 h-4" aria-hidden="true" />
@@ -388,11 +386,11 @@ export default function GiftFinderPage() {
                 )}
               </div>
               <div className="flex items-center gap-3 shrink-0">
-                <button
-                  type="button"
-                  onClick={goBack}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-[#e5e2dd] text-[13px] font-semibold text-[#180f0a] hover:bg-[#f6f3ee] transition-colors bg-white"
-                >
+              <button
+                type="button"
+                onClick={goBack}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-[#e5e2dd] text-[13px] font-semibold text-[#180f0a] hover:bg-[#f6f3ee] transition-colors bg-white touch-target"
+              >
                   <ArrowLeft className="w-4 h-4" aria-hidden="true" />
                   Refine Answers
                 </button>

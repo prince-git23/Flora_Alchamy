@@ -369,13 +369,81 @@ html {
   .fa-search-slide-up,
   .fa-shop-reveal,
   .fa-atc-success,
-  .fa-wishlist-pop {
+  .fa-wishlist-pop,
+  .fa-progress-grow,
+  .fa-cart-collapse,
+  .fa-success-celebrate,
+  .fa-tracker-pulse,
+  .fa-step-slide,
+  .fa-qty-bump {
     animation: none;
     transition-duration: 0.01ms;
   }
   .fa-card-depth:hover {
     transform: none;
   }
+}
+
+/* ═══════════════════════════════════════════════════
+   CONVERSION PAGE UTILITIES — Phase 16.4
+   ═══════════════════════════════════════════════════ */
+
+/* Step progress bar growth */
+@keyframes fa-progress-grow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.fa-progress-grow {
+  transform-origin: left;
+  animation: fa-progress-grow 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Cart item removal animation */
+@keyframes fa-cart-collapse {
+  from { opacity: 1; max-height: 300px; transform: translateY(0); }
+  to { opacity: 0; max-height: 0; transform: translateY(-12px); padding: 0; margin: 0; }
+}
+.fa-cart-collapse {
+  animation: fa-cart-collapse 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  overflow: hidden;
+}
+
+/* Order success celebration — restrained scale-in */
+@keyframes fa-success-celebrate {
+  0% { transform: scale(0.85); opacity: 0; }
+  60% { transform: scale(1.04); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.fa-success-celebrate {
+  animation: fa-success-celebrate 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Tracking timeline dot pulse */
+@keyframes fa-tracker-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(150, 71, 53, 0.4); }
+  50% { box-shadow: 0 0 0 6px rgba(150, 71, 53, 0); }
+}
+.fa-tracker-pulse {
+  animation: fa-tracker-pulse 2s ease-in-out infinite;
+}
+
+/* Checkout step transition */
+@keyframes fa-step-slide {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fa-step-slide {
+  animation: fa-step-slide 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Quantity number transition */
+@keyframes fa-qty-bump {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+.fa-qty-bump {
+  animation: fa-qty-bump 0.25s ease-out;
 }
 
 /* Custom smooth scrollbar */

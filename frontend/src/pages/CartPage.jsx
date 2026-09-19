@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingBag, Trash2, ArrowRight, Gift, Truck, Sparkles } from 'lucide-react';
 import { useStore } from '../context/StoreContext.jsx';
@@ -20,6 +20,7 @@ export default function CartPage() {
   const headerRef = useRef(null);
   const itemsRef = useRef(null);
   const summaryRef = useRef(null);
+  const [qtyAnim, setQtyAnim] = useState(null);
 
   const settings = getSettings();
 
@@ -32,8 +33,6 @@ export default function CartPage() {
   const itemCount = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
 
   // Shipping is authoritative: the same helper + settings the checkout uses.
-  // The server computes shipping off the full order subtotal (products +
-  // add-ons), so we pass the full cartSubtotal here too.
   const shippingCost = cart.length === 0 ? 0 : getShippingCost(cartSubtotal);
   const grandTotal = cartSubtotal + shippingCost;
 
@@ -46,6 +45,12 @@ export default function CartPage() {
 
   const standardDays = settings?.shippingConfiguration?.standardDays;
 
+  // Quantity bump animation
+  const triggerQtyBump = useCallback((idx) => {
+    setQtyAnim(idx);
+    setTimeout(() => setQtyAnim(null), 300);
+  }, []);
+
   /* ── GSAP entrance animations ── */
   useEffect(() => {
     if (prefersReduced || !pageRef.current) return;
@@ -53,11 +58,11 @@ export default function CartPage() {
       // Header reveal
       if (headerRef.current) {
         gsap.from(headerRef.current.children, {
-          y: 30,
+          y: 24,
           opacity: 0,
-          duration: 0.7,
+          duration: 0.6,
           ease: 'power3.out',
-          stagger: 0.1,
+          stagger: 0.08,
         });
       }
       // Cart items stagger
@@ -65,11 +70,11 @@ export default function CartPage() {
         const rows = itemsRef.current.querySelectorAll('[data-cart-item]');
         if (rows.length) {
           gsap.from(rows, {
-            y: 24,
+            y: 20,
             opacity: 0,
-            duration: 0.6,
+            duration: 0.5,
             ease: 'power3.out',
-            stagger: 0.08,
+            stagger: 0.06,
             scrollTrigger: {
               trigger: itemsRef.current,
               start: 'top 85%',
@@ -81,9 +86,9 @@ export default function CartPage() {
       // Summary panel reveal
       if (summaryRef.current) {
         gsap.from(summaryRef.current, {
-          y: 30,
+          y: 24,
           opacity: 0,
-          duration: 0.7,
+          duration: 0.6,
           ease: 'power3.out',
           scrollTrigger: {
             trigger: summaryRef.current,
@@ -97,60 +102,59 @@ export default function CartPage() {
   }, [cart.length]);
 
   return (
-    <div ref={pageRef} className="w-full bg-[#fcf9f4] min-h-screen py-10 lg:py-16">
+    <div ref={pageRef} className="w-full bg-[#fcf9f4] min-h-screen py-8 lg:py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header Title */}
-        <div ref={headerRef} className="space-y-1 mb-8">
+        <div ref={headerRef} className="space-y-1 mb-6 lg:mb-8">
           <span className="text-[11px] uppercase font-bold tracking-widest text-[#964735]">
             Artisanal Bag
           </span>
-          <h1 className="font-serif text-[36px] sm:text-[44px] text-[#180f0a] font-normal tracking-tight">
+          <h1 className="font-serif text-[30px] sm:text-[36px] lg:text-[44px] text-[#180f0a] font-normal tracking-tight leading-tight">
             Your Keepsake Bag
           </h1>
         </div>
 
         {cart.length === 0 ? (
-          <div className="relative bg-white rounded-3xl p-12 lg:p-16 text-center border border-[#e5e2dd] max-w-xl mx-auto space-y-4 overflow-hidden">
+          <div className="relative bg-white rounded-3xl p-8 sm:p-12 lg:p-16 text-center border border-[#e5e2dd] max-w-xl mx-auto space-y-4 overflow-hidden">
             {/* Ambient glow orbs */}
             <div className="absolute -top-20 -right-20 w-60 h-60 rounded-full bg-[#ffdad3]/30 blur-3xl pointer-events-none" />
             <div className="absolute -bottom-16 -left-16 w-48 h-48 rounded-full bg-[#d8e7cd]/25 blur-3xl pointer-events-none" />
             <div className="relative w-16 h-16 rounded-full bg-[#f6f3ee] mx-auto flex items-center justify-center text-3xl" aria-hidden="true">
               🛍️
             </div>
-            <h2 className="relative font-serif text-[26px] text-[#180f0a]">Your bag is waiting for something special</h2>
-            <p className="relative text-[14px] text-[#4e4540]">
+            <h2 className="relative font-serif text-[22px] sm:text-[26px] text-[#180f0a]">Your bag is waiting for something special</h2>
+            <p className="relative text-[13px] sm:text-[14px] text-[#4e4540]">
               Discover our everlasting blooms, deckled botanical cards, and bespoke gift boxes.
             </p>
-            <div className="relative pt-2 flex flex-wrap items-center justify-center gap-3">
+            <div className="relative pt-2 flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3">
               <Link
                 to="/shop"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#180f0a] text-white hover:bg-[#964735] transition-colors text-[13px] font-semibold shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-[#180f0a] text-white hover:bg-[#964735] transition-colors text-[13px] font-semibold shadow-md hover:shadow-lg active:translate-y-0.5 touch-target"
               >
                 <span>Browse Gifts</span>
                 <ArrowRight className="w-4 h-4" aria-hidden="true" />
               </Link>
               <Link
                 to="/gift-finder"
-                className="px-6 py-3 rounded-full bg-white border border-[#e5e2dd] text-[#180f0a] hover:bg-[#f6f3ee] hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-all text-[13px] font-semibold"
+                className="w-full sm:w-auto px-6 py-3 rounded-full bg-white border border-[#e5e2dd] text-[#180f0a] hover:bg-[#f6f3ee] hover:shadow-md active:translate-y-0 transition-all text-[13px] font-semibold touch-target text-center"
               >
                 Find a Gift
               </Link>
               <Link
                 to="/custom-gifts"
-                className="px-6 py-3 rounded-full bg-white border border-[#e5e2dd] text-[#180f0a] hover:bg-[#f6f3ee] hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-all text-[13px] font-semibold"
+                className="w-full sm:w-auto px-6 py-3 rounded-full bg-white border border-[#e5e2dd] text-[#180f0a] hover:bg-[#f6f3ee] hover:shadow-md active:translate-y-0 transition-all text-[13px] font-semibold touch-target text-center"
               >
                 Create a Custom Gift
               </Link>
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
             {/* Cart Items List (7 cols) */}
             <div ref={itemsRef} className="lg:col-span-7 space-y-4">
-              {/* Complimentary shipping progress — only when a real threshold
-                  is configured in store settings. */}
+              {/* Complimentary shipping progress */}
               {freeShippingThreshold && (
-                <div className="p-4 rounded-2xl bg-[#ffdad3]/40 border border-[#964735]/20 flex items-center gap-3">
+                <div data-cart-item className="p-4 rounded-2xl bg-[#ffdad3]/40 border border-[#964735]/20 flex items-center gap-3">
                   <Gift className="w-5 h-5 text-[#964735] shrink-0" aria-hidden="true" />
                   <p className="text-[13px] text-[#180f0a]">
                     {amountToFreeShipping === 0 ? (
@@ -163,13 +167,13 @@ export default function CartPage() {
               )}
 
               {/* Product lines */}
-              <div className="bg-white rounded-3xl p-4 sm:p-6 border border-[#e5e2dd] divide-y divide-[#e5e2dd] space-y-4">
+              <div className="bg-white rounded-3xl p-4 sm:p-6 border border-[#e5e2dd] divide-y divide-[#e5e2dd] space-y-0">
                 {productItems.map((item) => {
                   const idx = cart.indexOf(item);
                   return (
-                    <div key={`${item.id}-${item.palette || ''}-${item.ribbon || ''}-${idx}`} data-cart-item className="pt-4 first:pt-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                      <div className="flex items-center gap-4">
-                        <div className="w-20 h-20 rounded-2xl overflow-hidden bg-[#f6f3ee] shrink-0 border border-[#e5e2dd]">
+                    <div key={`${item.id}-${item.palette || ''}-${item.ribbon || ''}-${idx}`} data-cart-item className="py-4 first:pt-0 last:pb-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      <div className="flex items-center gap-4 min-w-0">
+                        <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-2xl overflow-hidden bg-[#f6f3ee] shrink-0 border border-[#e5e2dd]">
                           {item.image ? (
                             <img
                               loading="lazy"
@@ -178,21 +182,21 @@ export default function CartPage() {
                             <span className="w-full h-full flex items-center justify-center text-2xl" aria-hidden="true">🌸</span>
                           )}
                         </div>
-                        <div className="space-y-1">
+                        <div className="space-y-1 min-w-0">
                           <span className="text-[10px] uppercase font-bold tracking-widest text-[#80756f]">
                             {item.category}
                           </span>
-                          <h3 className="font-serif text-[17px] text-[#180f0a] font-medium leading-snug">
+                          <h3 className="font-serif text-[15px] sm:text-[17px] text-[#180f0a] font-medium leading-snug truncate">
                             {item.name}
                           </h3>
                           {item.palette && (
-                            <p className="text-[12px] text-[#4e4540]">Palette: {item.palette}</p>
+                            <p className="text-[11px] sm:text-[12px] text-[#4e4540] truncate">Palette: {item.palette}</p>
                           )}
                           {item.ribbon && (
-                            <p className="text-[12px] text-[#4e4540]">Ribbon: {item.ribbon}</p>
+                            <p className="text-[11px] sm:text-[12px] text-[#4e4540] truncate">Ribbon: {item.ribbon}</p>
                           )}
                           {item.giftMessage && (
-                            <p className="text-[11px] text-[#964735] italic break-words">
+                            <p className="text-[11px] text-[#964735] italic break-words line-clamp-1">
                               Card: &ldquo;{item.giftMessage}&rdquo;
                             </p>
                           )}
@@ -207,19 +211,19 @@ export default function CartPage() {
                         <div className="flex items-center justify-between px-2 py-1 rounded-full bg-[#f6f3ee] border border-[#e5e2dd] w-28">
                           <button
                             type="button"
-                            onClick={() => updateItemQuantity(idx, (item.quantity || 1) - 1)}
+                            onClick={() => { updateItemQuantity(idx, (item.quantity || 1) - 1); triggerQtyBump(idx); }}
                             disabled={(item.quantity || 1) <= 1}
                             aria-label={`Decrease quantity of ${item.name}`}
-                            className="w-7 h-7 flex items-center justify-center text-[16px] text-[#4e4540] hover:text-[#180f0a] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#180f0a] rounded-full disabled:opacity-30 disabled:cursor-not-allowed"
+                            className="w-9 h-9 flex items-center justify-center text-[16px] text-[#4e4540] hover:text-[#180f0a] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#180f0a] rounded-full disabled:opacity-30 disabled:cursor-not-allowed touch-target"
                           >
                             −
                           </button>
-                          <span className="text-[13px] font-semibold text-[#180f0a]" aria-live="polite">{item.quantity || 1}</span>
+                          <span className={`text-[13px] font-semibold text-[#180f0a] ${qtyAnim === idx ? 'fa-qty-bump' : ''}`} aria-live="polite">{item.quantity || 1}</span>
                           <button
                             type="button"
-                            onClick={() => updateItemQuantity(idx, (item.quantity || 1) + 1)}
+                            onClick={() => { updateItemQuantity(idx, (item.quantity || 1) + 1); triggerQtyBump(idx); }}
                             aria-label={`Increase quantity of ${item.name}`}
-                            className="w-7 h-7 flex items-center justify-center text-[16px] text-[#4e4540] hover:text-[#180f0a] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#180f0a] rounded-full"
+                            className="w-9 h-9 flex items-center justify-center text-[16px] text-[#4e4540] hover:text-[#180f0a] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#180f0a] rounded-full touch-target"
                           >
                             +
                           </button>
@@ -235,7 +239,7 @@ export default function CartPage() {
                           type="button"
                           onClick={() => removeItemFromCart(idx)}
                           aria-label={`Remove ${item.name} from bag`}
-                          className="text-[#80756f] hover:text-[#964735] p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#964735] rounded-full transition-colors"
+                          className="text-[#80756f] hover:text-[#964735] p-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#964735] rounded-full transition-colors touch-target"
                         >
                           <Trash2 className="w-4 h-4" aria-hidden="true" />
                         </button>
@@ -245,7 +249,7 @@ export default function CartPage() {
                 })}
               </div>
 
-              {/* Selected add-ons — real cart lines, carried through checkout */}
+              {/* Selected add-ons */}
               {addOnItems.length > 0 && (
                 <div data-cart-item className="bg-white rounded-3xl p-4 sm:p-6 border border-[#e5e2dd] space-y-3">
                   <p className="text-[11px] uppercase font-bold tracking-wider text-[#80756f]">Gift add-ons</p>
@@ -270,7 +274,7 @@ export default function CartPage() {
                             type="button"
                             onClick={() => removeItemFromCart(idx)}
                             aria-label={`Remove ${item.name} from bag`}
-                            className="text-[#80756f] hover:text-[#964735] p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#964735] rounded-full transition-colors"
+                            className="text-[#80756f] hover:text-[#964735] p-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#964735] rounded-full transition-colors touch-target"
                           >
                             <Trash2 className="w-4 h-4" aria-hidden="true" />
                           </button>
@@ -281,10 +285,9 @@ export default function CartPage() {
                 </div>
               )}
 
-              {/* Studio Packaging Add-on — toggles a real cart line so it survives
-                  checkout → order → admin order detail. */}
-              <div data-cart-item className="p-4 rounded-2xl bg-white border border-[#e5e2dd] flex items-center justify-between">
-                <div className="flex items-center gap-3">
+              {/* Studio Packaging Add-on */}
+              <div data-cart-item className="p-4 rounded-2xl bg-white border border-[#e5e2dd] flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
                   <input
                     type="checkbox"
                     id="studio-pine-casket"
@@ -301,9 +304,9 @@ export default function CartPage() {
                     }}
                     className="w-4 h-4 rounded text-[#964735] focus:ring-0 cursor-pointer"
                   />
-                  <label htmlFor="studio-pine-casket" className="cursor-pointer text-[13px]">
+                  <label htmlFor="studio-pine-casket" className="cursor-pointer text-[12px] sm:text-[13px] min-w-0">
                     <span className="font-semibold text-[#180f0a] block">Upgrade to Studio Pine Keepsake Casket (+₹{PACKAGING_ADD_ON.price})</span>
-                    <span className="text-[#80756f]">{PACKAGING_ADD_ON.description}</span>
+                    <span className="text-[#80756f] line-clamp-1">{PACKAGING_ADD_ON.description}</span>
                   </label>
                 </div>
                 <span className="text-[14px] font-bold text-[#180f0a] shrink-0">₹{PACKAGING_ADD_ON.price}</span>
@@ -312,12 +315,12 @@ export default function CartPage() {
 
             {/* Order Summary Col (5 cols) */}
             <div className="lg:col-span-5 space-y-6">
-              <div ref={summaryRef} className="bg-white rounded-3xl p-6 border border-[#e5e2dd] shadow-sm space-y-6 hover:shadow-md transition-shadow duration-300">
-                <h3 className="font-serif text-[22px] text-[#180f0a] border-b border-[#e5e2dd] pb-4">
+              <div ref={summaryRef} className="bg-white rounded-3xl p-5 sm:p-6 border border-[#e5e2dd] shadow-sm space-y-5">
+                <h3 className="font-serif text-[20px] sm:text-[22px] text-[#180f0a] border-b border-[#e5e2dd] pb-4">
                   Order Summary
                 </h3>
 
-                {/* Delivery information — from store settings only, never invented */}
+                {/* Delivery information */}
                 <div className="space-y-2">
                   <span className="block text-[11px] uppercase font-bold text-[#80756f]">
                     Delivery
@@ -332,7 +335,7 @@ export default function CartPage() {
                 </div>
 
                 {/* Cost Breakdown */}
-                <div className="space-y-3 text-[14px] text-[#4e4540] border-t border-[#e5e2dd] pt-4">
+                <div className="space-y-3 text-[13px] sm:text-[14px] text-[#4e4540] border-t border-[#e5e2dd] pt-4">
                   <div className="flex justify-between">
                     <span>Subtotal ({itemCount} item{itemCount === 1 ? '' : 's'})</span>
                     <span className="font-semibold text-[#180f0a]">₹{productSubtotal.toLocaleString('en-IN')}</span>
@@ -352,7 +355,7 @@ export default function CartPage() {
                       {shippingCost === 0 ? <span className="text-[#5b6d54]">Complimentary</span> : `₹${shippingCost.toLocaleString('en-IN')}`}
                     </span>
                   </div>
-                  <div className="flex justify-between border-t border-[#e5e2dd] pt-3 text-[18px] font-bold text-[#180f0a]">
+                  <div className="flex justify-between border-t border-[#e5e2dd] pt-3 text-[16px] sm:text-[18px] font-bold text-[#180f0a]">
                     <span>Total Amount</span>
                     <span>₹{grandTotal.toLocaleString('en-IN')}</span>
                   </div>
@@ -363,13 +366,13 @@ export default function CartPage() {
                 <button
                   type="button"
                   onClick={() => navigate('/checkout')}
-                  className="w-full py-4 rounded-full bg-[#180f0a] hover:bg-[#964735] text-white text-[13px] font-semibold tracking-wide flex items-center justify-center gap-2 shadow-md transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#964735] focus-visible:ring-offset-2"
+                  className="w-full py-4 rounded-full bg-[#180f0a] hover:bg-[#964735] text-white text-[13px] font-semibold tracking-wide flex items-center justify-center gap-2 shadow-md transition-all duration-200 hover:shadow-lg active:translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#964735] focus-visible:ring-offset-2 touch-target"
                 >
                   <ShoppingBag className="w-4 h-4" aria-hidden="true" />
                   <span>Proceed to Checkout · ₹{grandTotal.toLocaleString('en-IN')}</span>
                 </button>
 
-                <div className="text-center pt-2">
+                <div className="text-center pt-1">
                   <Link to="/shop" className="text-[12px] font-semibold text-[#964735] hover:underline">
                     ← Continue exploring the collection
                   </Link>

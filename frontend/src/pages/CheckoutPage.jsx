@@ -316,7 +316,7 @@ export default function CheckoutPage() {
       : `Standard Pan-India Dispatch (₹${settings?.standardShippingRate ?? 150})`);
 
   return (
-    <div ref={pageRef} className="w-full bg-[#fcf9f4] min-h-screen py-10 lg:py-16">
+    <div ref={pageRef} className="w-full bg-[#fcf9f4] min-h-screen py-8 lg:py-16">
       {/* Ambient glow orbs for spatial depth */}
       <div className="absolute top-0 right-0 w-96 h-96 rounded-full bg-[#ffdad3]/15 blur-3xl pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-80 h-80 rounded-full bg-[#d8e7cd]/10 blur-3xl pointer-events-none" />
@@ -326,13 +326,13 @@ export default function CheckoutPage() {
           <span className="text-[11px] uppercase font-bold tracking-widest text-[#964735]">
             Secure Checkout
           </span>
-          <h1 className="font-serif text-[36px] sm:text-[42px] text-[#180f0a] font-normal tracking-tight">
+          <h1 className="font-serif text-[28px] sm:text-[36px] lg:text-[42px] text-[#180f0a] font-normal tracking-tight leading-tight">
             {step === 0 ? 'Your Account' : step === 1 ? 'Delivery Details' : step === 2 ? 'Payment Method' : 'Review & Place Order'}
           </h1>
         </div>
 
         {/* Checkout Progress */}
-        <div className="flex items-center gap-2 sm:gap-3 mb-10 max-w-3xl overflow-x-auto pb-1">
+        <div className="flex items-center gap-2 sm:gap-3 mb-8 lg:mb-10 max-w-3xl overflow-x-auto pb-1 scrollbar-none">
           {STEPS.map((label, i) => {
             const done = i < step;
             const current = i === step;
@@ -344,7 +344,7 @@ export default function CheckoutPage() {
                   }`}>
                     {done && !current ? '✓' : i + 1}
                   </span>
-                  <span className={`text-[12px] font-semibold ${current ? 'text-[#180f0a]' : done ? 'text-[#180f0a]' : 'text-[#80756f]'}`}>{label}</span>
+                  <span className={`text-[11px] sm:text-[12px] font-semibold ${current ? 'text-[#180f0a]' : done ? 'text-[#180f0a]' : 'text-[#80756f]'}`}>{label}</span>
                 </div>
                 {i < STEPS.length - 1 && <span className="w-6 h-px bg-[#e5e2dd]" />}
               </div>
@@ -366,18 +366,16 @@ export default function CheckoutPage() {
                 bring you right back here.
               </p>
             </div>
-            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Link
-                to="/login?redirect=/checkout"
-                className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-[#180f0a] hover:bg-[#964735] text-white text-[13px] font-semibold flex items-center justify-center gap-2 shadow-md transition-colors"
-              >
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">                  <Link
+                    to="/login?redirect=/checkout"
+                    className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-[#180f0a] hover:bg-[#964735] text-white text-[13px] font-semibold flex items-center justify-center gap-2 shadow-md transition-colors touch-target"
+                  >
                 Sign In
                 <ArrowRight className="w-4 h-4" />
-              </Link>
-              <Link
-                to="/login?mode=register&redirect=/checkout"
-                className="w-full sm:w-auto px-8 py-3.5 rounded-full border border-[#e5e2dd] text-[#180f0a] hover:bg-[#f6f3ee] text-[13px] font-semibold transition-colors"
-              >
+              </Link>                  <Link
+                    to="/login?mode=register&redirect=/checkout"
+                    className="w-full sm:w-auto px-8 py-3.5 rounded-full border border-[#e5e2dd] text-[#180f0a] hover:bg-[#f6f3ee] text-[13px] font-semibold transition-colors touch-target"
+                  >
                 Create Account
               </Link>
             </div>
@@ -438,12 +436,11 @@ export default function CheckoutPage() {
                     <div className="flex items-center justify-between border-t border-[#e5e2dd] pt-5">
                       <Link to="/cart" className="text-[12px] font-semibold text-[#964735] hover:underline">
                         ← Back to Cart
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={goToDelivery}
-                        className="px-8 py-3.5 rounded-full bg-[#180f0a] hover:bg-[#964735] text-white text-[13px] font-semibold flex items-center gap-2 shadow-md transition-colors"
-                      >
+                      </Link>                        <button
+                          type="button"
+                          onClick={goToDelivery}
+                          className="px-8 py-3.5 rounded-full bg-[#180f0a] hover:bg-[#964735] text-white text-[13px] font-semibold flex items-center gap-2 shadow-md transition-colors touch-target"
+                        >
                         Continue to Delivery
                         <ArrowRight className="w-4 h-4" />
                       </button>
@@ -658,19 +655,18 @@ export default function CheckoutPage() {
                     </div>
 
                     {/* Delivery step actions */}
-                    <div className="flex items-center justify-between">
-                      <button
-                        type="button"
-                        onClick={() => setStep(0)}
-                        className="inline-flex items-center gap-2 px-5 py-3 rounded-full border border-[#e5e2dd] text-[#180f0a] hover:bg-[#f6f3ee] text-[13px] font-semibold transition-colors"
-                      >
+                    <div className="flex items-center justify-between">                        <button
+                          type="button"
+                          onClick={() => setStep(0)}
+                          className="inline-flex items-center gap-2 px-5 py-3 rounded-full border border-[#e5e2dd] text-[#180f0a] hover:bg-[#f6f3ee] text-[13px] font-semibold transition-colors touch-target"
+                        >
                         <ArrowLeft className="w-4 h-4" />
                         Back
                       </button>
                       <button
                         type="button"
                         onClick={continueToPayment}
-                        className="px-8 py-3.5 rounded-full bg-[#180f0a] hover:bg-[#964735] text-white text-[13px] font-semibold flex items-center gap-2 shadow-md transition-colors"
+                        className="px-8 py-3.5 rounded-full bg-[#180f0a] hover:bg-[#964735] text-white text-[13px] font-semibold flex items-center gap-2 shadow-md transition-colors touch-target"
                       >
                         Continue to Payment
                         <ArrowRight className="w-4 h-4" />
@@ -787,19 +783,18 @@ export default function CheckoutPage() {
                       )}
                     </div>
 
-                    <div className="flex items-center justify-between">
-                      <button
-                        type="button"
-                        onClick={() => setStep(1)}
-                        className="inline-flex items-center gap-2 px-5 py-3 rounded-full border border-[#e5e2dd] text-[#180f0a] hover:bg-[#f6f3ee] text-[13px] font-semibold transition-colors"
-                      >
+                    <div className="flex items-center justify-between">                        <button
+                          type="button"
+                          onClick={() => setStep(1)}
+                          className="inline-flex items-center gap-2 px-5 py-3 rounded-full border border-[#e5e2dd] text-[#180f0a] hover:bg-[#f6f3ee] text-[13px] font-semibold transition-colors touch-target"
+                        >
                         <ArrowLeft className="w-4 h-4" />
                         Back to Delivery
                       </button>
                       <button
                         type="button"
                         onClick={() => setStep(3)}
-                        className="px-8 py-3.5 rounded-full bg-[#180f0a] hover:bg-[#964735] text-white text-[13px] font-semibold flex items-center gap-2 shadow-md transition-colors"
+                        className="px-8 py-3.5 rounded-full bg-[#180f0a] hover:bg-[#964735] text-white text-[13px] font-semibold flex items-center gap-2 shadow-md transition-colors touch-target"
                       >
                         Continue to Review
                         <ArrowRight className="w-4 h-4" />

@@ -206,7 +206,7 @@ export default function CustomGiftsPage() {
   return (
     <div className="w-full bg-[#fcf9f4] min-h-screen">
       {/* ═══ EDITORIAL HERO ═══ */}
-      <div ref={heroRef} className="relative overflow-hidden pt-10 lg:pt-16 pb-8 lg:pb-12" style={{ perspective: '1200px' }}>
+      <div ref={heroRef} className="relative overflow-hidden pt-8 lg:pt-16 pb-6 lg:pb-12" style={{ perspective: '1200px' }}>
         <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full bg-[#ffdad3]/20 blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 -left-16 w-64 h-64 rounded-full bg-[#d8e7cd]/15 blur-3xl pointer-events-none" />
 
@@ -216,10 +216,10 @@ export default function CustomGiftsPage() {
               <Sparkles className="w-3.5 h-3.5" />
               <span>Custom Gift Studio</span>
             </div>
-            <h1 className="font-serif text-[38px] sm:text-[52px] lg:text-[60px] text-[#180f0a] tracking-tight font-normal leading-[1.1]">
+            <h1 className="font-serif text-[30px] sm:text-[38px] md:text-[52px] lg:text-[60px] text-[#180f0a] tracking-tight font-normal leading-[1.1]">
               Build a Gift, Your Way
             </h1>
-            <p className="text-[15px] sm:text-[16px] text-[#4e4540] max-w-xl mx-auto leading-relaxed">
+            <p className="text-[14px] sm:text-[15px] text-[#4e4540] max-w-xl mx-auto leading-relaxed">
               Choose an occasion, pick your flowers, colors and wrapping — then add a personal message. Our artisans handcraft it to order.
             </p>
           </div>
@@ -228,7 +228,7 @@ export default function CustomGiftsPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
         {/* Step Indicator */}
-        <div className="max-w-3xl mx-auto mb-8 flex items-center gap-1 sm:gap-2 overflow-x-auto pb-1 scrollbar-hide">
+        <div className="max-w-3xl mx-auto mb-6 lg:mb-8 flex items-center gap-1 sm:gap-2 overflow-x-auto pb-1 scrollbar-none">
           {STEPS.map((s, i) => (
             <button
               key={s.id}
@@ -255,7 +255,7 @@ export default function CustomGiftsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Active Step Panel */}
           <div className="lg:col-span-7">
-            <div ref={stepPanelRef} className="bg-white rounded-3xl border border-[#e5e2dd] p-5 sm:p-8 shadow-sm">
+            <div ref={stepPanelRef} className="bg-white rounded-3xl border border-[#e5e2dd] p-4 sm:p-6 lg:p-8 shadow-sm">
               {/* STEP 0: Occasion */}
               {step === 0 && (
                 <div className="space-y-5">
@@ -491,11 +491,11 @@ export default function CustomGiftsPage() {
               )}
 
               {/* Nav Buttons */}
-              <div className="flex items-center justify-between gap-3 pt-6 mt-6 border-t border-[#e5e2dd]">
+              <div className="flex items-center justify-between gap-3 pt-5 mt-5 border-t border-[#e5e2dd]">
                 <button
                   type="button"
                   onClick={goBack}
-                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full border border-[#e5e2dd] text-[#4e4540] text-[13px] font-semibold hover:bg-[#f6f3ee] transition-colors"
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full border border-[#e5e2dd] text-[#4e4540] text-[13px] font-semibold hover:bg-[#f6f3ee] transition-colors touch-target"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   {step === 0 ? 'Back to Collections' : 'Back'}
@@ -506,7 +506,7 @@ export default function CustomGiftsPage() {
                     type="button"
                     onClick={goNext}
                     disabled={!stepValid()}
-                    className="inline-flex items-center gap-1.5 px-6 py-2.5 rounded-full bg-[#180f0a] text-white text-[13px] font-semibold hover:bg-[#964735] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="inline-flex items-center gap-1.5 px-6 py-2.5 rounded-full bg-[#180f0a] text-white text-[13px] font-semibold hover:bg-[#964735] transition-colors disabled:opacity-40 disabled:cursor-not-allowed touch-target"
                   >
                     Continue
                     <ArrowRight className="w-4 h-4" />
@@ -515,7 +515,7 @@ export default function CustomGiftsPage() {
                   <button
                     type="button"
                     onClick={handleAddToCart}
-                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#964735] text-white text-[13px] font-semibold hover:bg-[#180f0a] transition-colors shadow-md"
+                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#964735] text-white text-[13px] font-semibold hover:bg-[#180f0a] transition-colors shadow-md touch-target"
                   >
                     <ShoppingBag className="w-4 h-4" />
                     Add to Bag · ₹{totalPrice.toLocaleString('en-IN')}
@@ -525,8 +525,8 @@ export default function CustomGiftsPage() {
             </div>
           </div>
 
-          {/* Sticky Live Summary */}
-          <div className="lg:col-span-5 sticky top-24 space-y-6">
+          {/* Sticky Live Summary — below step panel on mobile, sticky on desktop */}
+          <div className="lg:col-span-5 lg:sticky lg:top-24 space-y-6 order-first lg:order-last">
             <div className="bg-white rounded-3xl p-6 border border-[#e5e2dd] shadow-lg space-y-5">
               <div className="flex items-center justify-between border-b border-[#e5e2dd] pb-4">
                 <div>
