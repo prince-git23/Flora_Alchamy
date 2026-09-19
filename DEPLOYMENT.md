@@ -87,8 +87,8 @@
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/prince-git23/Flora_Alchamy.git
-cd Flora_Alchamy/backend
+git clone https://github.com/prince-git23/Flora_Alchemy.git
+cd Flora_Alchemy/backend
 
 # 2. Install dependencies
 npm ci

@@ -78,27 +78,7 @@ html {
    EDITORIAL ANIMATION KEYFRAMES — Phase 16.2
    ═══════════════════════════════════════════════════ */
 
-/* Hero entrance sequence keyframes */
-@keyframes fa-hero-badge {
-  from { opacity: 0; transform: translateY(12px) scale(0.95); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-@keyframes fa-hero-headline {
-  from { opacity: 0; transform: translateY(24px); clip-path: inset(0 0 100% 0); }
-  to { opacity: 1; transform: translateY(0); clip-path: inset(0 0 0% 0); }
-}
-@keyframes fa-hero-sub {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes fa-hero-cta {
-  from { opacity: 0; transform: translateY(12px) scale(0.96); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-@keyframes fa-hero-image {
-  from { opacity: 0; transform: scale(1.08); clip-path: inset(4% 4% 4% 4% round 24px); }
-  to { opacity: 1; transform: scale(1); clip-path: inset(0% 0% 0% 0% round 24px); }
-}
+/* Floating botanical animations */
 @keyframes fa-float-slow {
   0%, 100% { transform: translateY(0) rotate(0deg); }
   50% { transform: translateY(-8px) rotate(2deg); }
@@ -127,47 +107,7 @@ html {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Scroll-story reveal variants — avoid repetitive opacity: 0 → 1 */
-@keyframes fa-reveal-up {
-  from { opacity: 0; transform: translateY(40px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes fa-reveal-left {
-  from { opacity: 0; transform: translateX(-40px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-@keyframes fa-reveal-right {
-  from { opacity: 0; transform: translateX(40px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-@keyframes fa-reveal-scale {
-  from { opacity: 0; transform: scale(0.92); }
-  to { opacity: 1; transform: scale(1); }
-}
-@keyframes fa-reveal-mask {
-  from { clip-path: inset(0 100% 0 0); }
-  to { clip-path: inset(0 0% 0 0); }
-}
-@keyframes fa-reveal-climb {
-  from { opacity: 0; transform: translateY(60px) scale(0.96); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-/* Image mask wipe for editorial */
-@keyframes fa-image-reveal {
-  from { clip-path: polygon(0 0, 0 0, 0 100%, 0 100%); }
-  to { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
-}
-
-/* Soft entrance motion for various components */
-@keyframes fa-fade-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.fa-fade-in {
-  animation: fa-fade-in 320ms ease-out both;
-}
-
+/* Soft entrance motion */
 @keyframes slideInRight {
   from { transform: translateX(100%); }
   to { transform: translateX(0); }
@@ -176,14 +116,7 @@ html {
   animation: slideInRight 0.25s ease-out forwards;
 }
 
-/* ═══════════════════════════════════════════════════
-   HERO ANIMATION UTILITIES — apply via Tailwind
-   ═══════════════════════════════════════════════════ */
-.fa-hero-badge       { animation: fa-hero-badge 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both; }
-.fa-hero-headline    { animation: fa-hero-headline 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both; }
-.fa-hero-sub         { animation: fa-hero-sub 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.6s both; }
-.fa-hero-cta         { animation: fa-hero-cta 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.8s both; }
-.fa-hero-image       { animation: fa-hero-image 1s cubic-bezier(0.22, 1, 0.36, 1) 0.2s both; }
+/* Floating botanical animations */
 .fa-float-slow       { animation: fa-float-slow 6s ease-in-out infinite; }
 .fa-float-subtle     { animation: fa-float-subtle 4s ease-in-out infinite; }
 .fa-drift            { animation: fa-drift 8s ease-in-out infinite; }
@@ -192,14 +125,7 @@ html {
 .fa-drawer-backdrop  { animation: fa-drawer-backdrop 0.25s ease-out both; }
 .fa-drawer-slide     { animation: fa-drawer-slide 0.3s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
-/* Scroll-story utilities — staggered via animation-delay in inline styles */
-.fa-reveal-up        { animation: fa-reveal-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
-.fa-reveal-left      { animation: fa-reveal-left 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
-.fa-reveal-right     { animation: fa-reveal-right 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
-.fa-reveal-scale     { animation: fa-reveal-scale 0.8s cubic-bezier(0.22, 1, 0.36, 1) both; }
-.fa-reveal-mask      { animation: fa-reveal-mask 0.9s cubic-bezier(0.22, 1, 0.36, 1) both; }
-.fa-reveal-climb     { animation: fa-reveal-climb 0.8s cubic-bezier(0.22, 1, 0.36, 1) both; }
-.fa-image-reveal     { animation: fa-image-reveal 1s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
 
 /* ═══════════════════════════════════════════════════
    REDUCED MOTION — disable all decorative animation
@@ -211,29 +137,16 @@ html {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-  .fa-fade-in,
   .animate-slide-in,
-  .fa-hero-badge,
-  .fa-hero-headline,
-  .fa-hero-sub,
-  .fa-hero-cta,
-  .fa-hero-image,
   .fa-float-slow,
   .fa-float-subtle,
   .fa-drift,
   .fa-drawer-backdrop,
   .fa-drawer-slide,
-  .fa-reveal-up,
-  .fa-reveal-left,
-  .fa-reveal-right,
-  .fa-reveal-scale,
-  .fa-reveal-mask,
-  .fa-reveal-climb,
-  .fa-image-reveal {
+  .fa-drawer-link {
     animation: none;
     opacity: 1;
     transform: none;
-    clip-path: none;
   }
 }
 
@@ -247,17 +160,7 @@ html {
               backdrop-filter 0.3s ease;
 }
 
-/* ═══════════════════════════════════════════════════
-   EDITORIAL IMAGE MASK CLIP PATHS
-   ═══════════════════════════════════════════════════ */
-.fa-clip-editorial {
-  clip-path: polygon(0 0, 100% 0, 100% 92%, 0 100%);
-}
-@media (min-width: 1024px) {
-  .fa-clip-editorial-lg {
-    clip-path: polygon(0 0, 100% 0, 100% 94%, 0 100%);
-  }
-}
+
 
 /* ═══════════════════════════════════════════════════
    PRODUCT CARD DEPTH — Phase 16.3
@@ -298,6 +201,9 @@ html {
   animation: fa-gallery-crossfade 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+
+
+
 /* Thumbnail active ring pulse */
 @keyframes fa-thumb-pulse {
   0% { box-shadow: 0 0 0 0 rgba(150, 71, 53, 0.3); }
@@ -308,30 +214,13 @@ html {
   animation: fa-thumb-pulse 0.8s ease-out 1;
 }
 
-/* ═══════════════════════════════════════════════════
-   SEARCH OVERLAY MOBILE — Phase 16.3
-   ═══════════════════════════════════════════════════ */
-@keyframes fa-search-slide-up {
-  from { transform: translateY(20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+/* Tracking timeline dot pulse */
+@keyframes fa-tracker-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(150, 71, 53, 0.4); }
+  50% { box-shadow: 0 0 0 6px rgba(150, 71, 53, 0); }
 }
-.fa-search-slide-up {
-  animation: fa-search-slide-up 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-/* ═══════════════════════════════════════════════════
-   SHOPPING SCROLL STORY — Phase 16.3
-   ═══════════════════════════════════════════════════ */
-@keyframes fa-shop-reveal {
-  from { opacity: 0; transform: translateY(32px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-@keyframes fa-shop-stagger {
-  from { opacity: 0; transform: translateY(24px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.fa-shop-reveal {
-  animation: fa-shop-reveal 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+.fa-tracker-pulse {
+  animation: fa-tracker-pulse 2s ease-in-out infinite;
 }
 
 /* ═══════════════════════════════════════════════════
@@ -366,15 +255,10 @@ html {
   .fa-img-reveal,
   .fa-gallery-crossfade,
   .fa-thumb-active,
-  .fa-search-slide-up,
-  .fa-shop-reveal,
   .fa-atc-success,
   .fa-wishlist-pop,
-  .fa-progress-grow,
-  .fa-cart-collapse,
   .fa-success-celebrate,
   .fa-tracker-pulse,
-  .fa-step-slide,
   .fa-qty-bump {
     animation: none;
     transition-duration: 0.01ms;
@@ -382,30 +266,6 @@ html {
   .fa-card-depth:hover {
     transform: none;
   }
-}
-
-/* ═══════════════════════════════════════════════════
-   CONVERSION PAGE UTILITIES — Phase 16.4
-   ═══════════════════════════════════════════════════ */
-
-/* Step progress bar growth */
-@keyframes fa-progress-grow {
-  from { transform: scaleX(0); }
-  to { transform: scaleX(1); }
-}
-.fa-progress-grow {
-  transform-origin: left;
-  animation: fa-progress-grow 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-/* Cart item removal animation */
-@keyframes fa-cart-collapse {
-  from { opacity: 1; max-height: 300px; transform: translateY(0); }
-  to { opacity: 0; max-height: 0; transform: translateY(-12px); padding: 0; margin: 0; }
-}
-.fa-cart-collapse {
-  animation: fa-cart-collapse 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-  overflow: hidden;
 }
 
 /* Order success celebration — restrained scale-in */
@@ -416,24 +276,6 @@ html {
 }
 .fa-success-celebrate {
   animation: fa-success-celebrate 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-/* Tracking timeline dot pulse */
-@keyframes fa-tracker-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(150, 71, 53, 0.4); }
-  50% { box-shadow: 0 0 0 6px rgba(150, 71, 53, 0); }
-}
-.fa-tracker-pulse {
-  animation: fa-tracker-pulse 2s ease-in-out infinite;
-}
-
-/* Checkout step transition */
-@keyframes fa-step-slide {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.fa-step-slide {
-  animation: fa-step-slide 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 /* Quantity number transition */

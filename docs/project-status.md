@@ -1,11 +1,11 @@
 # Flora Alchemy — Project Status
 
-**Last Updated:** September 14, 2026 (Phase 16 — Test Completion & Full-Stack QA)
+**Last Updated:** September 19, 2026 (Phase 17 — Repository Cleanup)
 
 ## Current Architecture
 
 ```
-Flora_Alchamy/
+Flora_Alchemy/
 ├── frontend/          ← React/Vite application
 │   ├── src/
 │   │   ├── components/    (14 components)
@@ -93,7 +93,7 @@ Flora_Alchamy/
 - ✅ Entry points: Order Success, Account, Tracking
 
 ### Testing
-- ✅ API smoke tests (119 assertions)
+- ✅ API smoke tests (120 assertions)
 - ✅ Payment lifecycle tests (45 tests)
 - ✅ Conversation tests (34 tests)
 - ✅ Custom gift pricing tests (22 tests)
@@ -139,11 +139,12 @@ stays contained in its own server process.
 | Payment (mock Razorpay) | `npm run test:payment` | 45 |
 | Conversation | `npm run test:conversation` | 34 |
 | Security | `npm run test:security` | 56 |
-| **Full run** | **`npm test`** | **333** |
+| Production | `npm run test:production` | 34 |
+| **Full run** | **`npm test`** | **367** |
 
 Shared bootstrap: `backend/scripts/lib/testServer.mjs`. Orchestrator:
 `backend/scripts/run-all.mjs` (fixed order Pricing → API → Integration →
-Payment → Conversation → Security; non-zero exit on any failure).
+Payment → Conversation → Security → Production; non-zero exit on any failure).
 `npm run test:razorpay-real` auto-skips (exit 0) without real rzp_test_* keys.
 
 ## Production Readiness
@@ -163,12 +164,11 @@ Payment → Conversation → Security; non-zero exit on any failure).
 - ✅ Rate limiting (failed-login, register, payments, uploads, webhooks)
 - ✅ Security headers (Helmet CSP/HSTS) + CORS allowlist
 - ✅ Operator status management (suspension enforced server-side)
-- ✅ Automated test suite: 333 assertions, isolated per-suite databases
+- ✅ Automated test suite: 367 assertions, isolated per-suite databases
 
 ### Not Ready
-- ❌ Production deployment config
 - ❌ Structured logging
-- ❌ Monitoring/health checks
+- ❌ Monitoring/health checks (beyond health/readiness endpoints)
 - ❌ Real payment verification (needs rzp_test_* credentials — EXTERNAL)
 
 ## External Dependencies

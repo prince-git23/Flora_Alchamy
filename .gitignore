@@ -19,6 +19,9 @@ build/
 # MongoDB local data
 .mongo-data/
 
+# IDE metadata
+.kilo/
+
 # Vite cache
 .vite/
 

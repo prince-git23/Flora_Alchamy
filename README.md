@@ -5,7 +5,7 @@ Handcrafted botanical keepsakes, personalized gifts, and floral art boutique —
 ## Architecture
 
 ```
-Flora_Alchamy/
+Flora_Alchemy/
 ├── frontend/          ← React/Vite application
 ├── backend/           ← Express/MongoDB API
 ├── .freebuff/         ← development tooling
@@ -110,11 +110,12 @@ All business data is server-authoritative. Client prices are never trusted for o
 
 ```bash
 cd backend
-npm run test:api         # 119 API smoke tests
+npm run test:api         # 120 API smoke tests
+npm run test:integration  # 56 integration tests
 npm run test:payment     # 45 payment lifecycle tests
 npm run test:conversation # 34 conversation tests
 npm run test:pricing     # 22 custom gift pricing tests
-npm test                 # Run all four suites
+npm test                 # Run all suites (367 assertions)
 ```
 
 ## Canonical Order Lifecycle
